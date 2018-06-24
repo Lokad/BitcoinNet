@@ -125,8 +125,8 @@ publish/
 # NuGet Packages Directory
 packages/
 *.nupkg
-NBitcoin.Mono.nuspec
-NBitcoin.nuspec
+BitcoinNet.Mono.nuspec
+BitcoinNet.nuspec
 
 ## TODO: If the tool you use requires repositories.config uncomment the next line
 #!packages/repositories.config
@@ -177,17 +177,17 @@ UpgradeLog*.htm
 # Microsoft Fakes
 FakesAssemblies/
 /.vs/config/applicationhost.config
-/NBitcoin.Portable/NBitcoin(MonoAndroid).csproj.bak
-/NBitcoin.Portable/NBitcoin(Mono).csproj.bak
+/BitcoinNet.Portable/BitcoinNet(MonoAndroid).csproj.bak
+/BitcoinNet.Portable/BitcoinNet(Mono).csproj.bak
 
 # .NET Core projects
 .vs/
 project.lock.json
 .vscode/
-/NBitcoin.Tests/CanStoreInBlockRepository-Headers/StoreLock
-/NBitcoin.Tests/addrmancache.dat
-/NBitcoin.Tests/CanStoreBlocks/StoreLock
-/NBitcoin.Tests/libbitcoinconsensus-0.dll
+/BitcoinNet.Tests/CanStoreInBlockRepository-Headers/StoreLock
+/BitcoinNet.Tests/addrmancache.dat
+/BitcoinNet.Tests/CanStoreBlocks/StoreLock
+/BitcoinNet.Tests/libbitcoinconsensus-0.dll
 *.zip
 /dotnet-tpl35/
 /dotnet-tpl35
