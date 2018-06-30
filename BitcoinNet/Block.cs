@@ -44,17 +44,9 @@ namespace BitcoinNet
 			if(consensusFactory == null)
 				throw new ArgumentNullException(nameof(consensusFactory));
 			return new BlockHeader(Encoders.Hex.DecodeData(hex), consensusFactory);
-		}
+		}		
 
-
-		[Obsolete("Use Parse(string hex, Network|Consensus|ConsensusFactory) instead")]
-		public static BlockHeader Parse(string hex)
-		{
-			return Parse(hex, Consensus.Main.ConsensusFactory);
-		}
-
-		[Obsolete("You should instantiate BlockHeader from ConsensusFactory.CreateBlockHeader")]
-		public BlockHeader()
+		protected internal BlockHeader()
 		{
 			SetNull();
 		}
@@ -83,15 +75,7 @@ namespace BitcoinNet
 			};
 			this.ReadWrite(bs);
 		}
-
-		[Obsolete("Use new BlockHeader(string hex, Network|Consensus|ConsensusFactory) instead")]
-		public BlockHeader(string hex)
-			: this(Encoders.Hex.DecodeData(hex))
-		{
-
-		}
-
-
+		
 		public BlockHeader(byte[] data, Network network)
 			: this(data, network?.Consensus?.ConsensusFactory ?? throw new ArgumentNullException(nameof(network)))
 		{
@@ -116,14 +100,6 @@ namespace BitcoinNet
 			};
 			this.ReadWrite(bs);
 		}
-
-
-		[Obsolete("Use new BlockHeader(byte[] hex, Network|Consensus|ConsensusFactory) instead")]
-		public BlockHeader(byte[] bytes)
-		{
-			this.ReadWrite(bytes);
-		}
-
 
 		// header
 		const int CURRENT_VERSION = 3;
@@ -261,14 +237,6 @@ namespace BitcoinNet
 			return h;
 		}
 
-
-
-		[Obsolete("Call PrecomputeHash(true, true) instead")]
-		public void CacheHashes()
-		{
-			PrecomputeHash(true, true);
-		}
-
 		/// <summary>
 		/// Precompute the block header hash so that later calls to GetHash() will returns the precomputed hash
 		/// </summary>
@@ -305,13 +273,6 @@ namespace BitcoinNet
 			// Check proof of work matches claimed amount
 			return GetPoWHash() <= Bits.ToUInt256();
 		}
-
-		[Obsolete]
-		public bool CheckProofOfWork(Consensus consensus)
-		{
-			return CheckProofOfWork();
-		}
-
 
 		public override string ToString()
 		{
@@ -415,42 +376,13 @@ namespace BitcoinNet
 		{
 		}
 
-		[Obsolete("Should use ConsensusFactories")]
-		public Block(BlockHeader blockHeader)
+		protected internal Block(BlockHeader blockHeader)
 		{
 			if(blockHeader == null)
 				throw new ArgumentNullException(nameof(blockHeader));
 			SetNull();
 			header = blockHeader;
 		}
-
-		[Obsolete("Should use Block.Load outside of ConsensusFactories")]
-		public Block(byte[] bytes, Network network) : this(bytes, network.Consensus.ConsensusFactory)
-		{
-
-		}
-
-		[Obsolete("Should use Block.Load outside of ConsensusFactories")]
-		public Block(byte[] bytes, Consensus consensus) : this(bytes, consensus.ConsensusFactory)
-		{
-
-		}
-
-		[Obsolete("Should use Block.Load outside of ConsensusFactories")]
-		public Block(byte[] bytes, ConsensusFactory consensusFactory)
-		{
-			BitcoinStream stream = new BitcoinStream(bytes)
-			{
-				ConsensusFactory = consensusFactory
-			};
-			ReadWrite(stream);
-		}
-
-		[Obsolete("Should use Block.Load outside of ConsensusFactories")]
-		public Block(byte[] bytes) : this(bytes, Consensus.Main.ConsensusFactory)
-		{
-		}
-
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -548,25 +480,9 @@ namespace BitcoinNet
 			return CheckMerkleRoot() && Header.CheckProofOfWork();
 		}
 
-		/// <summary>
-		/// Check proof of work and merkle root
-		/// </summary>
-		/// <param name="consensus"></param>
-		/// <returns></returns>
-		[Obsolete("Use Check() instead")]
-		public bool Check(Consensus consensus)
-		{
-			return Check();
-		}
-
 		public bool CheckProofOfWork()
 		{
 			return Header.CheckProofOfWork();
-		}
-		[Obsolete("Use CheckProofOfWork() instead")]
-		public bool CheckProofOfWork(Consensus consensus)
-		{
-			return CheckProofOfWork();
 		}
 
 		public bool CheckMerkleRoot()
@@ -624,39 +540,6 @@ namespace BitcoinNet
 			return CreateNextBlockWithCoinbase(pubkey, value, DateTimeOffset.UtcNow, consensusFactory);
 		}
 
-		[Obsolete("Use CreateNextBlockWithCoinbase with consensusFactory instead")]
-		public Block CreateNextBlockWithCoinbase(PubKey pubkey, Money value)
-		{
-			return CreateNextBlockWithCoinbase(pubkey, value, DateTimeOffset.UtcNow, Consensus.Main.ConsensusFactory);
-		}
-
-		[Obsolete("Use CreateNextBlockWithCoinbase with consensusFactory instead")]
-		public Block CreateNextBlockWithCoinbase(PubKey pubkey, Money value, DateTimeOffset now)
-		{
-			return CreateNextBlockWithCoinbase(pubkey, value, now, Consensus.Main.ConsensusFactory);
-		}
-
-#if !NOJSONNET
-		[Obsolete("Always use an hex encoded version of the block instead")]
-		public static Block ParseJson(string json)
-		{
-			var formatter = new BlockExplorerFormatter();
-			var block = JObject.Parse(json);
-			var txs = (JArray)block["tx"];
-			Block blk = new Block();
-			blk.Header.Bits = new Target((uint)block["bits"]);
-			blk.Header.BlockTime = Utils.UnixTimeToDateTime((uint)block["time"]);
-			blk.Header.Nonce = (uint)block["nonce"];
-			blk.Header.Version = (int)block["ver"];
-			blk.Header.HashPrevBlock = uint256.Parse((string)block["prev_block"]);
-			blk.Header.HashMerkleRoot = uint256.Parse((string)block["mrkl_root"]);
-			foreach(var tx in txs)
-			{
-				blk.AddTransaction(formatter.Parse((JObject)tx));
-			}
-			return blk;
-		}
-#endif
 		public static Block Parse(string hex, Network network)
 		{
 			if(network == null)
@@ -708,13 +591,7 @@ namespace BitcoinNet
 			block.ReadWrite(hex);
 			return block;
 		}
-
-		[Obsolete("Use Parse(byte[], Network|Consensus|ConsensusFactory)")]
-		public static Block Parse(string hex)
-		{
-			return Parse(hex, Consensus.Main.ConsensusFactory);
-		}
-
+		
 		public MerkleBlock Filter(params uint256[] txIds)
 		{
 			return new MerkleBlock(this, txIds);

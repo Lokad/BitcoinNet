@@ -593,24 +593,6 @@ namespace BitcoinNet
 			}
 		}
 
-		[Obsolete("Use Transaction.GetSignatureHash(ICoin coin, SigHash nHashType = SigHash.All) instead")]
-		public static uint256 SignatureHash(ICoin coin, Transaction txTo, SigHash nHashType = SigHash.All)
-		{
-			return txTo.GetSignatureHash(coin, nHashType);
-		}
-
-		[Obsolete("Use Transaction.GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, Money amount = null, HashVersion sigversion = HashVersion.Original) instead")]
-		public static uint256 SignatureHash(Script scriptCode, Transaction txTo, int nIn, SigHash nHashType, Money amount = null, HashVersion sigversion = HashVersion.Original)
-		{
-			return txTo.GetSignatureHash(scriptCode, nIn, nHashType, amount, sigversion, null);
-		}
-
-		[Obsolete("Use Transaction.GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, Money amount, HashVersion sigversion, PrecomputedTransactionData precomputedTransactionData) instead")]
-		public static uint256 SignatureHash(Script scriptCode, Transaction txTo, int nIn, SigHash nHashType, Money amount, HashVersion sigversion, PrecomputedTransactionData precomputedTransactionData)
-		{
-			return txTo.GetSignatureHash(scriptCode, nIn, nHashType, amount, sigversion, precomputedTransactionData);
-		}
-
 		public static Script operator +(Script a, IEnumerable<byte> bytes)
 		{
 			if(a == null)
@@ -787,32 +769,11 @@ namespace BitcoinNet
 		/// Get script byte array
 		/// </summary>
 		/// <returns></returns>
-		[Obsolete("Use ToBytes instead")]
-		public byte[] ToRawScript()
-		{
-			return ToBytes(false);
-		}
-
-		/// <summary>
-		/// Get script byte array
-		/// </summary>
-		/// <returns></returns>
 		public byte[] ToBytes()
 		{
 			return ToBytes(false);
 		}
-
-		/// <summary>
-		/// Get script byte array
-		/// </summary>
-		/// <param name="unsafe">if false, returns a copy of the internal byte array</param>
-		/// <returns></returns>
-		[Obsolete("Use ToBytes instead")]
-		public byte[] ToRawScript(bool @unsafe)
-		{
-			return @unsafe ? _Script : _Script.ToArray();
-		}
-
+		
 		/// <summary>
 		/// Get script byte array
 		/// </summary>

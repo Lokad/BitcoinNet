@@ -84,7 +84,7 @@ namespace BitcoinNet.Tests
 				var raw = ParseHex(raw_script);
 				scriptCode = new Script(raw);
 
-				var sh = Script.SignatureHash(scriptCode, tx, nIn, (SigHash)nHashType);
+				var sh = tx.GetSignatureHash(scriptCode, nIn, (SigHash)nHashType);
 				Assert.True(sh.ToString() == sigHashHex, strTest);
 			}
 		}

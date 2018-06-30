@@ -941,7 +941,7 @@ namespace BitcoinNet.Tests
 			{
 				//Sanity check that it does not throw
 #pragma warning disable CS0618
-				new RPCClient(new NetworkCredential("toto", "tata:blah"), "localhost:10393", Network.Main);
+				new RPCClient("toto:tata:blah", "localhost:10393", Network.Main);
 
 				var node = builder.CreateNode();
 				node.CookieAuth = true;

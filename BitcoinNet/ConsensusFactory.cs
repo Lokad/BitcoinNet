@@ -95,9 +95,7 @@ namespace BitcoinNet
 
 		public virtual BlockHeader CreateBlockHeader()
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return new BlockHeader();
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		public virtual Transaction CreateTransaction()

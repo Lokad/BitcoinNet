@@ -24,14 +24,10 @@ namespace BitcoinNet.BouncyCastle.Asn1.X9
 		public static readonly DerObjectIdentifier TPBasis = CharacteristicTwoField.Branch("3.2");
 		public static readonly DerObjectIdentifier PPBasis = CharacteristicTwoField.Branch("3.3");
 
-		[Obsolete("Use 'id_ecSigType' instead")]
-		public const string IdECSigType = AnsiX962 + ".4";
 		public static readonly DerObjectIdentifier id_ecSigType = ansi_X9_62.Branch("4");
 
 		public static readonly DerObjectIdentifier ECDsaWithSha1 = id_ecSigType.Branch("1");
-
-		[Obsolete("Use 'id_publicKeyType' instead")]
-		public const string IdPublicKeyType = AnsiX962 + ".2";
+		
 		public static readonly DerObjectIdentifier id_publicKeyType = ansi_X9_62.Branch("2");
 
 		public static readonly DerObjectIdentifier IdECPublicKey = id_publicKeyType.Branch("1");

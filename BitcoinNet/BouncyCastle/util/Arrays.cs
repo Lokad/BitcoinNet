@@ -52,15 +52,7 @@ namespace BitcoinNet.BouncyCastle.Utilities
 
 			return HaveSameContents(a, b);
 		}
-
-		[Obsolete("Use 'AreEqual' method instead")]
-		public static bool AreSame(
-			byte[] a,
-			byte[] b)
-		{
-			return AreEqual(a, b);
-		}
-
+		
 		/// <summary>
 		/// A constant time equals comparison - does not terminate early if
 		/// test will fail.

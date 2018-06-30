@@ -67,9 +67,7 @@ namespace BitcoinNet.Protocol
 
 		public virtual bool Check(VersionPayload version, ProtocolCapabilities capabilities)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			if(!Check(version))
-#pragma warning restore CS0618 // Type or member is obsolete
 				return false;
 			if(capabilities.PeerTooOld)
 				return false;
@@ -84,10 +82,8 @@ namespace BitcoinNet.Protocol
 
 			return capabilities.IsSupersetOf(MinProtocolCapabilities);
 		}
-
-#pragma warning disable CS0618 // Type or member is obsolete
-		[Obsolete("Use Check(VersionPayload, ProtocolCapabilities capabilities) instead")]
-		public virtual bool Check(VersionPayload version)
+		
+		private bool Check(VersionPayload version)
 		{
 			if(MinVersion != null)
 			{
@@ -100,7 +96,6 @@ namespace BitcoinNet.Protocol
 			}
 			return true;
 		}
-#pragma warning restore CS0618 // Type or member is obsolete
 	}
 
 	public class SynchronizeChainOptions

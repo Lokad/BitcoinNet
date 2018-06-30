@@ -23,13 +23,6 @@ namespace BitcoinNet.RPC
 			return Parse(obj);
 		}
 
-		[Obsolete("Use RawFormatter.ParseJson method instead")]
-		public Transaction Parse(string str)
-		{
-			JObject obj = JObject.Parse(str);
-			return Parse(obj);
-		}
-
 		public Transaction Parse(JObject obj)
 		{
 			Transaction tx = new Transaction();

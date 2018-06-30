@@ -39,7 +39,7 @@ namespace BitcoinNet.Tests
 
 		public static Block CreateFakeBlock(Transaction tx)
 		{
-			var block = new Block();
+			var block = Consensus.Main.ConsensusFactory.CreateBlock();
 			block.AddTransaction(tx);
 			block.UpdateMerkleRoot();
 			return block;

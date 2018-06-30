@@ -435,17 +435,6 @@ namespace BitcoinNet
 		/// Exchange shared secret through ECDH
 		/// </summary>
 		/// <param name="key">Private key</param>
-		/// <returns>Shared secret</returns>
-		[Obsolete("Use GetSharedPubkey instead")]
-		public byte[] GetSharedSecret(Key key)
-		{
-			return Hashes.SHA256(GetSharedPubkey(key).ToBytes());
-		}
-
-		/// <summary>
-		/// Exchange shared secret through ECDH
-		/// </summary>
-		/// <param name="key">Private key</param>
 		/// <returns>Shared pubkey</returns>
 		public PubKey GetSharedPubkey(Key key)
 		{

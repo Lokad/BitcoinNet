@@ -100,20 +100,6 @@ namespace BitcoinNet
 			return Network.Parse<BitcoinAddress>(str, expectedNetwork);
 		}
 
-		/// <summary>
-		/// Detect whether the input base58 is a pubkey hash or a script hash
-		/// </summary>
-		/// <param name="str">The string to parse</param>
-		/// <returns>A BitcoinAddress or BitcoinScriptAddress</returns>
-		/// <exception cref="System.FormatException">Invalid format</exception>
-		[Obsolete("Use BitcoinCreate(string, Network) instead")]
-		public static BitcoinAddress Create(string str)
-		{
-			if(str == null)
-				throw new ArgumentNullException(nameof(str));
-			return Network.Parse<BitcoinAddress>(str, null);
-		}
-
 		internal protected BitcoinAddress(string str, Network network)
 		{
 			if(network == null)

@@ -167,12 +167,6 @@ namespace BitcoinNet.RPC
 		{
 		}
 
-		[Obsolete("Use RPCClient(ConnectionString, string, Network)")]
-		public RPCClient(NetworkCredential credentials, string host, Network network)
-			: this(credentials, BuildUri(host, null, network.RPCPort), network)
-		{
-		}
-
 		public RPCClient(RPCCredentialString credentials, Network network)
 			: this(credentials, null as String, network)
 		{

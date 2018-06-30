@@ -67,11 +67,6 @@ namespace BitcoinNet
 		{
 		}
 
-		[Obsolete("Use ConcurrentChain(byte[], ConsensusFactory|Network|Consensus) instead")]
-		public ConcurrentChain(byte[] bytes) : this(bytes, Consensus.Main.ConsensusFactory, null)
-		{
-		}
-
 		public ConcurrentChain(byte[] bytes, ConsensusFactory consensusFactory, ChainSerializationFormat format)
 		{
 			Load(bytes, consensusFactory, format);
@@ -85,12 +80,6 @@ namespace BitcoinNet
 		public ConcurrentChain(byte[] bytes, Network network, ChainSerializationFormat format)
 		{
 			Load(bytes, network, format);
-		}
-
-		[Obsolete("Use ConcurrentChain(byte[], ConsensusFactory|Network|Consensus, ChainSerializationFormat format) instead")]
-		public ConcurrentChain(byte[] bytes, ChainSerializationFormat format)
-		{
-			Load(bytes, Consensus.Main.ConsensusFactory, format);
 		}
 
 		public void Load(byte[] chain, Network network, ChainSerializationFormat format)
@@ -108,12 +97,6 @@ namespace BitcoinNet
 			Load(new MemoryStream(chain), consensusFactory, format);
 		}
 
-		[Obsolete("Use Load(byte[], ConsensusFactory|Network|Consensus, ChainSerializationFormat format) instead")]
-		public void Load(byte[] chain, ChainSerializationFormat format)
-		{
-			Load(new MemoryStream(chain), Consensus.Main.ConsensusFactory, format);
-		}
-
 		public void Load(byte[] chain, ConsensusFactory consensusFactory)
 		{
 			Load(chain, consensusFactory, null);
@@ -127,12 +110,6 @@ namespace BitcoinNet
 		public void Load(byte[] chain, Network network)
 		{
 			Load(chain, network, null);
-		}
-
-		[Obsolete("Use Load(byte[], ConsensusFactory|Network|Consensus) instead")]
-		public void Load(byte[] chain)
-		{
-			Load(new MemoryStream(chain), Consensus.Main.ConsensusFactory, null);
 		}
 
 		public void Load(Stream stream, ConsensusFactory consensusFactory, ChainSerializationFormat format)
@@ -155,12 +132,7 @@ namespace BitcoinNet
 				throw new ArgumentNullException(nameof(consensus));
 			Load(stream, consensus.ConsensusFactory, format);
 		}
-
-		[Obsolete("Use Load(Stream, ConsensusFactory|Network|Consensus, ChainSerializationFormat) instead")]
-		public void Load(Stream stream, ChainSerializationFormat format)
-		{
-			Load(stream, Consensus.Main.ConsensusFactory, format);
-		}
+		
 		public void Load(Stream stream)
 		{
 			Load(new BitcoinStream(stream, false), null);

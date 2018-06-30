@@ -126,7 +126,7 @@ namespace BitcoinNet.Altcoins
 				}
 			}
 
-			BlockHeader parentBlock = new BlockHeader();
+			private BlockHeader parentBlock = DogeConsensusFactory.Instance.CreateBlockHeader();
 
 			public BlockHeader ParentBlock
 			{

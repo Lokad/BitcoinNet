@@ -724,23 +724,23 @@ namespace BitcoinNet.BouncyCastle.Math.EC
 			{
 				case COORD_LAMBDA_AFFINE:
 				case COORD_LAMBDA_PROJECTIVE:
+				{
+					if(X.IsZero)
 					{
-						if(X.IsZero)
-						{
-							if(!Y.Square().Equals(B))
-								throw new ArgumentException();
-						}
-						else
-						{
-							// Y becomes Lambda (X + Y/X) here
-							Y = Y.Divide(X).Add(X);
-						}
-						break;
+						if(!Y.Square().Equals(B))
+							throw new ArgumentException();
 					}
+					else
+					{
+						// Y becomes Lambda (X + Y/X) here
+						Y = Y.Divide(X).Add(X);
+					}
+					break;
+				}
 				default:
-					{
-						break;
-					}
+				{
+					break;
+				}
 			}
 
 			return CreateRawPoint(X, Y, withCompression);
@@ -1165,24 +1165,6 @@ namespace BitcoinNet.BouncyCastle.Math.EC
 			get
 			{
 				return k3;
-			}
-		}
-
-		[Obsolete("Use 'Order' property instead")]
-		public BigInteger N
-		{
-			get
-			{
-				return m_order;
-			}
-		}
-
-		[Obsolete("Use 'Cofactor' property instead")]
-		public BigInteger H
-		{
-			get
-			{
-				return m_cofactor;
 			}
 		}
 	}
