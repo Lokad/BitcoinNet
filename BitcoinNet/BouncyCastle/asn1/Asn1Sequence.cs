@@ -63,12 +63,6 @@ namespace BitcoinNet.BouncyCastle.Asn1
 			return seq.GetEnumerator();
 		}
 
-		[Obsolete("Use GetEnumerator() instead")]
-		public IEnumerator GetObjects()
-		{
-			return GetEnumerator();
-		}
-
 		private class Asn1SequenceParserImpl
 			: Asn1SequenceParser
 		{
@@ -127,23 +121,7 @@ namespace BitcoinNet.BouncyCastle.Asn1
 				return (Asn1Encodable)seq[index];
 			}
 		}
-
-		[Obsolete("Use 'object[index]' syntax instead")]
-		public Asn1Encodable GetObjectAt(
-			int index)
-		{
-			return this[index];
-		}
-
-		[Obsolete("Use 'Count' property instead")]
-		public int Size
-		{
-			get
-			{
-				return Count;
-			}
-		}
-
+		
 		public virtual int Count
 		{
 			get

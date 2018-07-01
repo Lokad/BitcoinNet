@@ -110,18 +110,6 @@ namespace BitcoinNet
 
 		BigInteger _ChainWork;
 
-		// Might be computationally intense
-		[DebuggerBrowsable(DebuggerBrowsableState.Never)]
-		[Obsolete("Use GetChainWork() instead")]
-		public uint256 ChainWork
-		{
-			get
-			{
-				return GetChainWork(true);
-			}
-		}
-
-
 		/// <summary>
 		/// Get the value of the chain work
 		/// </summary>

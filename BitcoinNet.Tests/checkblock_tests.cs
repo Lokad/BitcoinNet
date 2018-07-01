@@ -19,7 +19,7 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanCalculateMerkleRoot()
 		{
-			Block block = new Block();
+			Block block = Consensus.Main.ConsensusFactory.CreateBlock();
 			block.ReadWrite(Encoders.Hex.DecodeData(File.ReadAllText(@"data/block169482.txt")));
 			Assert.Equal(block.Header.HashMerkleRoot, block.GetMerkleRoot().Hash);
 		}		

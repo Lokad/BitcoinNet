@@ -60,19 +60,19 @@ namespace BitcoinNet.BitcoinCore
 		}
 
 		bool headerOnly;
-		// FIXME: this methods doesn't have a path to stop the recursion.
-#pragma warning disable CS0612 // Type or member is obsolete
-		public IEnumerable<StoredBlock> Enumerate(Stream stream, uint fileIndex = 0, DiskBlockPosRange range = null, bool headersOnly = false)
-#pragma warning restore CS0612 // Type or member is obsolete
-		{
-			using(HeaderOnlyScope(headersOnly))
-			{
-				foreach(var r in Enumerate(stream, fileIndex, range))
-				{
-					yield return r;
-				}
-			}
-		}
+//		// FIXME: this methods doesn't have a path to stop the recursion.
+//#pragma warning disable CS0612 // Type or member is obsolete
+//		public IEnumerable<StoredBlock> Enumerate(Stream stream, uint fileIndex = 0, DiskBlockPosRange range = null, bool headersOnly = false)
+//#pragma warning restore CS0612 // Type or member is obsolete
+//		{
+//			using(HeaderOnlyScope(headersOnly))
+//			{
+//				foreach(var r in Enumerate(stream, fileIndex, range))
+//				{
+//					yield return r;
+//				}
+//			}
+//		}
 
 
 		private IDisposable HeaderOnlyScope(bool headersOnly)

@@ -95,37 +95,7 @@ namespace BitcoinNet.BouncyCastle.Math.EC
 				return null == m_curve ? ECCurve.COORD_AFFINE : m_curve.CoordinateSystem;
 			}
 		}
-
-		/**
-         * Normalizes this point, and then returns the affine x-coordinate.
-         * 
-         * Note: normalization can be expensive, this method is deprecated in favour
-         * of caller-controlled normalization.
-         */
-		[Obsolete("Use AffineXCoord, or Normalize() and XCoord, instead")]
-		public virtual ECFieldElement X
-		{
-			get
-			{
-				return Normalize().XCoord;
-			}
-		}
-
-		/**
-         * Normalizes this point, and then returns the affine y-coordinate.
-         * 
-         * Note: normalization can be expensive, this method is deprecated in favour
-         * of caller-controlled normalization.
-         */
-		[Obsolete("Use AffineYCoord, or Normalize() and YCoord, instead")]
-		public virtual ECFieldElement Y
-		{
-			get
-			{
-				return Normalize().YCoord;
-			}
-		}
-
+		
 		/**
          * Returns the affine x-coordinate after checking that this point is normalized.
          * 
@@ -1609,17 +1579,7 @@ namespace BitcoinNet.BouncyCastle.Math.EC
 			: base(curve, x, y, zs, withCompression)
 		{
 		}
-
-		/**
-         * Constructor for point at infinity
-         */
-		[Obsolete("Use ECCurve.Infinity property")]
-		public F2mPoint(
-			ECCurve curve)
-			: this(curve, null, null)
-		{
-		}
-
+		
 		protected override ECPoint Detach()
 		{
 			return new F2mPoint(null, AffineXCoord, AffineYCoord);

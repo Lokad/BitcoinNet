@@ -163,15 +163,6 @@ namespace BitcoinNet
 			}
 		}
 
-		[Obsolete("Use AsKeyId().ScriptPubKey instead")]
-		public Script WitScriptPubKey
-		{
-			get
-			{
-				return new KeyId(_DestBytes).ScriptPubKey;
-			}
-		}
-
 		public KeyId AsKeyId()
 		{
 			return new KeyId(_DestBytes);

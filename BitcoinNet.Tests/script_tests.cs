@@ -624,7 +624,7 @@ namespace BitcoinNet.Tests
 
 		Script sign_multisig(Script scriptPubKey, Key[] keys, Transaction transaction)
 		{
-			uint256 hash = Script.SignatureHash(scriptPubKey, transaction, 0, SigHash.All);
+			uint256 hash = transaction.GetSignatureHash(scriptPubKey, 0, SigHash.All);
 
 			List<Op> ops = new List<Op>();
 			//CScript result;
@@ -859,14 +859,14 @@ namespace BitcoinNet.Tests
 			Assert.True(combined == scriptSig);
 
 			// A couple of partially-signed versions:
-			uint256 hash1 = Script.SignatureHash(scriptPubKey, txTo, 0, SigHash.All);
+			uint256 hash1 = txTo.GetSignatureHash(scriptPubKey, 0, SigHash.All);
 			var sig1 = new TransactionSignature(keys[0].Sign(hash1), SigHash.All);
 
-			uint256 hash2 = Script.SignatureHash(scriptPubKey, txTo, 0, SigHash.None);
+			uint256 hash2 = txTo.GetSignatureHash(scriptPubKey, 0, SigHash.None);
 			var sig2 = new TransactionSignature(keys[1].Sign(hash2), SigHash.None);
 
 
-			uint256 hash3 = Script.SignatureHash(scriptPubKey, txTo, 0, SigHash.Single);
+			uint256 hash3 = txTo.GetSignatureHash(scriptPubKey, 0, SigHash.Single);
 			var sig3 = new TransactionSignature(keys[2].Sign(hash3), SigHash.Single);
 
 

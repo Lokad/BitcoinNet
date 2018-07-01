@@ -11,12 +11,7 @@ namespace BitcoinNet.BouncyCastle.Asn1
 		public static readonly DerNull Instance = new DerNull(0);
 
 		byte[] zeroBytes = new byte[0];
-
-		[Obsolete("Use static Instance object")]
-		public DerNull()
-		{
-		}
-
+		
 		protected internal DerNull(int dummy)
 		{
 		}

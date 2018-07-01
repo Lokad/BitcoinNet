@@ -42,7 +42,7 @@ namespace BitcoinNet.Tests
 
 
 
-			var chain2 = new ConcurrentChain(chain.ToBytes());
+			var chain2 = new ConcurrentChain(chain.ToBytes(), Consensus.Main.ConsensusFactory);
 			Assert.True(chain.SameTip(chain2));
 		}
 
@@ -77,13 +77,13 @@ namespace BitcoinNet.Tests
 
 			var bytes = cchain.ToBytes();
 			cchain = new ConcurrentChain();
-			cchain.Load(bytes);
+			cchain.Load(bytes, Consensus.Main.ConsensusFactory);
 
 			Assert.Equal(cchain.Tip, chain.Tip);
 			Assert.NotNull(cchain.GetBlock(0));
 
 			cchain = new ConcurrentChain(Network.TestNet);
-			cchain.Load(cchain.ToBytes());
+			cchain.Load(cchain.ToBytes(), Consensus.Main.ConsensusFactory);
 			Assert.NotNull(cchain.GetBlock(0));
 		}
 		[Fact]
@@ -131,7 +131,7 @@ namespace BitcoinNet.Tests
 
 		private ChainedBlock AddBlock(ConcurrentChain chain)
 		{
-			BlockHeader header = new BlockHeader();
+			BlockHeader header = Consensus.Main.ConsensusFactory.CreateBlockHeader();
 			header.Nonce = RandomUtils.GetUInt32();
 			header.HashPrevBlock = chain.Tip.HashBlock;
 			chain.SetTip(header);
@@ -213,7 +213,7 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanCalculateDifficulty()
 		{
-			var main = new ConcurrentChain(LoadMainChain());
+			var main = new ConcurrentChain(LoadMainChain(), Consensus.Main.ConsensusFactory);
 			var histories = File.ReadAllText("data/targethistory.csv").Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
 
 			foreach(var history in histories)
@@ -233,7 +233,7 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanValidateChain()
 		{
-			var main = new ConcurrentChain(LoadMainChain());
+			var main = new ConcurrentChain(LoadMainChain(), Consensus.Main.ConsensusFactory);
 			foreach(var h in main.ToEnumerable(false))
 			{
 				Assert.True(h.Validate(Network.Main));
@@ -244,7 +244,7 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanPersistMainchain()
 		{
-			var main = new ConcurrentChain(LoadMainChain());
+			var main = new ConcurrentChain(LoadMainChain(), Consensus.Main.ConsensusFactory);
 			MemoryStream ms = new MemoryStream();
 			main.WriteTo(ms);	
 			ms.Position = 0;
@@ -278,7 +278,7 @@ namespace BitcoinNet.Tests
 				main.WriteTo(ms, options);
 				ms.Position = 0;
 				main.SetTip(main.Genesis);
-				main.Load(ms, options);
+				main.Load(ms, Consensus.Main.ConsensusFactory, options);
 				Assert.Equal(options.SerializeBlockHeader, main.Tip.HasHeader);
 				if(main.Tip.HasHeader)
 				{

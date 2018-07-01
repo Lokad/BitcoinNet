@@ -69,23 +69,7 @@ namespace BitcoinNet.BouncyCastle.Asn1
 				return (Asn1Encodable)v[index];
 			}
 		}
-
-		[Obsolete("Use 'object[index]' syntax instead")]
-		public Asn1Encodable Get(
-			int index)
-		{
-			return this[index];
-		}
-
-		[Obsolete("Use 'Count' property instead")]
-		public int Size
-		{
-			get
-			{
-				return v.Count;
-			}
-		}
-
+		
 		public int Count
 		{
 			get

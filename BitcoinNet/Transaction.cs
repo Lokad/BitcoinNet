@@ -1320,12 +1320,6 @@ namespace BitcoinNet
 			return h;
 		}
 
-		[Obsolete("Call PrecomputeHash(true, true) instead")]
-		public void CacheHashes()
-		{
-			PrecomputeHash(true, true);
-		}
-
 		/// <summary>
 		/// Precompute the transaction hash and witness hash so that later calls to GetHash() and GetWitHash() will returns the precomputed hash
 		/// </summary>
@@ -1553,18 +1547,6 @@ namespace BitcoinNet
 		public void Sign(Key[] keys, ICoin coin)
 		{
 			Sign(keys, new[] { coin });
-		}
-
-		/// <summary>
-		/// Sign the transaction with a private key
-		/// <para>ScriptSigs should be filled with previous ScriptPubKeys</para>
-		/// <para>For more complex scenario, use TransactionBuilder</para>
-		/// </summary>
-		/// <param name="secret"></param>
-		[Obsolete("Use Sign(ISecret,ICoin[]) instead)")]
-		public void Sign(ISecret secret, bool assumeP2SH)
-		{
-			Sign(secret.PrivateKey, assumeP2SH);
 		}
 
 		/// <summary>

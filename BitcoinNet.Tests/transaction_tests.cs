@@ -1104,18 +1104,17 @@ namespace BitcoinNet.Tests
 
 		private void CanVerifySequenceLockCore(Sequence[] sequences, int[] prevHeights, int currentHeight, DateTimeOffset first, bool expected, SequenceLock expectedLock)
 		{
-			ConcurrentChain chain = new ConcurrentChain(new BlockHeader()
-			{
-				BlockTime = first
-			});
+			var firstBlockHeader = Consensus.Main.ConsensusFactory.CreateBlockHeader();
+			firstBlockHeader.BlockTime = first;
+			ConcurrentChain chain = new ConcurrentChain(firstBlockHeader);
 			first = first + TimeSpan.FromMinutes(10);
 			while(currentHeight != chain.Height)
 			{
-				chain.SetTip(new BlockHeader()
-				{
-					BlockTime = first,
-					HashPrevBlock = chain.Tip.HashBlock
-				});
+				var blockHeader = Consensus.Main.ConsensusFactory.CreateBlockHeader();
+				blockHeader.BlockTime = first;
+				blockHeader.HashPrevBlock = chain.Tip.HashBlock;
+
+				chain.SetTip(blockHeader);
 				first = first + TimeSpan.FromMinutes(10);
 			}
 			Transaction tx = new Transaction();
@@ -2240,7 +2239,7 @@ namespace BitcoinNet.Tests
 		public void bip143Test()
 		{
 			Transaction tx = new Transaction("0100000002fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f0000000000eeffffffef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a0100000000ffffffff02202cb206000000001976a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac9093510d000000001976a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac11000000");
-			var h = Script.SignatureHash(new Script(Encoders.Hex.DecodeData("76a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac")), tx, 1, SigHash.All, Money.Satoshis(0x23c34600L), HashVersion.Witness);
+			var h = tx.GetSignatureHash(new Script(Encoders.Hex.DecodeData("76a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac")), 1, SigHash.All, Money.Satoshis(0x23c34600L), HashVersion.Witness);
 			Assert.Equal(new uint256(Encoders.Hex.DecodeData("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), true), h);
 		}
 		[Fact]
@@ -2409,7 +2408,7 @@ namespace BitcoinNet.Tests
 			tx.Version = 4;
 			Assert.True(tx.GetHash() != original);
 
-			tx.CacheHashes();
+			tx.PrecomputeHash(true, true);
 			original = tx.GetHash();
 			tx.Version = 5;
 			Assert.True(tx.GetHash() == original);

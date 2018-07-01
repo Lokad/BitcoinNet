@@ -16,7 +16,7 @@ namespace BitcoinNet.Tests
 		[Trait("CoreBeta", "CoreBeta")]
 		public void CanRoundtripCmpctBlock()
 		{
-			Block block = new Block();
+			Block block = Consensus.Main.ConsensusFactory.CreateBlock();
 			block.Transactions.Add(new Transaction());
 			var cmpct = new CmpctBlockPayload(block);
 			cmpct.Clone();
