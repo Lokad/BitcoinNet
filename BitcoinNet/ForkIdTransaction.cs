@@ -4,30 +4,22 @@ using System.Collections.Generic;
 using System.Text;
 using BitcoinNet.Crypto;
 
-namespace BitcoinNet.Altcoins
+namespace BitcoinNet
 {
     public class ForkIdTransaction : Transaction, IHasForkId
 	{
+#pragma warning disable CS0618 // Type or member is obsolete
 		public ForkIdTransaction(uint forkId, bool supportSegwit, ConsensusFactory consensusFactory)
 		{
 			_ForkId = forkId;
-			_SupportSegwit = supportSegwit;
 			_Factory = consensusFactory;
 		}
+#pragma warning restore CS0618 // Type or member is obsolete
 
 		ConsensusFactory _Factory;
 		public override ConsensusFactory GetConsensusFactory()
 		{
 			return _Factory;
-		}
-
-		private readonly bool _SupportSegwit;
-		public bool SupportSegwit
-		{
-			get
-			{
-				return _SupportSegwit;
-			}
 		}
 
 		private readonly uint _ForkId;
@@ -39,13 +31,13 @@ namespace BitcoinNet.Altcoins
 			}
 		}
 
-		public override uint256 GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, Money amount, HashVersion sigversion, PrecomputedTransactionData precomputedTransactionData)
+		public override uint256 GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, Money amount, PrecomputedTransactionData precomputedTransactionData)
 		{
 			uint nForkHashType = (uint)nHashType;
 			if(UsesForkId(nHashType))
 				nForkHashType |= ForkId << 8;
 
-			if((SupportSegwit && sigversion == HashVersion.Witness) || UsesForkId(nHashType))
+			if(UsesForkId(nHashType))
 			{
 				if(amount == null)
 					throw new ArgumentException("The amount of the output being signed must be provided", "amount");
@@ -72,12 +64,12 @@ namespace BitcoinNet.Altcoins
 				}
 				else if(((uint)nHashType & 0x1f) == (uint)SigHash.Single && nIn < this.Outputs.Count)
 				{
-					BitcoinStream ss = CreateHashWriter(sigversion);
+					BitcoinStream ss = CreateHashWriter();
 					ss.ReadWrite(this.Outputs[nIn]);
 					hashOutputs = GetHash(ss);
 				}
 
-				BitcoinStream sss = CreateHashWriter(sigversion);
+				BitcoinStream sss = CreateHashWriter();
 				// Version
 				sss.ReadWrite(this.Version);
 				// Input prevouts/nSequence (none/all, depending on flags)
@@ -120,7 +112,7 @@ namespace BitcoinNet.Altcoins
 			}
 
 			var scriptCopy = scriptCode.Clone();
-			scriptCopy.FindAndDelete(OpcodeType.OP_CODESEPARATOR);
+			scriptCode = scriptCopy.FindAndDelete(OpcodeType.OP_CODESEPARATOR);
 
 			var txCopy = GetConsensusFactory().CreateTransaction();
 			txCopy.FromBytes(this.ToBytes());
@@ -170,7 +162,7 @@ namespace BitcoinNet.Altcoins
 
 
 			//Serialize TxCopy, append 4 byte hashtypecode
-			var stream = CreateHashWriter(sigversion);
+			var stream = CreateHashWriter();
 			txCopy.ReadWrite(stream);
 			stream.ReadWrite((uint)nForkHashType);
 			return GetHash(stream);
@@ -188,11 +180,11 @@ namespace BitcoinNet.Altcoins
 			return preimage;
 		}
 
-		internal virtual uint256 GetHashOutputs()
+		internal override uint256 GetHashOutputs()
 		{
 			uint256 hashOutputs;
-			BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
-			foreach(var txout in Outputs)
+			BitcoinStream ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
+			foreach (var txout in Outputs)
 			{
 				ss.ReadWrite(txout);
 			}
@@ -200,10 +192,10 @@ namespace BitcoinNet.Altcoins
 			return hashOutputs;
 		}
 
-		internal virtual uint256 GetHashSequence()
+		internal override uint256 GetHashSequence()
 		{
 			uint256 hashSequence;
-			BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
+			BitcoinStream ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
 			foreach(var input in Inputs)
 			{
 				ss.ReadWrite((uint)input.Sequence);
@@ -212,25 +204,16 @@ namespace BitcoinNet.Altcoins
 			return hashSequence;
 		}
 
-		internal virtual uint256 GetHashPrevouts()
+		internal override uint256 GetHashPrevouts()
 		{
 			uint256 hashPrevouts;
-			BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
-			foreach(var input in Inputs)
+			BitcoinStream ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
+			foreach (var input in Inputs)
 			{
 				ss.ReadWrite(input.PrevOut);
 			}
 			hashPrevouts = GetHash(ss);
 			return hashPrevouts;
-		}
-
-		private static BitcoinStream CreateHashWriter(HashVersion version)
-		{
-			HashStream hs = new HashStream();
-			BitcoinStream stream = new BitcoinStream(hs, true);
-			stream.Type = SerializationType.Hash;
-			stream.TransactionOptions = version == HashVersion.Original ? TransactionOptions.None : TransactionOptions.Witness;
-			return stream;
 		}
 	}
 }

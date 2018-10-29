@@ -93,10 +93,6 @@ namespace BitcoinNet.RPC
 				{
 					WritePropertyValue(writer, "scriptSig", txin.ScriptSig.ToString());
 				}
-				if(input.WitScript != WitScript.Empty)
-				{
-					WritePropertyValue(writer, "witness", input.WitScript.ToString());
-				}
 				if(txin.Sequence != uint.MaxValue)
 				{
 					WritePropertyValue(writer, "sequence", (uint)txin.Sequence);

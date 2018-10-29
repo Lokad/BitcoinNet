@@ -144,31 +144,7 @@ namespace BitcoinNet.Tests
 				node.CreateRPCClient().SendRawTransaction(signed);
 			}
 		}
-
-		[Fact]
-		public void CanRBFTransaction()
-		{
-			using(var builder = NodeBuilderEx.Create())
-			{
-				var node = builder.CreateNode();
-				var rpc = node.CreateRPCClient();
-				builder.StartAll();
-				node.Generate(101);
-
-				var key = new Key();
-				var address = key.PubKey.GetAddress(rpc.Network);
-
-				var txid = rpc.SendToAddress(address, Money.Coins(2), null, null, false, true);
-				var txbumpid = rpc.BumpFee(txid);
-				var blocks = rpc.Generate(1); 
-
-				var block = rpc.GetBlock(blocks.First());
-				Assert.False( block.Transactions.Any(x=>x.GetHash() == txid) );
-				Assert.True( block.Transactions.Any(x=>x.GetHash() == txbumpid.TransactionId) );
-			}
-		}
-
-
+		
 		[Fact]
 		public async Task CanGetBlockchainInfo()
 		{
@@ -180,8 +156,7 @@ namespace BitcoinNet.Tests
 
 				Assert.Equal(builder.Network, response.Chain);
 				Assert.Equal(builder.Network.GetGenesis().GetHash(), response.BestBlockHash);
-				Assert.True(response.Bip9SoftForks.Any(x=>x.Name == "segwit"));
-				Assert.True(response.Bip9SoftForks.Any(x=>x.Name == "csv"));
+				Assert.True(response.SoftForks.Any(x=>x.Bip == "csv"));
 				Assert.True(response.SoftForks.Any(x=>x.Bip == "bip34"));
 				Assert.True(response.SoftForks.Any(x=>x.Bip == "bip65"));
 				Assert.True(response.SoftForks.Any(x=>x.Bip == "bip66"));
@@ -212,7 +187,6 @@ namespace BitcoinNet.Tests
 				Assert.Equal(firstTx.LockTime, txInfo.LockTime);
 				Assert.Equal(firstTx.GetWitHash(), txInfo.Hash);
 				Assert.Equal((uint)firstTx.GetSerializedSize(), txInfo.Size);
-				Assert.Equal((uint)firstTx.GetVirtualSize(), txInfo.VirtualSize);
 
 				// unconfirmed tx doesn't have blockhash, blocktime nor transactiontime.
 				var mempoolTxId = rpc.SendToAddress(new Key().PubKey.GetAddress(builder.Network), Money.Coins(1));
@@ -393,8 +367,8 @@ namespace BitcoinNet.Tests
 
 				Assert.Equal(secret.ToString(), secret2.ToString());
 				var p2pkh = secret.GetAddress().ToString();
-				var wit = secret.PubKey.WitHash.GetAddress(builder.Network).ToString();
-				var p2shwit = secret.PubKey.WitHash.ScriptPubKey.GetScriptAddress(builder.Network).ToString();
+				var wit = secret.PubKey.Hash.GetAddress(builder.Network).ToString();
+				var p2shwit = secret.PubKey.Hash.ScriptPubKey.GetScriptAddress(builder.Network).ToString();
 				Assert.True(address.ToString() == p2pkh || address.ToString() == wit || address.ToString() == p2shwit);
 			}
 		}
@@ -535,9 +509,8 @@ namespace BitcoinNet.Tests
 				};
 
 				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-
-				//Assert.False(response.Result[0].Value<bool>());
-
+				Assert.Equal(response.RPCCode, RPCErrorCode.RPC_WALLET_ERROR);
+				Assert.Equal(response.Message, "The wallet already contains the private key for this address or script");
 				#endregion
 
 				#region Address + Private key + watchonly
@@ -708,29 +681,9 @@ namespace BitcoinNet.Tests
 				Assert.Equal(secret.ToString(), secret2.ToString());
 
 				var p2pkh = secret.GetAddress().ToString();
-				var wit = secret.PubKey.WitHash.GetAddress(builder.Network).ToString();
-				var p2shwit = secret.PubKey.WitHash.ScriptPubKey.GetScriptAddress(builder.Network).ToString();
+				var wit = secret.PubKey.Hash.GetAddress(builder.Network).ToString();
+				var p2shwit = secret.PubKey.Hash.ScriptPubKey.GetScriptAddress(builder.Network).ToString();
 				Assert.True(address.ToString() == p2pkh || address.ToString() == wit || address.ToString() == p2shwit);
-			}
-		}
-
-		[Fact]
-		public void CanDecodeAndEncodeRawTransaction()
-		{
-			var a = new Protocol.AddressManager().Select();
-			var tests = TestCase.read_json("data/tx_raw.json");
-			foreach(var test in tests)
-			{
-				var format = (RawFormat)Enum.Parse(typeof(RawFormat), (string)test[0], true);
-				var network = ((string)test[1]) == "Main" ? Network.Main : Network.TestNet;
-				var testData = ((JObject)test[2]).ToString();
-
-				Transaction raw = Transaction.Parse(testData, format, network);
-
-				AssertJsonEquals(raw.ToString(format, network), testData);
-
-				var raw3 = Transaction.Parse(raw.ToString(format, network), format);
-				Assert.Equal(raw.ToString(format, network), raw3.ToString(format, network));
 			}
 		}
 

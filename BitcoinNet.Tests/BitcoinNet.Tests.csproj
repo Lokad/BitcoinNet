@@ -21,7 +21,6 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />
 		<ProjectReference Include="..\BitcoinNet\BitcoinNet.csproj" />
-		<ProjectReference Include="..\BitcoinNet.Altcoins\BitcoinNet.Altcoins.csproj" />
 		<ProjectReference Include="..\BitcoinNet.TestFramework\BitcoinNet.TestFramework.csproj" />
 		<PackageReference Include="Microsoft.CSharp" Version="4.3.0" />
 		<PackageReference Include="xunit" Version="2.2.0" />
@@ -68,6 +67,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="data\can_parse_transaction.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="data\cashaddr_keys_valid.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <Content Include="data\determiniticECDSA.txt">

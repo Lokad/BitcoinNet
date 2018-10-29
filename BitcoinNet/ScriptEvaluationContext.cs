@@ -144,12 +144,6 @@ namespace BitcoinNet
 			internal set;
 		}
 
-		public HashVersion HashVersion
-		{
-			get;
-			internal set;
-		}
-
 		public uint256 Hash
 		{
 			get;
@@ -431,49 +425,23 @@ namespace BitcoinNet
 
 		public bool VerifyScript(Script scriptSig, Script scriptPubKey, TransactionChecker checker)
 		{
-			WitScript witness = checker.Input.WitScript;
 			SetError(ScriptError.UnknownError);
 			if((ScriptVerify & ScriptVerify.SigPushOnly) != 0 && !scriptSig.IsPushOnly)
 				return SetError(ScriptError.SigPushOnly);
 
 			ScriptEvaluationContext evaluationCopy = null;
 
-			if(!EvalScript(scriptSig, checker, 0))
+			if(!EvalScript(scriptSig, checker))
 				return false;
 			if((ScriptVerify & ScriptVerify.P2SH) != 0)
 			{
 				evaluationCopy = Clone();
 			}
-			if(!EvalScript(scriptPubKey, checker, 0))
+			if(!EvalScript(scriptPubKey, checker))
 				return false;
 
 			if(!Result)
 				return SetError(ScriptError.EvalFalse);
-
-			bool hadWitness = false;
-			// Bare witness programs
-
-			if((ScriptVerify & ScriptVerify.Witness) != 0)
-			{
-				var wit = PayToWitTemplate.Instance.ExtractScriptPubKeyParameters2(scriptPubKey);
-				if(wit != null)
-				{
-					hadWitness = true;
-					if(scriptSig.Length != 0)
-					{
-						// The scriptSig must be _exactly_ CScript(), otherwise we reintroduce malleability.
-						return SetError(ScriptError.WitnessMalleated);
-					}
-					if(!VerifyWitnessProgram(witness, wit, checker))
-					{
-						return false;
-					}
-					// Bypass the cleanstack check at the end. The actual stack is obviously not clean
-					// for witness programs.
-					Stack.Clear();
-					Stack.Push(new byte[0]);
-				}
-			}
 
 			// Additional validation for spend-to-script-hash transactions:
 			if(((ScriptVerify & ScriptVerify.P2SH) != 0) && scriptPubKey.IsPayToScriptHash)
@@ -491,35 +459,11 @@ namespace BitcoinNet
 
 				var redeem = new Script(evaluationCopy.Stack.Pop());
 
-				if(!evaluationCopy.EvalScript(redeem, checker, 0))
+				if(!evaluationCopy.EvalScript(redeem, checker))
 					return false;
 
 				if(!evaluationCopy.Result)
-					return SetError(ScriptError.EvalFalse);
-
-				// P2SH witness program
-				if((ScriptVerify & ScriptVerify.Witness) != 0)
-				{
-					var wit = PayToWitTemplate.Instance.ExtractScriptPubKeyParameters2(redeem);
-					if(wit != null)
-					{
-						hadWitness = true;
-						if(scriptSig != new Script(Op.GetPushOp(redeem.ToBytes())))
-						{
-							// The scriptSig must be _exactly_ a single push of the redeemScript. Otherwise we
-							// reintroduce malleability.
-							return SetError(ScriptError.WitnessMalleatedP2SH);
-						}
-						if(!VerifyWitnessProgram(witness, wit, checker))
-						{
-							return false;
-						}
-						// Bypass the cleanstack check at the end. The actual stack is obviously not clean
-						// for witness programs.
-						Stack.Clear();
-						Stack.Push(new byte[0]);
-					}
-				}
+					return SetError(ScriptError.EvalFalse);				
 			}
 
 			// The CLEANSTACK check is only performed after potential P2SH evaluation,
@@ -535,94 +479,8 @@ namespace BitcoinNet
 					throw new InvalidOperationException("ScriptVerify : CleanStack without Witness is not allowed");
 				if(Stack.Count != 1)
 					return SetError(ScriptError.CleanStack);
-			}
+			}			
 
-			if((ScriptVerify & ScriptVerify.Witness) != 0)
-			{
-				// We can't check for correct unexpected witness data if P2SH was off, so require
-				// that WITNESS implies P2SH. Otherwise, going from WITNESS->P2SH+WITNESS would be
-				// possible, which is not a softfork.
-				if((ScriptVerify & ScriptVerify.P2SH) == 0)
-					throw new InvalidOperationException("ScriptVerify : Witness without P2SH is not allowed");
-				if(!hadWitness && witness.PushCount != 0)
-				{
-					return SetError(ScriptError.WitnessUnexpected);
-				}
-			}
-
-			return true;
-		}
-
-		private bool VerifyWitnessProgram(WitScript witness, WitProgramParameters wit, TransactionChecker checker)
-		{
-			List<byte[]> stack = new List<byte[]>();
-			Script scriptPubKey;
-
-			if(wit.Version == 0)
-			{
-				if(wit.Program.Length == 32)
-				{
-					// Version 0 segregated witness program: SHA256(CScript) inside the program, CScript + inputs in witness
-					if(witness.PushCount == 0)
-					{
-						return SetError(ScriptError.WitnessProgramEmpty);
-					}
-					scriptPubKey = Script.FromBytesUnsafe(witness.GetUnsafePush(witness.PushCount - 1));
-					for(int i = 0; i < witness.PushCount - 1; i++)
-					{
-						stack.Add(witness.GetUnsafePush(i));
-					}
-					var hashScriptPubKey = Hashes.SHA256(scriptPubKey.ToBytes(true));
-					if(!Utils.ArrayEqual(hashScriptPubKey, wit.Program))
-					{
-						return SetError(ScriptError.WitnessProgramMissmatch);
-					}
-				}
-				else if(wit.Program.Length == 20)
-				{
-					// Special case for pay-to-pubkeyhash; signature + pubkey in witness
-					if(witness.PushCount != 2)
-					{
-						return SetError(ScriptError.WitnessProgramMissmatch); // 2 items in witness
-					}
-					scriptPubKey = PayToPubkeyHashTemplate.Instance.GenerateScriptPubKey(new KeyId(wit.Program));
-					stack = witness.Pushes.ToList();
-				}
-				else
-				{
-					return SetError(ScriptError.WitnessProgramWrongLength);
-				}
-			}
-			else if((ScriptVerify & ScriptVerify.DiscourageUpgradableWitnessProgram) != 0)
-			{
-				return SetError(ScriptError.DiscourageUpgradableWitnessProgram);
-			}
-			else
-			{
-				// Higher version witness scripts return true for future softfork compatibility
-				return true;
-			}
-
-			var ctx = this.Clone();
-			ctx.Stack.Clear();
-			foreach(var item in stack)
-				ctx.Stack.Push(item);
-
-			// Disallow stack item size > MAX_SCRIPT_ELEMENT_SIZE in witness stack
-			for(int i = 0; i < ctx.Stack.Count; i++)
-			{
-				if(ctx.Stack.Top(-(i + 1)).Length > MAX_SCRIPT_ELEMENT_SIZE)
-					return SetError(ScriptError.PushSize);
-			}
-			if(!ctx.EvalScript(scriptPubKey, checker, 1))
-			{
-				return SetError(ctx.Error);
-			}
-			// Scripts inside witness implicitly require cleanstack behaviour
-			if(ctx.Stack.Count != 1)
-				return SetError(ScriptError.EvalFalse);
-			if(!CastToBool(ctx.Stack.Top(-1)))
-				return SetError(ScriptError.EvalFalse);
 			return true;
 		}
 
@@ -635,13 +493,9 @@ namespace BitcoinNet
 
 		public bool EvalScript(Script s, Transaction txTo, int nIn)
 		{
-			return EvalScript(s, new TransactionChecker(txTo, nIn), 0);
+			return EvalScript(s, new TransactionChecker(txTo, nIn));
 		}
-		public bool EvalScript(Script script, TransactionChecker checker, HashVersion hashVersion)
-		{
-			return EvalScript(script, checker, (int)hashVersion);
-		}
-		bool EvalScript(Script s, TransactionChecker checker, int hashversion)
+		public bool EvalScript(Script s, TransactionChecker checker)
 		{
 			if(s.Length > 10000)
 				return SetError(ScriptError.ScriptSize);
@@ -847,15 +701,7 @@ namespace BitcoinNet
 											return SetError(ScriptError.UnbalancedConditional);
 
 										var vch = _stack.Top(-1);
-
-										if(hashversion == (int)HashVersion.Witness && (ScriptVerify & ScriptVerify.MinimalIf) != 0)
-										{
-											if(vch.Length > 1)
-												return SetError(ScriptError.MinimalIf);
-											if(vch.Length == 1 && vch[0] != 1)
-												return SetError(ScriptError.MinimalIf);
-										}
-
+										
 										bValue = CastToBool(vch);
 										if(opcode.Code == OpcodeType.OP_NOTIF)
 											bValue = !bValue;
@@ -1327,16 +1173,15 @@ namespace BitcoinNet
 									// Subset of script starting at the most recent codeseparator
 									var scriptCode = new Script(s._Script.Skip(pbegincodehash).ToArray());
 									// Drop the signature, since there's no way for a signature to sign itself
-									if(hashversion == (int)HashVersion.Original)
-										scriptCode.FindAndDelete(vchSig);
+									scriptCode.FindAndDelete(vchSig);
 
-									if(!CheckSignatureEncoding(vchSig) || !CheckPubKeyEncoding(vchPubKey, hashversion))
+									if(!CheckSignatureEncoding(vchSig) || !CheckPubKeyEncoding(vchPubKey))
 									{
 										//serror is set
 										return false;
 									}
 
-									bool fSuccess = CheckSig(vchSig, vchPubKey, scriptCode, checker, hashversion);
+									bool fSuccess = CheckSig(vchSig, vchPubKey, scriptCode, checker);
 									if(!fSuccess && (ScriptVerify & ScriptVerify.NullFail) != 0 && vchSig.Length != 0)
 										return SetError(ScriptError.NullFail);
 
@@ -1392,8 +1237,7 @@ namespace BitcoinNet
 									for(int k = 0; k < nSigsCount; k++)
 									{
 										var vchSig = _stack.Top(-isig - k);
-										if(hashversion == (int)HashVersion.Original)
-											scriptCode.FindAndDelete(vchSig);
+										scriptCode.FindAndDelete(vchSig);
 									}
 
 									bool fSuccess = true;
@@ -1405,13 +1249,13 @@ namespace BitcoinNet
 										// Note how this makes the exact order of pubkey/signature evaluation
 										// distinguishable by CHECKMULTISIG NOT if the STRICTENC flag is set.
 										// See the script_(in)valid tests for details.
-										if(!CheckSignatureEncoding(vchSig) || !CheckPubKeyEncoding(vchPubKey, hashversion))
+										if(!CheckSignatureEncoding(vchSig) || !CheckPubKeyEncoding(vchPubKey))
 										{
 											// serror is set
 											return false;
 										}
 
-										bool fOk = CheckSig(vchSig, vchPubKey, scriptCode, checker, hashversion);
+										bool fOk = CheckSig(vchSig, vchPubKey, scriptCode, checker);
 
 										if(fOk)
 										{
@@ -1641,16 +1485,12 @@ namespace BitcoinNet
 			return true;
 		}
 
-		private bool CheckPubKeyEncoding(byte[] vchPubKey, int sigversion)
+		private bool CheckPubKeyEncoding(byte[] vchPubKey)
 		{
 			if((ScriptVerify & ScriptVerify.StrictEnc) != 0 && !IsCompressedOrUncompressedPubKey(vchPubKey))
 			{
 				Error = ScriptError.PubKeyType;
 				return false;
-			}
-			if((ScriptVerify & ScriptVerify.WitnessPubkeyType) != 0 && sigversion == (int)HashVersion.Witness && !IsCompressedPubKey(vchPubKey))
-			{
-				return SetError(ScriptError.WitnessPubkeyType);
 			}
 			return true;
 		}
@@ -1921,16 +1761,16 @@ namespace BitcoinNet
 			return CheckSig(signature.ToBytes(), pubKey.ToBytes(), scriptPubKey, txTo, (int)nIn);
 		}
 
-		public bool CheckSig(TransactionSignature signature, PubKey pubKey, Script scriptPubKey, TransactionChecker checker, HashVersion hashVersion)
+		public bool CheckSig(TransactionSignature signature, PubKey pubKey, Script scriptPubKey, TransactionChecker checker)
 		{
-			return CheckSig(signature.ToBytes(), pubKey.ToBytes(), scriptPubKey, checker, (int)hashVersion);
+			return CheckSig(signature.ToBytes(), pubKey.ToBytes(), scriptPubKey, checker);
 		}
 
 		public bool CheckSig(byte[] vchSig, byte[] vchPubKey, Script scriptCode, Transaction txTo, int nIn)
 		{
-			return CheckSig(vchSig, vchPubKey, scriptCode, new TransactionChecker(txTo, nIn), 0);
+			return CheckSig(vchSig, vchPubKey, scriptCode, new TransactionChecker(txTo, nIn));
 		}
-		bool CheckSig(byte[] vchSig, byte[] vchPubKey, Script scriptCode, TransactionChecker checker, int sigversion)
+		bool CheckSig(byte[] vchSig, byte[] vchPubKey, Script scriptCode, TransactionChecker checker)
 		{
 			PubKey pubkey = null;
 			try
@@ -1962,11 +1802,10 @@ namespace BitcoinNet
 			if(!IsAllowedSignature(scriptSig.SigHash))
 				return false;
 
-			uint256 sighash = checker.Transaction.GetSignatureHash(scriptCode, checker.Index, scriptSig.SigHash, checker.Amount, (HashVersion)sigversion, checker.PrecomputedTransactionData);
+			uint256 sighash = checker.Transaction.GetSignatureHash(scriptCode, checker.Index, scriptSig.SigHash, checker.Amount, checker.PrecomputedTransactionData);
 			_SignedHashes.Add(new SignedHash()
 			{
 				ScriptCode = scriptCode,
-				HashVersion = (HashVersion)sigversion,
 				Hash = sighash,
 				Signature = scriptSig
 			});

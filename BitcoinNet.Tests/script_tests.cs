@@ -364,11 +364,11 @@ namespace BitcoinNet.Tests
 				Assert.Equal(scriptSig.ToString(), new Script(scriptSig.ToString()).ToString());
 				Assert.Equal(scriptPubKey.ToString(), new Script(scriptPubKey.ToString()).ToString());
 
-				AssertVerifyScript(wit, amount, scriptSig, scriptPubKey, flag, test.Index, comment, expectedError);
+				AssertVerifyScript(amount, scriptSig, scriptPubKey, flag, test.Index, comment, expectedError);
 			}
 		}
 
-		private void AssertVerifyScript(WitScript wit, Money amount, Script scriptSig, Script scriptPubKey, ScriptVerify flags, int testIndex, string comment, ScriptError expectedError)
+		private void AssertVerifyScript(Money amount, Script scriptSig, Script scriptPubKey, ScriptVerify flags, int testIndex, string comment, ScriptError expectedError)
 		{
 			if(flags.HasFlag(ScriptVerify.CleanStack))
 			{
@@ -377,7 +377,7 @@ namespace BitcoinNet.Tests
 			}
 			
 			var creditingTransaction = CreateCreditingTransaction(scriptPubKey, amount);
-			var spendingTransaction = CreateSpendingTransaction(wit, scriptSig, creditingTransaction);
+			var spendingTransaction = CreateSpendingTransaction(scriptSig, creditingTransaction);
 			ScriptError actual;
 			Script.VerifyScript(scriptSig, scriptPubKey, spendingTransaction, 0, amount, flags, SigHash.Undefined, out actual);
 			Assert.True(expectedError == actual, "Test : " + testIndex + " " + comment);			
@@ -419,13 +419,12 @@ namespace BitcoinNet.Tests
 #endif
 		}
 
-		private static Transaction CreateSpendingTransaction(WitScript wit, Script scriptSig, Transaction creditingTransaction)
+		private static Transaction CreateSpendingTransaction(Script scriptSig, Transaction creditingTransaction)
 		{
 			var spendingTransaction = new Transaction();
 			spendingTransaction.AddInput(new TxIn(new OutPoint(creditingTransaction, 0))
 			{
-				ScriptSig = scriptSig,
-				WitScript = wit ?? WitScript.Empty
+				ScriptSig = scriptSig
 			});
 			spendingTransaction.AddOutput(new TxOut()
 			{
@@ -791,7 +790,7 @@ namespace BitcoinNet.Tests
 		{
 			Key[] keys = new[] { new Key(), new Key(), new Key() };
 			var txFrom = CreateCreditingTransaction(keys[0].PubKey.Hash.ScriptPubKey);
-			var txTo = CreateSpendingTransaction(null, new Script(), txFrom);
+			var txTo = CreateSpendingTransaction(new Script(), txFrom);
 
 			Script scriptPubKey = txFrom.Outputs[0].ScriptPubKey;
 			Script scriptSig = txTo.Inputs[0].ScriptSig;
@@ -997,36 +996,6 @@ namespace BitcoinNet.Tests
 			sig = PayToPubkeyTemplate.Instance.ExtractScriptSigParameters(new Script(scriptSig));
 			Assert.NotNull(sig);
 			Assert.True(PayToPubkeyTemplate.Instance.CheckScriptSig(new Script(scriptSig), null));
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanParseAndGenerateSegwitScripts()
-		{
-			var pubkey = new PubKey("03a65786c1a48d4167aca08cf6eb8eed081e13f45c02dc6000fd8f3bb16242579a");
-			var scriptPubKey = new Script("0 05481b7f1d90c5a167a15b00e8af76eb6984ea59");
-			Assert.Equal(scriptPubKey, PayToWitPubKeyHashTemplate.Instance.GenerateScriptPubKey(pubkey));
-			Assert.Equal(scriptPubKey, PayToWitPubKeyHashTemplate.Instance.GenerateScriptPubKey(pubkey.WitHash));
-			Assert.Equal(scriptPubKey, PayToWitPubKeyHashTemplate.Instance.GenerateScriptPubKey((BitcoinWitPubKeyAddress)pubkey.WitHash.GetAddress(Network.Main)));
-			var expected = new WitScript("304402206104c335e4adbb920184957f9f710b09de17d015329fde6807b9d321fd2142db02200b24ad996b4aa4ff103000348b5ad690abfd9fddae546af9e568394ed4a8311301 03a65786c1a48d4167aca08cf6eb8eed081e13f45c02dc6000fd8f3bb16242579a");
-			var actual = PayToWitPubKeyHashTemplate.Instance.GenerateWitScript(new PayToWitPubkeyHashScriptSigParameters()
-			{
-				PublicKey = pubkey,
-				TransactionSignature = new TransactionSignature(Encoders.Hex.DecodeData("304402206104c335e4adbb920184957f9f710b09de17d015329fde6807b9d321fd2142db02200b24ad996b4aa4ff103000348b5ad690abfd9fddae546af9e568394ed4a8311301"))
-			});
-			Assert.Equal(expected, actual);
-
-			var scriptSig = new Script("304402206b782f095f52f12133a96c078b558458b84c925afdb620d96c5f5bbf483e28d502206206796ff45d80216b83c77bafc4e7951fdb10a5bf3e4041c0e6c0938079b22b01 2103");
-			var redeem = new Script(Encoders.Hex.DecodeData("2103a65786c1a48d4167aca08cf6eb8eed081e13f45c02dc6000fd8f3bb16242579aac"));
-			expected = new WitScript(new Script("304402206b782f095f52f12133a96c078b558458b84c925afdb620d96c5f5bbf483e28d502206206796ff45d80216b83c77bafc4e7951fdb10a5bf3e4041c0e6c0938079b22b01 2103 2103a65786c1a48d4167aca08cf6eb8eed081e13f45c02dc6000fd8f3bb16242579aac"));
-			actual = PayToWitScriptHashTemplate.Instance.GenerateWitScript(scriptSig, redeem);
-			Assert.Equal(expected, actual);
-			actual = PayToWitScriptHashTemplate.Instance.GenerateWitScript(scriptSig.ToOps().ToArray(), redeem);
-			Assert.Equal(expected, actual);
-			var extract = PayToWitScriptHashTemplate.Instance.ExtractWitScriptParameters(actual, null);
-			Assert.Equal(extract, redeem);
-			extract = PayToWitScriptHashTemplate.Instance.ExtractWitScriptParameters(actual, new Key().ScriptPubKey.WitHash);
-			Assert.Null(extract);
 		}
 
 		[Fact]

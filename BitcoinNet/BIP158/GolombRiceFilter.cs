@@ -15,7 +15,7 @@ namespace BitcoinNet
 	{
 		// This is the value used by default as P as defined in the BIP.
 		internal const byte DefaultP = 19;
-		internal const uint DefaultM = 784931;
+		internal const uint DefaultM = 784_931;
 
 		/// <summary>
 		/// a value which is computed as 1/fp where fp is the desired false positive rate.
@@ -120,10 +120,13 @@ namespace BitcoinNet
 			var nphi = modNP >> 32;
 			var nplo = (ulong)((uint)modNP);
 
-			// Process the data items and calculate the 64 bits hash for each of them.
+			var k0 = BitConverter.ToUInt64(key, 0);
+			var k1 = BitConverter.ToUInt64(key, 8);
+
+			// Process the data items and calculate the 64 bits hash for each of them.			
 			foreach(var item in dataArrayBytes )
 			{
-				var hash = SipHash(key, item);
+				var hash = SipHash(k0, k1, item);
 				var value = FastReduction(hash, nphi, nplo);
 				values.Add(value);
 			}
@@ -175,32 +178,28 @@ namespace BitcoinNet
 			var bitStream = new BitStream(Data);
 			var sr = new GRCodedStreamReader(bitStream, P, 0);
 
-			try
+			while (lastValue1 != lastValue2)
 			{
-				while (lastValue1 != lastValue2)
+				if (lastValue1 > lastValue2)
 				{
-					if (lastValue1 > lastValue2)
+					if (i < hs.Count)
 					{
-						if (i < hs.Count)
-						{
-							lastValue2 = hs[i];
-							i++;
-						}
-						else
-						{
-							return false;
-						}
+						lastValue2 = hs[i];
+						i++;
 					}
-					else if (lastValue2 > lastValue1)
+					else
 					{
-						var val = sr.Read();
-						lastValue1 = val;
+						return false;
 					}
 				}
-			}
-			catch (InvalidOperationException) // end-of-stream 
-			{
-				return false;
+				else if (lastValue2 > lastValue1)
+				{
+
+					if(sr.TryRead(out var val))
+						lastValue1 = val;
+					else
+						return false;
+				}
 			}
 
 			return true;
@@ -247,16 +246,12 @@ namespace BitcoinNet
 			return value;
 		}
 
-		private static ulong SipHash(byte[] key, byte[] data)
+		private static ulong SipHash(ulong k0, ulong k1, byte[] data)
 		{
-			var k0 = BitConverter.ToUInt64(key, 0);
-			var k1 = BitConverter.ToUInt64(key, 8);
-
 			var hasher = new Hashes.SipHasher(k0, k1);
 			hasher.Write(data);
 			return hasher.Finalize();
 		}
-		
 	}
 
 	/// <summary>
@@ -372,12 +367,9 @@ namespace BitcoinNet
 		/// </summary>
 		/// <param name="m">M value</param>
 		/// <returns>The updated filter builder instance.</returns>
-		public GolombRiceFilterBuilder SetM(ulong m)
+		public GolombRiceFilterBuilder SetM(uint m)
 		{
-			if (m > 32)
-				throw new ArgumentOutOfRangeException(nameof(m), "value has to be greater than zero and less or equal to 32.");
-			
-			_m = (byte)m;
+			_m = m;
 			return this;
 		}
 
@@ -430,19 +422,6 @@ namespace BitcoinNet
 			}
 			AddEntries(data);
 			return this;
-		}
-
-		/// <summary>
-		/// Adds a witness stack to the list of elements that will be used for building the filter.
-		/// </summary>
-		/// <param name="witScript">The witScript.</param>
-		/// <returns>The updated filter builder instance.</returns>
-		public void AddWitness(WitScript witScript)
-		{
-			if (witScript == null)
-				throw new ArgumentNullException(nameof(witScript));
-
-			AddEntries(witScript.Pushes);
 		}
 
 		/// <summary>

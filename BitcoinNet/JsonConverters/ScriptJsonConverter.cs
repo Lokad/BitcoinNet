@@ -16,7 +16,7 @@ namespace BitcoinNet.JsonConverters
 	{
 		public override bool CanConvert(Type objectType)
 		{
-			return typeof(Script).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo()) || typeof(WitScript).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
+			return typeof(Script).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
 		}
 
 		public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -27,8 +27,6 @@ namespace BitcoinNet.JsonConverters
 			{
 				if(objectType == typeof(Script))
 					return Script.FromBytesUnsafe(Encoders.Hex.DecodeData((string)reader.Value));
-				if(objectType == typeof(WitScript))
-					return new WitScript((string)reader.Value);
 			}
 			catch(FormatException)
 			{
@@ -42,8 +40,6 @@ namespace BitcoinNet.JsonConverters
 			{
 				if(value is Script)
 					writer.WriteValue(Encoders.Hex.EncodeData(((Script)value).ToBytes(false)));
-				if(value is WitScript)
-					writer.WriteValue(((WitScript)value).ToString());
 			}
 		}
 	}

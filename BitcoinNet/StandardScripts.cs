@@ -13,8 +13,7 @@ namespace BitcoinNet
 			PayToPubkeyTemplate.Instance,
 			PayToScriptHashTemplate.Instance,
 			PayToMultiSigTemplate.Instance,
-			TxNullDataTemplate.Instance,
-			PayToWitTemplate.Instance
+			TxNullDataTemplate.Instance
 		};
 
 		public static bool IsStandardTransaction(Transaction tx)

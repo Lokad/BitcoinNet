@@ -41,6 +41,10 @@ namespace BitcoinNet
 		{
 			_Rand = new Random(seed);
 		}
+		public DefaultCoinSelector(Random random)
+		{
+			_Rand = random;
+		}
 
 		/// <summary>
 		/// Select all coins belonging to same scriptPubKey together to protect privacy. (Default: true)
@@ -378,7 +382,7 @@ namespace BitcoinNet
 			private TxOut EnsureMarkerInserted()
 			{
 				uint position;
-				var dummy = Transaction.AddInput(new TxIn(new OutPoint(new uint256(1), 0))); //Since a transaction without input will be considered without marker, insert a dummy
+				var dummy = Transaction.Inputs.Add(new OutPoint(new uint256(1), 0)); //Since a transaction without input will be considered without marker, insert a dummy
 				try
 				{
 					if(ColorMarker.Get(Transaction, out position) != null)
@@ -388,10 +392,7 @@ namespace BitcoinNet
 				{
 					Transaction.Inputs.Remove(dummy);
 				}
-				var txout = Transaction.AddOutput(new TxOut()
-				{
-					ScriptPubKey = new ColorMarker().GetScript()
-				});
+				var txout = Transaction.Outputs.Add(scriptPubKey: new ColorMarker().GetScript());
 				txout.Value = Money.Zero;
 				return txout;
 			}
@@ -471,7 +472,7 @@ namespace BitcoinNet
 				var changeAmount = (Money)ctx.ChangeAmount;
 				if(changeAmount.Satoshi == 0)
 					return Money.Zero;
-				ctx.Transaction.AddOutput(new TxOut(changeAmount, ctx.Group.ChangeScript[(int)ChangeType.Uncolored]));
+				ctx.Transaction.Outputs.Add(changeAmount, ctx.Group.ChangeScript[(int)ChangeType.Uncolored]);
 				return changeAmount;
 			}
 			internal List<Builder> Builders = new List<Builder>();
@@ -488,7 +489,7 @@ namespace BitcoinNet
 			}
 			private void Shuffle(List<Builder> builders)
 			{
-				Utils.Shuffle(builders, _Parent._Rand);
+				Utils.Shuffle(builders, _Parent.ShuffleRandom);
 			}
 
 			public Money CoverOnly
@@ -524,10 +525,11 @@ namespace BitcoinNet
 				return _CurrentGroup;
 			}
 		}
+		[Obsolete("Use Network.CreateTransactionBuilder() or ConsensusFactory.CreateTransactionBuilder() instead")]
 		public TransactionBuilder()
 		{
-			_Rand = new Random();
-			CoinSelector = new DefaultCoinSelector();
+			ShuffleRandom = new Random();
+			CoinSelector = new DefaultCoinSelector(ShuffleRandom);
 			StandardTransactionPolicy = new StandardTransactionPolicy();
 			DustPrevention = true;
 			InitExtensions();
@@ -541,11 +543,16 @@ namespace BitcoinNet
 			Extensions.Add(new OPTrueExtension());
 		}
 
-		internal Random _Rand;
+		/// <summary>
+		/// The random number generator used for shuffling transaction outputs or selected coins
+		/// </summary>
+		public Random ShuffleRandom { get; set; } = new Random();
+
+		[Obsolete("Use Network.CreateTransactionBuilder(int seed) or ConsensusFactory.CreateTransactionBuilder(int seed) instead")]
 		public TransactionBuilder(int seed)
 		{
-			_Rand = new Random(seed);
-			CoinSelector = new DefaultCoinSelector(seed);
+			ShuffleRandom = new Random(seed);
+			CoinSelector = new DefaultCoinSelector(ShuffleRandom);
 			StandardTransactionPolicy = new StandardTransactionPolicy();
 			DustPrevention = true;
 			InitExtensions();
@@ -631,7 +638,6 @@ namespace BitcoinNet
 			foreach(var k in keys)
 			{
 				AddKnownRedeems(k.PubKey.ScriptPubKey);
-				AddKnownRedeems(k.PubKey.WitHash.ScriptPubKey);
 				AddKnownRedeems(k.PubKey.Hash.ScriptPubKey);
 			}
 			return this;
@@ -712,7 +718,7 @@ namespace BitcoinNet
 				return this;
 			}
 
-			var builder = new SendBuilder(new TxOut(amount, scriptPubKey));
+			var builder = new SendBuilder(CreateTxOut(amount, scriptPubKey));
 			CurrentGroup.Builders.Add(builder.Build);
 			_LastSendBuilder = builder;
 			return this;
@@ -807,12 +813,21 @@ namespace BitcoinNet
 			return SendAsset(destination, new AssetMoney(assetId, quantity));
 		}
 
+		[Obsolete("Transaction builder is automatically shuffled")]
 		public TransactionBuilder Shuffle()
 		{
-			Utils.Shuffle(_BuilderGroups, _Rand);
-			foreach(var group in _BuilderGroups)
-				group.Shuffle();
+			DoShuffle();
 			return this;
+		}
+
+		private void DoShuffle()
+		{
+			if (ShuffleRandom != null)
+			{
+				Utils.Shuffle(_BuilderGroups, ShuffleRandom);
+				foreach (var group in _BuilderGroups)
+					group.Shuffle();
+			}
 		}
 
 		IMoney SetColoredChange(TransactionBuildingContext ctx)
@@ -822,7 +837,7 @@ namespace BitcoinNet
 				return changeAmount;
 			var marker = ctx.GetColorMarker(false);
 			var script = ctx.Group.ChangeScript[(int)ChangeType.Colored];
-			var txout = ctx.Transaction.AddOutput(new TxOut(GetDust(script), script));
+			var txout = ctx.Transaction.Outputs.Add(GetDust(script), script);
 			marker.SetQuantity(ctx.Transaction.Outputs.Count - 2, changeAmount.Quantity);
 			ctx.AdditionalFees += txout.Value;
 			return changeAmount;
@@ -850,7 +865,7 @@ namespace BitcoinNet
 			builders.Add(ctx =>
 			{
 				var marker = ctx.GetColorMarker(false);
-				var txout = ctx.Transaction.AddOutput(new TxOut(GetDust(scriptPubKey), scriptPubKey));
+				var txout = ctx.Transaction.Outputs.Add(GetDust(scriptPubKey), scriptPubKey);
 				marker.SetQuantity(ctx.Transaction.Outputs.Count - 2, asset.Quantity);
 				ctx.AdditionalFees += txout.Value;
 				return asset;
@@ -858,15 +873,15 @@ namespace BitcoinNet
 			return this;
 		}
 
-		Money GetDust()
+		internal Money GetDust()
 		{
 			return GetDust(new Script(new byte[25]));
 		}
-		Money GetDust(Script script)
+		internal Money GetDust(Script script)
 		{
 			if(StandardTransactionPolicy == null || StandardTransactionPolicy.MinRelayTxFee == null)
 				return Money.Zero;
-			return new TxOut(Money.Zero, script).GetDustThreshold(StandardTransactionPolicy.MinRelayTxFee);
+			return CreateTxOut(Money.Zero, script).GetDustThreshold(StandardTransactionPolicy.MinRelayTxFee);
 		}
 
 		/// <summary>
@@ -943,7 +958,9 @@ namespace BitcoinNet
 					if(issuance == null)
 						throw new InvalidOperationException("No issuance coin for emitting asset found");
 					ctx.IssuanceCoin = issuance;
-					ctx.Transaction.Inputs.Insert(0, new TxIn(issuance.Outpoint));
+					var input = ctx.Transaction.Inputs.CreateNewTxIn();
+					input.PrevOut = issuance.Outpoint;
+					ctx.Transaction.Inputs.Insert(0, input);
 					ctx.AdditionalFees -= issuance.Bearer.Amount;
 					if(issuance.DefinitionUrl != null)
 					{
@@ -951,7 +968,7 @@ namespace BitcoinNet
 					}
 				}
 
-				ctx.Transaction.Outputs.Insert(0, new TxOut(GetDust(scriptPubKey), scriptPubKey));
+				ctx.Transaction.Outputs.Insert(0, CreateTxOut(GetDust(scriptPubKey), scriptPubKey));
 				marker.Quantities = new[] { checked((ulong)asset.Quantity) }.Concat(marker.Quantities).ToArray();
 				ctx.AdditionalFees += ctx.Transaction.Outputs[0].Value;
 				return asset;
@@ -1053,12 +1070,23 @@ namespace BitcoinNet
 		}
 
 		ConsensusFactory _ConsensusFactory = Network.Main.Consensus.ConsensusFactory;
+
+		public ConsensusFactory ConsensusFactory
+		{
+			get
+			{
+				return _ConsensusFactory;
+			}
+		}
+
+		[Obsolete("Use ConsensusFactory.CreateTransactionBuilder() instead, so you don't have to use this method anymore")]
 		public TransactionBuilder SetConsensusFactory(ConsensusFactory consensusFactory)
 		{
 			_ConsensusFactory = consensusFactory ?? Network.Main.Consensus.ConsensusFactory;
 			return this;
 		}
 
+		[Obsolete("Use Network.CreateTransactionBuilder() instead, so you don't have to use this method anymore")]
 		public TransactionBuilder SetConsensusFactory(Network network)
 		{
 			return SetConsensusFactory(network?.Consensus?.ConsensusFactory);
@@ -1076,7 +1104,7 @@ namespace BitcoinNet
 		/// </summary>
 		/// <param name="sign">True if signs all inputs with the available keys</param>
 		/// <returns>The transaction</returns>
-		/// <exception cref="BitcoinNet.NotEnoughFundsException">Not enough funds are available</exception>
+		/// <exception cref="NBitcoin.NotEnoughFundsException">Not enough funds are available</exception>
 		public Transaction BuildTransaction(bool sign)
 		{
 			var tx = BuildTransaction(sign, SigHash.All);
@@ -1090,15 +1118,16 @@ namespace BitcoinNet
 		/// <param name="sign">True if signs all inputs with the available keys</param>
 		/// <param name="sigHash">The type of signature</param>
 		/// <returns>The transaction</returns>
-		/// <exception cref="BitcoinNet.NotEnoughFundsException">Not enough funds are available</exception>
+		/// <exception cref="NBitcoin.NotEnoughFundsException">Not enough funds are available</exception>
 		public Transaction BuildTransaction(bool sign, SigHash sigHash)
 		{
+			DoShuffle();
 			TransactionBuildingContext ctx = new TransactionBuildingContext(this);
 			if(_CompletedTransaction != null)
 				ctx.Transaction = _CompletedTransaction.Clone();
 			if(_LockTime != null)
 				ctx.Transaction.LockTime = _LockTime.Value;
-			foreach(var group in _BuilderGroups)
+			foreach (var group in _BuilderGroups)
 			{
 				ctx.Group = group;
 				ctx.AdditionalBuilders.Clear();
@@ -1141,10 +1170,9 @@ namespace BitcoinNet
 		{
 			if(!FilterUneconomicalCoins || FilterUneconomicalCoinsRate == null)
 				return true;
-			int witSize = 0;
 			int baseSize = 0;
-			EstimateScriptSigSize(c, ref witSize, ref baseSize);
-			var vSize = witSize / Transaction.WITNESS_SCALE_FACTOR + baseSize;
+			EstimateScriptSigSize(c, ref baseSize);
+			var vSize = baseSize;
 			return c.Amount >= FilterUneconomicalCoinsRate.GetFee(vSize);
 		}
 
@@ -1167,8 +1195,22 @@ namespace BitcoinNet
 				{
 					builderList.Remove(builderList[i]);
 					var newTxOut = _SubstractFeeBuilder._TxOut.Clone();
+					var minimumTxOutValue = (DustPrevention ? GetDust(newTxOut.ScriptPubKey) : Money.Zero);
 					newTxOut.Value -= fees;
-					builderList.Insert(i, new SendBuilder(newTxOut).Build);
+					if(newTxOut.Value < Money.Zero)
+					{
+						throw new NotEnoughFundsException("Can't substract fee from this output because the amount is too small",
+						group.Name,
+						-newTxOut.Value
+						);
+					}
+					if(newTxOut.Value >= minimumTxOutValue)
+						builderList.Insert(i, new SendBuilder(newTxOut).Build);
+					else
+					{
+						fees += newTxOut.Value;
+						builderList.Insert(i, _ => newTxOut.Value);
+					}
 				}
 			}
 			////////////////////////////////////////////////////////
@@ -1217,7 +1259,7 @@ namespace BitcoinNet
 				ctx.ConsumedCoins.Add(coin);
 				var input = ctx.Transaction.Inputs.FirstOrDefault(i => i.PrevOut == coin.Outpoint);
 				if(input == null)
-					input = ctx.Transaction.AddInput(new TxIn(coin.Outpoint));
+					input = ctx.Transaction.Inputs.Add(coin.Outpoint);
 				if(_LockTime != null && !ctx.NonFinalSequenceSet)
 				{
 					input.Sequence = 0;
@@ -1228,7 +1270,7 @@ namespace BitcoinNet
 			{
 				var collapsedOutputs = ctx.Transaction.Outputs
 							   .GroupBy(o => o.ScriptPubKey)
-							   .Select(o => o.Count() == 1 ? o.First() : ctx.Transaction.CreateOutput(o.Select(txout=>txout.Value).Sum(), o.Key))
+							   .Select(o => o.Count() == 1 ? o.First() : ctx.Transaction.Outputs.CreateNewTxOut(o.Select(txout => txout.Value).Sum(), o.Key))
 							   .ToArray();
 				if(collapsedOutputs.Length < ctx.Transaction.Outputs.Count)
 				{
@@ -1285,12 +1327,10 @@ namespace BitcoinNet
 			if(hash != null)
 			{
 				var redeem = _ScriptPubKeyToRedeem.TryGet(coin.TxOut.ScriptPubKey);
-				if(redeem != null && PayToWitScriptHashTemplate.Instance.CheckScriptPubKey(redeem))
+				if(redeem != null && PayToScriptHashTemplate.Instance.CheckScriptPubKey(redeem))
 					redeem = _ScriptPubKeyToRedeem.TryGet(redeem);
 				if(redeem == null)
 				{
-					if(hash is WitScriptId)
-						redeem = PayToWitScriptHashTemplate.Instance.ExtractWitScriptParameters(txIn.WitScript, (WitScriptId)hash);
 					if(hash is ScriptId)
 					{
 						var parameters = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(txIn.ScriptSig, (ScriptId)hash);
@@ -1460,71 +1500,51 @@ namespace BitcoinNet
 		/// <returns></returns>
 		public int EstimateSize(Transaction tx)
 		{
-			return EstimateSize(tx, false);
-		}
-
-		/// <summary>
-		/// Estimate the size of the transaction
-		/// </summary>
-		/// <param name="tx">The transaction to be estimated</param>
-		/// <param name="virtualSize">If true, returns the size on which fee calculation are based, else returns the physical byte size</param>
-		/// <returns></returns>
-		public int EstimateSize(Transaction tx, bool virtualSize)
-		{
 			if(tx == null)
 				throw new ArgumentNullException(nameof(tx));
 			var clone = tx.Clone();
 			clone.Inputs.Clear();
-			var baseSize = clone.GetSerializedSize();
+			var baseSize = clone.GetSerializedSize() - 1;
+			baseSize += new Protocol.VarInt((ulong)tx.Inputs.Count).GetSerializedSize();
 
-			int witSize = 0;
-			bool hasWitness = tx.HasWitness;
 			foreach(var txin in tx.Inputs.AsIndexedInputs())
 			{
 				var coin = FindSignableCoin(txin) ?? FindCoin(txin.PrevOut);
 				if(coin == null)
 					throw CoinNotFound(txin);
-				if(coin.GetHashVersion() == HashVersion.Witness)
-					hasWitness = true;
-				EstimateScriptSigSize(coin, ref witSize, ref baseSize);
-				baseSize += 41;
-			}
-			if(hasWitness)
-				witSize += 2;
-
-			if(virtualSize)
-			{
-				var totalSize = witSize + baseSize;
-				var strippedSize = baseSize;
-				var weight = strippedSize * (Transaction.WITNESS_SCALE_FACTOR - 1) + totalSize;
-				return (weight + Transaction.WITNESS_SCALE_FACTOR - 1) / Transaction.WITNESS_SCALE_FACTOR;
+				EstimateScriptSigSize(coin, ref baseSize);
+				baseSize += (32 + 4) + 4;
 			}
 
-			return witSize + baseSize;
+			return baseSize;
 		}
 
-		private void EstimateScriptSigSize(ICoin coin, ref int witSize, ref int baseSize)
+		private TxOut CreateTxOut(Money amount = null, Script script = null)
+		{
+			if (!this._ConsensusFactory.TryCreateNew<TxOut>(out var txOut))
+				txOut = new TxOut();
+			if (amount != null)
+				txOut.Value = amount;
+			if (script != null)
+				txOut.ScriptPubKey = script;
+			return txOut;
+		}
+
+		private void EstimateScriptSigSize(ICoin coin, ref int baseSize)
 		{
 			if(coin is IColoredCoin)
 				coin = ((IColoredCoin)coin).Bearer;
 
+			int p2shPushRedeemSize = 0;
 			if(coin is ScriptCoin)
 			{
 				var scriptCoin = (ScriptCoin)coin;
 				var p2sh = scriptCoin.GetP2SHRedeem();
 				if(p2sh != null)
 				{
-					coin = new Coin(scriptCoin.Outpoint, new TxOut(scriptCoin.Amount, p2sh));
-					baseSize += new Script(Op.GetPushOp(p2sh.ToBytes(true))).Length;
-					if(scriptCoin.RedeemType == RedeemType.WitnessV0)
-					{
-						coin = new ScriptCoin(coin, scriptCoin.Redeem);
-					}
-				}
-
-				if(scriptCoin.RedeemType == RedeemType.WitnessV0)
-				{
-					witSize += new Script(Op.GetPushOp(scriptCoin.Redeem.ToBytes(true))).Length;
+					coin = new Coin(scriptCoin.Outpoint, CreateTxOut(scriptCoin.Amount, p2sh));
+					p2shPushRedeemSize = new Script(Op.GetPushOp(p2sh.ToBytes(true))).Length;
+					baseSize += p2shPushRedeemSize;
 				}
 			}
 
@@ -1541,10 +1561,8 @@ namespace BitcoinNet
 
 			if(scriptSigSize == -1)
 				scriptSigSize += coin.TxOut.ScriptPubKey.Length; //Using heurestic to approximate size of unknown scriptPubKey
-			if(coin.GetHashVersion() == HashVersion.Witness)
-				witSize += scriptSigSize + 1; //Account for the push
-			if(coin.GetHashVersion() == HashVersion.Original)
-				baseSize += scriptSigSize;
+
+			baseSize += scriptSigSize + new Protocol.VarInt((ulong)(scriptSigSize + p2shPushRedeemSize)).GetSerializedSize();
 		}
 
 		/// <summary>
@@ -1557,7 +1575,7 @@ namespace BitcoinNet
 			if(feeRate == null)
 				throw new ArgumentNullException(nameof(feeRate));
 
-			int builderCount = CurrentGroup.Builders.Count;
+			List<Builder> feeBuilders = new List<Builder>();
 			Money feeSent = Money.Zero;
 			try
 			{
@@ -1569,14 +1587,15 @@ namespace BitcoinNet
 					if(delta <= Money.Zero)
 						break;
 					SendFees(delta);
+					feeBuilders.Add(CurrentGroup.Builders[CurrentGroup.Builders.Count - 1]);
 					feeSent += delta;
 				}
 			}
 			finally
 			{
-				while(CurrentGroup.Builders.Count != builderCount)
+				foreach(var feeBuilder in feeBuilders)
 				{
-					CurrentGroup.Builders.RemoveAt(CurrentGroup.Builders.Count - 1);
+					CurrentGroup.Builders.Remove(feeBuilder);
 				}
 				_TotalFee -= feeSent;
 			}
@@ -1596,7 +1615,7 @@ namespace BitcoinNet
 			if(feeRate == null)
 				throw new ArgumentNullException(nameof(feeRate));
 
-			var estimation = EstimateSize(tx, true);
+			var estimation = EstimateSize(tx);
 			return feeRate.GetFee(estimation);
 		}
 
@@ -1621,46 +1640,16 @@ namespace BitcoinNet
 				return;
 			ScriptCoin scriptCoin = coin as ScriptCoin;
 
-			Script signatures = null;
-			if(coin.GetHashVersion() == HashVersion.Witness)
-			{
-				signatures = txIn.WitScript;
-				if(scriptCoin != null)
-				{
-					if(scriptCoin.IsP2SH)
-						txIn.ScriptSig = Script.Empty;
-					if(scriptCoin.RedeemType == RedeemType.WitnessV0)
-						signatures = RemoveRedeem(signatures);
-				}
-			}
-			else
-			{
-				signatures = txIn.ScriptSig;
-				if(scriptCoin != null && scriptCoin.RedeemType == RedeemType.P2SH)
-					signatures = RemoveRedeem(signatures);
-			}
-
+			Script signatures = txIn.ScriptSig;
+			if(scriptCoin != null && scriptCoin.RedeemType == RedeemType.P2SH)
+				signatures = RemoveRedeem(signatures);
 
 			signatures = CombineScriptSigs(coin, scriptSig, signatures);
 
-			if(coin.GetHashVersion() == HashVersion.Witness)
+			txIn.ScriptSig = signatures;
+			if(scriptCoin != null && scriptCoin.RedeemType == RedeemType.P2SH)
 			{
-				txIn.WitScript = signatures;
-				if(scriptCoin != null)
-				{
-					if(scriptCoin.IsP2SH)
-						txIn.ScriptSig = new Script(Op.GetPushOp(scriptCoin.GetP2SHRedeem().ToBytes(true)));
-					if(scriptCoin.RedeemType == RedeemType.WitnessV0)
-						txIn.WitScript = txIn.WitScript + new WitScript(Op.GetPushOp(scriptCoin.Redeem.ToBytes(true)));
-				}
-			}
-			else
-			{
-				txIn.ScriptSig = signatures;
-				if(scriptCoin != null && scriptCoin.RedeemType == RedeemType.P2SH)
-				{
-					txIn.ScriptSig = input.ScriptSig + Op.GetPushOp(scriptCoin.GetP2SHRedeem().ToBytes(true));
-				}
+				txIn.ScriptSig = input.ScriptSig + Op.GetPushOp(scriptCoin.GetP2SHRedeem().ToBytes(true));
 			}
 		}
 
@@ -1784,7 +1773,7 @@ namespace BitcoinNet
 
 		Transaction _CompletedTransaction;
 		private bool _built = false;
-		
+
 		/// <summary>
 		/// Allows to keep building on the top of a partially built transaction
 		/// </summary>
@@ -1792,8 +1781,8 @@ namespace BitcoinNet
 		/// <returns></returns>
 		public TransactionBuilder ContinueToBuild(Transaction transaction)
 		{
-			if(_built) 
-				throw new InvalidOperationException("ContinueToBuild must be called with a new TransactionBuilder instance"); 
+			if(_built)
+				throw new InvalidOperationException("ContinueToBuild must be called with a new TransactionBuilder instance");
 			if(_CompletedTransaction != null)
 				throw new InvalidOperationException("Transaction to complete already set");
 			_CompletedTransaction = transaction.Clone();
@@ -1844,9 +1833,7 @@ namespace BitcoinNet
 		{
 			foreach(var redeem in knownRedeems)
 			{
-				_ScriptPubKeyToRedeem.AddOrReplace(redeem.WitHash.ScriptPubKey.Hash.ScriptPubKey, redeem); //Might be P2SH(PWSH)
 				_ScriptPubKeyToRedeem.AddOrReplace(redeem.Hash.ScriptPubKey, redeem); //Might be P2SH
-				_ScriptPubKeyToRedeem.AddOrReplace(redeem.WitHash.ScriptPubKey, redeem); //Might be PWSH
 			}
 			return this;
 		}
@@ -1905,7 +1892,6 @@ namespace BitcoinNet
 									 GetScriptSigs(signed1.Inputs.AsIndexedInputs().Skip(i).First()),
 									 GetScriptSigs(signed2.Inputs.AsIndexedInputs().Skip(i).First()));
 				var input = tx.Inputs.AsIndexedInputs().Skip(i).First();
-				input.WitScript = result.WitSig;
 				input.ScriptSig = result.ScriptSig;
 			}
 			return tx;
@@ -1915,8 +1901,7 @@ namespace BitcoinNet
 		{
 			return new ScriptSigs()
 			{
-				ScriptSig = indexedTxIn.ScriptSig,
-				WitSig = indexedTxIn.WitScript
+				ScriptSig = indexedTxIn.ScriptSig
 			};
 		}
 

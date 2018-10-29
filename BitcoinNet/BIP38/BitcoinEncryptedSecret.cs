@@ -36,7 +36,7 @@ namespace BitcoinNet
 		{
 			var vch = key.ToBytes();
 			//Compute the Bitcoin address (ASCII),
-			var addressBytes = Encoders.ASCII.DecodeData(key.PubKey.GetAddress(network).ToString());
+			var addressBytes = Encoders.ASCII.DecodeData(key.PubKey.GetAddress(network).ToLegacy().ToString());
 			// and take the first four bytes of SHA256(SHA256()) of it. Let's call this "addresshash".
 			var addresshash = Hashes.Hash256(addressBytes).ToBytes().SafeSubarray(0, 4);
 
@@ -91,7 +91,7 @@ namespace BitcoinNet
 
 			var key = new Key(bitcoinprivkey, fCompressedIn: IsCompressed);
 
-			var addressBytes = Encoders.ASCII.DecodeData(key.PubKey.GetAddress(Network).ToString());
+			var addressBytes = Encoders.ASCII.DecodeData(key.PubKey.GetAddress(Network).ToLegacy().ToString());
 			var salt = Hashes.Hash256(addressBytes).ToBytes().SafeSubarray(0, 4);
 
 			if(!Utils.ArrayEqual(salt, AddressHash))
@@ -215,7 +215,13 @@ namespace BitcoinNet
 		/// <returns></returns>
 		internal static byte[] HashAddress(BitcoinAddress address)
 		{
-			return Hashes.Hash256(Encoders.ASCII.DecodeData(address.ToString())).ToBytes().Take(4).ToArray();
+			var addr = address;
+			if (address is BitcoinPubKeyAddress keyAddress)
+			{
+				addr = keyAddress.ToLegacy();
+			}
+
+			return Hashes.Hash256(Encoders.ASCII.DecodeData(addr.ToString())).ToBytes().Take(4).ToArray();
 		}
 
 		internal static byte[] CalculatePassPoint(byte[] passfactor)

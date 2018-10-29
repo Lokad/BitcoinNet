@@ -105,16 +105,6 @@ namespace BitcoinNet.Policy
 				}
 			}
 
-			if(CheckMalleabilitySafe)
-			{
-				foreach(var input in transaction.Inputs.AsIndexedInputs())
-				{
-					var coin = spentCoins.FirstOrDefault(s => s.Outpoint == input.PrevOut);
-					if(coin != null && coin.GetHashVersion() != HashVersion.Witness)
-						errors.Add(new InputPolicyError("Malleable input detected", input));
-				}
-			}
-
 			if(CheckScriptPubKey)
 			{
 				foreach(var txout in transaction.Outputs.AsCoins())

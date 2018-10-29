@@ -45,7 +45,6 @@ namespace BitcoinNet
 		{
 			get;
 		}
-		HashVersion GetHashVersion();
 	}
 
 	public class IssuanceCoin : IColoredCoin
@@ -194,11 +193,6 @@ namespace BitcoinNet
 			{
 				return this.Bearer.CanGetScriptCode;
 			}
-		}
-
-		public HashVersion GetHashVersion()
-		{
-			return this.Bearer.GetHashVersion();
 		}
 
 		public void OverrideScriptCode(Script scriptCode)
@@ -368,11 +362,6 @@ namespace BitcoinNet
 			}
 		}
 
-		public HashVersion GetHashVersion()
-		{
-			return this.Bearer.GetHashVersion();
-		}
-
 		public void OverrideScriptCode(Script scriptCode)
 		{
 			this.Bearer.OverrideScriptCode(scriptCode);
@@ -428,9 +417,9 @@ namespace BitcoinNet
 				throw new InvalidOperationException("You need to provide P2WSH or P2SH redeem script with Coin.ToScriptCoin()");
 			if(_OverrideScriptCode != null)
 				return _OverrideScriptCode;
-			var key = PayToWitPubKeyHashTemplate.Instance.ExtractScriptPubKeyParameters(ScriptPubKey);
+			var key = PayToPubkeyHashTemplate.Instance.ExtractScriptPubKeyParameters(ScriptPubKey);
 			if(key != null)
-				return key.AsKeyId().ScriptPubKey;
+				return key.ScriptPubKey;
 			return ScriptPubKey;
 		}
 
@@ -438,15 +427,8 @@ namespace BitcoinNet
 		{
 			get
 			{
-				return _OverrideScriptCode != null || !ScriptPubKey.IsPayToScriptHash && !PayToWitScriptHashTemplate.Instance.CheckScriptPubKey(ScriptPubKey);
+				return _OverrideScriptCode != null || !ScriptPubKey.IsPayToScriptHash && !PayToScriptHashTemplate.Instance.CheckScriptPubKey(ScriptPubKey);
 			}
-		}
-
-		public virtual HashVersion GetHashVersion()
-		{
-			if(PayToWitTemplate.Instance.CheckScriptPubKey(ScriptPubKey))
-				return HashVersion.Witness;
-			return HashVersion.Original;
 		}
 
 		public ScriptCoin ToScriptCoin(Script redeemScript)
@@ -617,9 +599,7 @@ namespace BitcoinNet
 		{
 			if(!IsP2SH)
 				return null;
-			var p2shRedeem = RedeemType == RedeemType.P2SH ? Redeem :
-							RedeemType == RedeemType.WitnessV0 ? Redeem.WitHash.ScriptPubKey :
-							null;
+			var p2shRedeem = RedeemType == RedeemType.P2SH ? Redeem : null;
 			if(p2shRedeem == null)
 				throw new NotSupportedException("RedeemType not supported for getting the P2SH script, contact the library author");
 			return p2shRedeem;
@@ -648,21 +628,16 @@ namespace BitcoinNet
 			}
 			if(expectedDestination is ScriptId)
 			{
-				if(PayToWitScriptHashTemplate.Instance.CheckScriptPubKey(Redeem))
+				if(PayToScriptHashTemplate.Instance.CheckScriptPubKey(Redeem))
 				{
 					throw new ArgumentException("The redeem script provided must be the witness one, not the P2SH one");
 				}
 
 				if(expectedDestination.ScriptPubKey != Redeem.Hash.ScriptPubKey)
 				{
-					if(Redeem.WitHash.ScriptPubKey.Hash.ScriptPubKey != expectedDestination.ScriptPubKey)
+					if(Redeem.Hash.ScriptPubKey.Hash.ScriptPubKey != expectedDestination.ScriptPubKey)
 						throw new ArgumentException("The redeem provided does not match the scriptPubKey of the coin");
 				}
-			}
-			else if(expectedDestination is WitScriptId)
-			{
-				if(expectedDestination.ScriptPubKey != Redeem.WitHash.ScriptPubKey)
-					throw new ArgumentException("The redeem provided does not match the scriptPubKey of the coin");
 			}
 			else
 				throw new NotSupportedException("Not supported redeemed scriptPubkey");
@@ -694,9 +669,9 @@ namespace BitcoinNet
 				throw new InvalidOperationException("You need to provide the P2WSH redeem script with ScriptCoin.ToScriptCoin()");
 			if(_OverrideScriptCode != null)
 				return _OverrideScriptCode;
-			var key = PayToWitPubKeyHashTemplate.Instance.ExtractScriptPubKeyParameters(Redeem);
-			if(key != null)
-				return key.AsKeyId().ScriptPubKey;
+			var key = PayToPubkeyHashTemplate.Instance.ExtractScriptPubKeyParameters(Redeem);
+			if (key != null)
+				return key.ScriptPubKey;
 			return Redeem;
 		}
 
@@ -704,16 +679,8 @@ namespace BitcoinNet
 		{
 			get
 			{
-				return _OverrideScriptCode != null || !IsP2SH || !PayToWitScriptHashTemplate.Instance.CheckScriptPubKey(Redeem);
+				return _OverrideScriptCode != null || !IsP2SH || !PayToScriptHashTemplate.Instance.CheckScriptPubKey(Redeem);
 			}
-		}
-
-		public override HashVersion GetHashVersion()
-		{
-			var isWitness = PayToWitTemplate.Instance.CheckScriptPubKey(ScriptPubKey) ||
-							PayToWitTemplate.Instance.CheckScriptPubKey(Redeem) ||
-							RedeemType == BitcoinNet.RedeemType.WitnessV0;
-			return isWitness ? HashVersion.Witness : HashVersion.Original;
 		}
 
 		/// <summary>
@@ -725,9 +692,7 @@ namespace BitcoinNet
 		{
 			if(scriptPubKey == null)
 				throw new ArgumentNullException(nameof(scriptPubKey));
-			return PayToScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey) as TxDestination
-					??
-					PayToWitScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey);
+			return PayToScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey) as TxDestination;
 		}
 	}
 
@@ -769,14 +734,6 @@ namespace BitcoinNet
 				return base.GetScriptCode();
 			else
 				return new ScriptCoin(this, Redeem).GetScriptCode();
-		}
-
-		public override HashVersion GetHashVersion()
-		{
-			if(Redeem == null)
-				return base.GetHashVersion();
-			else
-				return new ScriptCoin(this, Redeem).GetHashVersion();
 		}
 
 		/// <summary>

@@ -3,6 +3,7 @@ using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -321,30 +322,31 @@ namespace BitcoinNet
 		OP_NOP10 = 0xb9,
 	};
 
-	public enum HashVersion
-	{
-		Original = 0,
-		Witness = 1
-	}
+	//public enum HashVersion
+	//{
+	//	Original = 0,
+	//	Witness = 1
+	//}
 
 	public class ScriptSigs
 	{
 		public ScriptSigs()
 		{
-			WitSig = WitScript.Empty;
+			//WitSig = WitScript.Empty;
 		}
 		public Script ScriptSig
 		{
 			get;
 			set;
 		}
-		public WitScript WitSig
-		{
-			get;
-			set;
-		}
+		//public WitScript WitSig
+		//{
+		//	get;
+		//	set;
+		//}
 	}
 
+	[DebuggerDisplay("{ToString()}")]
 	public class Script
 	{
 		static readonly Script _Empty = new Script();
@@ -356,10 +358,10 @@ namespace BitcoinNet
 			}
 		}
 
-		internal byte[] _Script = new byte[0];
+		internal readonly byte[] _Script;
 		public Script()
 		{
-
+			_Script = new byte[0];
 		}
 		public Script(params Op[] ops)
 			: this((IEnumerable<Op>)ops)
@@ -420,7 +422,7 @@ namespace BitcoinNet
 			else
 			{
 				ScriptCompressor compressor = new ScriptCompressor();
-				compressor.ReadWrite(data);
+				compressor.ReadWrite(new BitcoinStream(data));
 				_Script = compressor.GetScript()._Script;
 			}
 		}
@@ -434,7 +436,7 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Extract the ScriptCode delimited by the <codeSeparatorIndex>th OP_CODESEPARATOR.
+		/// Extract the ScriptCode delimited by the codeSeparatorIndex th OP_CODESEPARATOR.
 		/// </summary>
 		/// <param name="codeSeparatorIndex">Index of the OP_CODESEPARATOR, or -1 for fetching the whole script</param>
 		/// <returns></returns>
@@ -464,29 +466,29 @@ namespace BitcoinNet
 			return new ScriptReader(_Script);
 		}
 
+		private Script FindAndDelete(Op op)
+		{
+			return op == null ? this : FindAndDelete(o => o.Code == op.Code && Utils.ArrayEqual(o.PushData, op.PushData));
+		}
 
-		public int FindAndDelete(OpcodeType op)
+		internal Script FindAndDelete(byte[] pushedData)
+		{
+			if(pushedData.Length == 0)
+				return this;
+			var standardOp = Op.GetPushOp(pushedData);
+			return FindAndDelete(op =>
+							op.Code == standardOp.Code &&
+							op.PushData != null && Utils.ArrayEqual(op.PushData, pushedData));
+		}
+		internal Script FindAndDelete(OpcodeType op)
 		{
 			return FindAndDelete(new Op()
 			{
 				Code = op
 			});
 		}
-		internal int FindAndDelete(Op op)
-		{
-			return op == null ? 0 : FindAndDelete(o => o.Code == op.Code && Utils.ArrayEqual(o.PushData, op.PushData));
-		}
 
-		internal int FindAndDelete(byte[] pushedData)
-		{
-			if(pushedData.Length == 0)
-				return 0;
-			var standardOp = Op.GetPushOp(pushedData);
-			return FindAndDelete(op =>
-							op.Code == standardOp.Code &&
-							op.PushData != null && Utils.ArrayEqual(op.PushData, pushedData));
-		}
-		internal int FindAndDelete(Func<Op, bool> predicate)
+		private Script FindAndDelete(Func<Op, bool> predicate)
 		{
 			int nFound = 0;
 			List<Op> operations = new List<Op>();
@@ -501,9 +503,8 @@ namespace BitcoinNet
 					nFound++;
 			}
 			if(nFound == 0)
-				return 0;
-			_Script = new Script(operations)._Script;
-			return nFound;
+				return this;
+			return new Script(operations);
 		}
 
 		public string ToHex()
@@ -521,18 +522,6 @@ namespace BitcoinNet
 			get
 			{
 				return _PaymentScript ?? (_PaymentScript = PayToScriptHashTemplate.Instance.GenerateScriptPubKey(Hash));
-			}
-		}
-
-
-		/// <summary>
-		/// True if the scriptPubKey is witness
-		/// </summary>
-		public bool IsWitness
-		{
-			get
-			{
-				return PayToWitTemplate.Instance.CheckScriptPubKey(this);
 			}
 		}
 
@@ -643,14 +632,6 @@ namespace BitcoinNet
 				return _Hash ?? (_Hash = new ScriptId(this));
 			}
 		}
-		WitScriptId _WitHash;
-		public WitScriptId WitHash
-		{
-			get
-			{
-				return _WitHash ?? (_WitHash = new WitScriptId(this));
-			}
-		}
 
 		public BitcoinScriptAddress GetScriptAddress(Network network)
 		{
@@ -664,12 +645,7 @@ namespace BitcoinNet
 				return PayToScriptHashTemplate.Instance.CheckScriptPubKey(this);
 			}
 		}
-
-		public BitcoinWitScriptAddress GetWitScriptAddress(Network network)
-		{
-			return (BitcoinWitScriptAddress)WitHash.GetAddress(network);
-		}
-
+		
 		public uint GetSigOpCount(Script scriptSig)
 		{
 			if(!IsPayToScriptHash)
@@ -737,8 +713,8 @@ namespace BitcoinNet
 			var scriptHashParams = PayToScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(this);
 			if(scriptHashParams != null)
 				return scriptHashParams;
-			var wit = PayToWitTemplate.Instance.ExtractScriptPubKeyParameters(this);
-			return wit;
+
+			return null;
 		}
 
 		/// <summary>
@@ -950,49 +926,32 @@ namespace BitcoinNet
 
 			var scriptSig1 = input1.ScriptSig;
 			var scriptSig2 = input2.ScriptSig;
-			HashVersion hashVersion = HashVersion.Original;
-			var isWitness = input1.WitSig != WitScript.Empty || input2.WitSig != WitScript.Empty;
-			if(isWitness)
-			{
-				scriptSig1 = input1.WitSig.ToScript();
-				scriptSig2 = input2.WitSig.ToScript();
-				hashVersion = HashVersion.Witness;
-			}
-
+			
 			var context = new ScriptEvaluationContext();
 			context.ScriptVerify = ScriptVerify.StrictEnc;
-			context.EvalScript(scriptSig1, checker, hashVersion);
+			context.EvalScript(scriptSig1, checker);
 
 			var stack1 = context.Stack.AsInternalArray();
 			context = new ScriptEvaluationContext();
 			context.ScriptVerify = ScriptVerify.StrictEnc;
-			context.EvalScript(scriptSig2, checker, hashVersion);
+			context.EvalScript(scriptSig2, checker);
 
 			var stack2 = context.Stack.AsInternalArray();
-			var result = CombineSignatures(scriptPubKey, checker, stack1, stack2, hashVersion);
+			var result = CombineSignatures(scriptPubKey, checker, stack1, stack2);
 			if(result == null)
 				return scriptSig1.Length < scriptSig2.Length ? input2 : input1;
-			if(!isWitness)
-				return new ScriptSigs()
-				{
-					ScriptSig = result,
-					WitSig = WitScript.Empty
-				};
-			else
+
+			return new ScriptSigs()
 			{
-				return new ScriptSigs()
-				{
-					ScriptSig = input1.ScriptSig.Length < input2.ScriptSig.Length ? input2.ScriptSig : input1.ScriptSig,
-					WitSig = new WitScript(result)
-				};
-			}
+				ScriptSig = result
+			};
 		}
 
-		private static Script CombineSignatures(Script scriptPubKey, TransactionChecker checker, byte[][] sigs1, byte[][] sigs2, HashVersion hashVersion)
+		private static Script CombineSignatures(Script scriptPubKey, TransactionChecker checker, byte[][] sigs1, byte[][] sigs2)
 		{
 			var template = StandardScripts.GetTemplateFromScriptPubKey(scriptPubKey);
 
-			if(template is PayToWitPubKeyHashTemplate)
+			if(template is PayToPubkeyHashTemplate)
 			{
 				scriptPubKey = new KeyId(scriptPubKey.ToBytes(true).SafeSubarray(1, 20)).ScriptPubKey;
 				template = StandardScripts.GetTemplateFromScriptPubKey(scriptPubKey);
@@ -1005,7 +964,7 @@ namespace BitcoinNet
 					return PushAll(sigs2);
 				else
 					return PushAll(sigs1);
-			if(template is PayToScriptHashTemplate || template is PayToWitTemplate)
+			if(template is PayToScriptHashTemplate)
 			{
 				if(sigs1.Length == 0 || sigs1[sigs1.Length - 1].Length == 0)
 					return PushAll(sigs2);
@@ -1017,20 +976,20 @@ namespace BitcoinNet
 				var redeem = new Script(redeemBytes);
 				sigs1 = sigs1.Take(sigs1.Length - 1).ToArray();
 				sigs2 = sigs2.Take(sigs2.Length - 1).ToArray();
-				Script result = CombineSignatures(redeem, checker, sigs1, sigs2, hashVersion);
+				Script result = CombineSignatures(redeem, checker, sigs1, sigs2);
 				result += Op.GetPushOp(redeemBytes);
 				return result;
 			}
 
 			if(template is PayToMultiSigTemplate)
 			{
-				return CombineMultisig(scriptPubKey, checker, sigs1, sigs2, hashVersion);
+				return CombineMultisig(scriptPubKey, checker, sigs1, sigs2);
 			}
 
 			return null;
 		}
 
-		private static Script CombineMultisig(Script scriptPubKey, TransactionChecker checker, byte[][] sigs1, byte[][] sigs2, HashVersion hashVersion)
+		private static Script CombineMultisig(Script scriptPubKey, TransactionChecker checker, byte[][] sigs1, byte[][] sigs2)
 		{
 			// Combine all the signatures we've got:
 			List<TransactionSignature> allsigs = new List<TransactionSignature>();
@@ -1065,7 +1024,7 @@ namespace BitcoinNet
 						continue; // Already got a sig for this pubkey
 
 					ScriptEvaluationContext eval = new ScriptEvaluationContext();
-					if(eval.CheckSig(sig, pubkey, scriptPubKey, checker, hashVersion))
+					if(eval.CheckSig(sig, pubkey, scriptPubKey, checker))
 					{
 						sigs.AddOrReplace(pubkey, sig);
 					}
@@ -1102,13 +1061,6 @@ namespace BitcoinNet
 				s += Op.GetPushOp(push);
 			}
 			return s;
-		}
-
-		public static implicit operator WitScript(Script script)
-		{
-			if(script == null)
-				return null;
-			return new WitScript(script);
 		}
 
 		private static byte[][] Max(byte[][] scriptSig1, byte[][] scriptSig2)

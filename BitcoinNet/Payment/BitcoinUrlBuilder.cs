@@ -19,6 +19,8 @@ namespace BitcoinNet.Payment
 	/// </summary>
 	public class BitcoinUrlBuilder
 	{
+		private const string UrlPrefix = "bitcoincash:";
+
 		public BitcoinUrlBuilder()
 		{
 
@@ -34,9 +36,9 @@ namespace BitcoinNet.Payment
 		{
 			if(uri == null)
 				throw new ArgumentNullException(nameof(uri));
-			if(!uri.StartsWith("bitcoin:", StringComparison.OrdinalIgnoreCase))
+			if(!uri.StartsWith(UrlPrefix, StringComparison.OrdinalIgnoreCase))
 				throw new FormatException("Invalid scheme");
-			uri = uri.Remove(0, "bitcoin:".Length);
+			uri = uri.Remove(0, UrlPrefix.Length);
 			if(uri.StartsWith("//"))
 				uri = uri.Remove(0, 2);
 
@@ -175,7 +177,7 @@ namespace BitcoinNet.Payment
 			{
 				Dictionary<string, string> parameters = new Dictionary<string, string>();
 				StringBuilder builder = new StringBuilder();
-				builder.Append("bitcoin:");
+				builder.Append(UrlPrefix);
 				if(Address != null)
 				{
 					builder.Append(Address.ToString());

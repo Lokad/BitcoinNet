@@ -15,12 +15,27 @@ namespace BitcoinNet
 
 	public static class BitcoinSerializableExtensions
 	{
+		[Obsolete("Use ReadWrite(this IBitcoinSerializable serializable, Stream stream, bool serializing, Network network, uint? version = null) or ReadWrite(new BitcoinStream(bytes)) if no network context")]
 		public static void ReadWrite(this IBitcoinSerializable serializable, Stream stream, bool serializing, uint? version = null)
 		{
 			BitcoinStream s = new BitcoinStream(stream, serializing)
 			{
 				ProtocolVersion = version
 			};
+			serializable.ReadWrite(s);
+		}
+		public static void ReadWrite(this IBitcoinSerializable serializable, Stream stream, bool serializing, Network network, uint? version = null)
+		{
+			serializable.ReadWrite(stream, serializing, network?.Consensus?.ConsensusFactory, version);
+		}
+		public static void ReadWrite(this IBitcoinSerializable serializable, Stream stream, bool serializing, ConsensusFactory consensusFactory, uint? version = null)
+		{
+			BitcoinStream s = new BitcoinStream(stream, serializing)
+			{
+				ProtocolVersion = version
+			};
+			if (consensusFactory != null)
+				s.ConsensusFactory = consensusFactory;
 			serializable.ReadWrite(s);
 		}
 		public static int GetSerializedSize(this IBitcoinSerializable serializable, uint? version, SerializationType serializationType)
@@ -43,10 +58,22 @@ namespace BitcoinNet
 			return GetSerializedSize(serializable, version, SerializationType.Disk);
 		}
 
+		[Obsolete("Use ReadWrite(this IBitcoinSerializable serializable, byte[] bytes, Network network, uint? version = null) or ReadWrite(new BitcoinStream(bytes)) if no network context")]
 		public static void ReadWrite(this IBitcoinSerializable serializable, byte[] bytes, uint? version = null)
 		{
 			ReadWrite(serializable, new MemoryStream(bytes), false, version);
 		}
+
+		public static void ReadWrite(this IBitcoinSerializable serializable, byte[] bytes, Network network, uint? version = null)
+		{
+			ReadWrite(serializable, new MemoryStream(bytes), false, network, version);
+		}
+
+		public static void ReadWrite(this IBitcoinSerializable serializable, byte[] bytes, ConsensusFactory consensusFactory, uint? version = null)
+		{
+			ReadWrite(serializable, new MemoryStream(bytes), false, consensusFactory, version);
+		}
+
 		public static void FromBytes(this IBitcoinSerializable serializable, byte[] bytes, uint? version = null)
 		{
 			serializable.ReadWrite(new BitcoinStream(bytes)
@@ -73,12 +100,12 @@ namespace BitcoinNet
 
 		public static byte[] ToArrayEfficient(this MemoryStream ms)
 		{
-#if !(PORTABLE || NETCORE)
+#if NO_MEM_BUFFER
+			return ms.ToArray();
+#else
 			var bytes = ms.GetBuffer();
 			Array.Resize(ref bytes, (int)ms.Length);
 			return bytes;
-#else
-			return ms.ToArray();
 #endif
 		}
 	}

@@ -67,7 +67,7 @@ namespace BitcoinNet
 			vchVersion = vchTemp.SafeSubarray(0, expectedVersion.Length);
 			if(!Utils.ArrayEqual(vchVersion, expectedVersion))
 			{
-				if(_Network.NetworkStringParser.TryParse(psz, Network, out T other))
+				if(_Network.TryParse(psz, out T other))
 				{
 					this.vchVersion = other.vchVersion;
 					this.vchData = other.vchData;

@@ -36,14 +36,26 @@ namespace BitcoinNet
 			{
 				if(stream.Serializing)
 				{
+#if !HAS_SPAN
 					var b = Value.ToBytes();
 					stream.ReadWrite(ref b);
+#else
+					Span<byte> b = stackalloc byte[WIDTH_BYTE];
+					Value.ToBytes(b);
+					stream.ReadWrite(ref b);
+#endif
 				}
 				else
 				{
+#if !HAS_SPAN
 					byte[] b = new byte[WIDTH_BYTE];
 					stream.ReadWrite(ref b);
 					_Value = new uint256(b);
+#else
+					Span<byte> b = stackalloc byte[WIDTH_BYTE];
+					stream.ReadWrite(ref b);
+					_Value = new uint256(b);
+#endif
 				}
 			}
 		}
@@ -143,8 +155,10 @@ namespace BitcoinNet
 		}
 
 		public override string ToString()
-		{ 
-			return Encoder.EncodeData(ToBytes().Reverse().ToArray());
+		{
+			var bytes = ToBytes();
+			Array.Reverse(bytes);
+			return Encoder.EncodeData(bytes);
 		}
 
 		public uint256(ulong b)
@@ -159,7 +173,12 @@ namespace BitcoinNet
 			pn7 = 0;
 		}
 
-		public uint256(byte[] vch, bool lendian = true)
+		public uint256(byte[] vch, bool lendian = true) : this(vch, 0, vch.Length, lendian)
+		{
+
+		}
+
+		public uint256(byte[] vch, int offset, int length, bool lendian = true)
 		{
 			if (vch.Length != WIDTH_BYTE)
 			{
@@ -167,22 +186,45 @@ namespace BitcoinNet
 			}
 
 			if(!lendian)
+			{
+				if(length != vch.Length)
+					vch = vch.Take(32).ToArray();
 				vch = vch.Reverse().ToArray();
+			}
 
-			pn0 = Utils.ToUInt32(vch, 4 * 0, true);
-			pn1 = Utils.ToUInt32(vch, 4 * 1, true);
-			pn2 = Utils.ToUInt32(vch, 4 * 2, true);
-			pn3 = Utils.ToUInt32(vch, 4 * 3, true);
-			pn4 = Utils.ToUInt32(vch, 4 * 4, true);
-			pn5 = Utils.ToUInt32(vch, 4 * 5, true);
-			pn6 = Utils.ToUInt32(vch, 4 * 6, true);
-			pn7 = Utils.ToUInt32(vch, 4 * 7, true);
-	
+			pn0 = Utils.ToUInt32(vch, offset + 4 * 0, true);
+			pn1 = Utils.ToUInt32(vch, offset + 4 * 1, true);
+			pn2 = Utils.ToUInt32(vch, offset + 4 * 2, true);
+			pn3 = Utils.ToUInt32(vch, offset + 4 * 3, true);
+			pn4 = Utils.ToUInt32(vch, offset + 4 * 4, true);
+			pn5 = Utils.ToUInt32(vch, offset + 4 * 5, true);
+			pn6 = Utils.ToUInt32(vch, offset + 4 * 6, true);
+			pn7 = Utils.ToUInt32(vch, offset + 4 * 7, true);
+
 		}
+
+#if HAS_SPAN
+		public uint256(ReadOnlySpan<byte> bytes)
+		{
+			if(bytes.Length != WIDTH_BYTE)
+			{
+				throw new FormatException("the byte array should be 32 bytes long");
+			}
+
+			pn0 = Utils.ToUInt32(bytes, 4 * 0, true);
+			pn1 = Utils.ToUInt32(bytes, 4 * 1, true);
+			pn2 = Utils.ToUInt32(bytes, 4 * 2, true);
+			pn3 = Utils.ToUInt32(bytes, 4 * 3, true);
+			pn4 = Utils.ToUInt32(bytes, 4 * 4, true);
+			pn5 = Utils.ToUInt32(bytes, 4 * 5, true);
+			pn6 = Utils.ToUInt32(bytes, 4 * 6, true);
+			pn7 = Utils.ToUInt32(bytes, 4 * 7, true);
+		}
+#endif
 
 		public uint256(string str)
 		{
-						pn0 = 0;
+			pn0 = 0;
 			pn1 = 0;
 			pn2 = 0;
 			pn3 = 0;
@@ -195,10 +237,11 @@ namespace BitcoinNet
 			if (str.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
 				str = str.Substring(2);
 
-			var bytes = Encoder.DecodeData(str).Reverse().ToArray();
+			var bytes = Encoder.DecodeData(str);
+			Array.Reverse(bytes);
 			if(bytes.Length != WIDTH_BYTE)
-					throw new FormatException("Invalid hex length");
-						pn0 = Utils.ToUInt32(bytes, 4 * 0, true);
+				throw new FormatException("Invalid hex length");
+			pn0 = Utils.ToUInt32(bytes, 4 * 0, true);
 			pn1 = Utils.ToUInt32(bytes, 4 * 1, true);
 			pn2 = Utils.ToUInt32(bytes, 4 * 2, true);
 			pn3 = Utils.ToUInt32(bytes, 4 * 3, true);
@@ -206,7 +249,7 @@ namespace BitcoinNet
 			pn5 = Utils.ToUInt32(bytes, 4 * 5, true);
 			pn6 = Utils.ToUInt32(bytes, 4 * 6, true);
 			pn7 = Utils.ToUInt32(bytes, 4 * 7, true);
-	
+
 		}
 
 		public uint256(byte[] vch)
@@ -218,8 +261,11 @@ namespace BitcoinNet
 		{
 			var item = obj as uint256;
 			if(item == null)
+			{
 				return false;
-			bool equals = true;		
+			}
+
+			bool equals = true;
 			equals &= pn0 == item.pn0;
 			equals &= pn1 == item.pn1;
 			equals &= pn2 == item.pn2;
@@ -238,7 +284,7 @@ namespace BitcoinNet
 			if(((object)a == null) || ((object)b == null))
 				return false;
 
-			bool equals = true;		
+			bool equals = true;
 			equals &= a.pn0 == b.pn0;
 			equals &= a.pn1 == b.pn1;
 			equals &= a.pn2 == b.pn2;
@@ -327,29 +373,61 @@ namespace BitcoinNet
 			return new uint256(value);
 		}
 
-		
+
 		public byte[] ToBytes(bool lendian = true)
 		{
 			var arr = new byte[WIDTH_BYTE];
-			Buffer.BlockCopy(Utils.ToBytes(pn0, true), 0, arr, 4 * 0, 4);
-			Buffer.BlockCopy(Utils.ToBytes(pn1, true), 0, arr, 4 * 1, 4);
-			Buffer.BlockCopy(Utils.ToBytes(pn2, true), 0, arr, 4 * 2, 4);
-			Buffer.BlockCopy(Utils.ToBytes(pn3, true), 0, arr, 4 * 3, 4);
-			Buffer.BlockCopy(Utils.ToBytes(pn4, true), 0, arr, 4 * 4, 4);
-			Buffer.BlockCopy(Utils.ToBytes(pn5, true), 0, arr, 4 * 5, 4);
-			Buffer.BlockCopy(Utils.ToBytes(pn6, true), 0, arr, 4 * 6, 4);
-			Buffer.BlockCopy(Utils.ToBytes(pn7, true), 0, arr, 4 * 7, 4);
-			if (!lendian)
+			ToBytes(arr);
+			if(!lendian)
 				Array.Reverse(arr);
 			return arr;
 		}
 
+		public void ToBytes(byte[] output)
+		{
+			Buffer.BlockCopy(Utils.ToBytes(pn0, true), 0, output, 4 * 0, 4);
+			Buffer.BlockCopy(Utils.ToBytes(pn1, true), 0, output, 4 * 1, 4);
+			Buffer.BlockCopy(Utils.ToBytes(pn2, true), 0, output, 4 * 2, 4);
+			Buffer.BlockCopy(Utils.ToBytes(pn3, true), 0, output, 4 * 3, 4);
+			Buffer.BlockCopy(Utils.ToBytes(pn4, true), 0, output, 4 * 4, 4);
+			Buffer.BlockCopy(Utils.ToBytes(pn5, true), 0, output, 4 * 5, 4);
+			Buffer.BlockCopy(Utils.ToBytes(pn6, true), 0, output, 4 * 6, 4);
+			Buffer.BlockCopy(Utils.ToBytes(pn7, true), 0, output, 4 * 7, 4);
+		}
+
+#if HAS_SPAN
+		public void ToBytes(Span<byte> output, bool lendian = true)
+		{
+			if(output.Length < WIDTH_BYTE)
+				throw new ArgumentException(message: $"The array should be at least of size {WIDTH_BYTE}", paramName: nameof(output));
+
+			var initial = output;
+			Utils.ToBytes(pn0, true, output);
+			output = output.Slice(4);
+			Utils.ToBytes(pn1, true, output);
+			output = output.Slice(4);
+			Utils.ToBytes(pn2, true, output);
+			output = output.Slice(4);
+			Utils.ToBytes(pn3, true, output);
+			output = output.Slice(4);
+			Utils.ToBytes(pn4, true, output);
+			output = output.Slice(4);
+			Utils.ToBytes(pn5, true, output);
+			output = output.Slice(4);
+			Utils.ToBytes(pn6, true, output);
+			output = output.Slice(4);
+			Utils.ToBytes(pn7, true, output);
+
+			if(!lendian)
+				initial.Reverse();
+		}
+#endif
 		public MutableUint256 AsBitcoinSerializable()
 		{
 			return new MutableUint256(this);
 		}
-		
-		public int GetSerializeSize(int nType=0, uint? protocolVersion = null)
+
+		public int GetSerializeSize(int nType = 0, uint? protocolVersion = null)
 		{
 			return WIDTH_BYTE;
 		}
@@ -682,8 +760,8 @@ namespace BitcoinNet
 		{
 			return new MutableUint160(this);
 		}
-		
-		public int GetSerializeSize(int nType=0, uint? protocolVersion = null)
+
+		public int GetSerializeSize(int nType = 0, uint? protocolVersion = null)
 		{
 			return WIDTH_BYTE;
 		}

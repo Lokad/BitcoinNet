@@ -61,17 +61,7 @@ namespace BitcoinNet
 					var address = Network.Parse<BitcoinAddress>(colored, obj.Network).ToNetwork(network);
 					return (T)(object)address.ToColoredAddress();
 				}
-			}
-			else if(obj is IBech32Data)
-			{
-				var b32 = (IBech32Data)obj;
-				var encoder = b32.Network.GetBech32Encoder(b32.Type, true);
-				byte wit;
-				var data = encoder.Decode(b32.ToString(), out wit);
-				encoder = network.GetBech32Encoder(b32.Type, true);
-				var str = encoder.Encode(wit, data);
-				return (T)(object)Network.Parse<T>(str, network);
-			}
+			}			
 			else
 				throw new NotSupportedException();
 		}

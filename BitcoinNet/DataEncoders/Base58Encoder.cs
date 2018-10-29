@@ -44,7 +44,45 @@ namespace BitcoinNet.DataEncoders
 
 	public class Base58Encoder : DataEncoder
 	{
-		static readonly BigInteger bn58 = BigInteger.ValueOf(58);
+		static readonly BigInteger bn58 = BigInteger.ValueOf(58);		
+
+		public static bool ContainsInvalidCharacter(string s, int offset, int count)
+		{
+			if (s != null)
+			{
+				for (var i = 0; i < count; ++i)
+				{
+					var c = s[offset + i];
+					if (!pszBase58Chars.Contains(c))
+					{
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+		public static bool ContainsInvalidCharacter(string s, int offset)
+		{
+			if (s == null)
+			{
+				return false;
+			}
+
+			return ContainsInvalidCharacter(s, offset, s.Length - offset);
+		}
+
+		public static bool ContainsInvalidCharacter(string s)
+		{
+			if (s == null)
+			{
+				return false;
+			}
+
+			return ContainsInvalidCharacter(s, 0, s.Length);
+		}
+
 		public override string EncodeData(byte[] data, int offset, int count)
 		{
 			

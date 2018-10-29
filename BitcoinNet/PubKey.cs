@@ -127,19 +127,7 @@ namespace BitcoinNet
 				return _ID;
 			}
 		}
-		WitKeyId _WitID;
-		public WitKeyId WitHash
-		{
-			get
-			{
-				if(_WitID == null)
-				{
-					_WitID = new WitKeyId(Hashes.Hash160(vch, 0, vch.Length));
-				}
-				return _WitID;
-			}
-		}
-
+		
 		public bool IsCompressed
 		{
 			get
@@ -449,12 +437,7 @@ namespace BitcoinNet
 			pubkey = pubkey.Normalize();
 			return new ECKey(pubkey.GetEncoded(true), false).GetPubKey(true);
 		}
-
-		public BitcoinWitPubKeyAddress GetSegwitAddress(Network network)
-		{
-			return new BitcoinWitPubKeyAddress(WitHash, network);
-		}
-
+		
 		#endregion
 	}
 }

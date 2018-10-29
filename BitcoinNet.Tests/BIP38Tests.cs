@@ -91,7 +91,7 @@ namespace BitcoinNet.Tests
 				Passphrase= "TestingOneTwoThree",
 				PassphraseCode= "passphrasepxFy57B9v8HtUsszJYKReoNDV6VHjUSGt8EVJmux9n1J3Ltf1gRxyDGXqnf9qm",
 				Encrypted = "6PfQu77ygVyJLZjfvMLyhLMQbYnu5uguoJJ4kMCLqWwPEdfpwANVS76gTX",
-				Address = "1PE6TQi6HTVNz5DLwB1LcpMBALubfuN2z2",
+				Address = "bitcoincash:qreuew5xaf0djc7qlffw6ctq8d4c89z5dcd7apkd67",
 				Unencrypted = "5K4caxezwjGCGfnoPTZ8tMcJBLB7Jvyjv4xxeacadhq8nLisLR2",
 				Compressed = false
 				},
@@ -99,7 +99,7 @@ namespace BitcoinNet.Tests
 				Passphrase= "Satoshi",
 				PassphraseCode= "passphraseoRDGAXTWzbp72eVbtUDdn1rwpgPUGjNZEc6CGBo8i5EC1FPW8wcnLdq4ThKzAS",
 				Encrypted = "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd",
-				Address = "1CqzrtZC6mXSAhoxtFwVjz8LtwLJjDYU3V",
+				Address = "bitcoincash:qzq7mf39j3y2f7k62hmq0wdkyjf6dgk2pcghdsgmdw",
 				Unencrypted = "5KJ51SgxWaAYR13zd9ReMhJpwrcX47xTJh2D3fGPG9CM8vkv5sH",
 				Compressed = false
 				}
@@ -138,7 +138,7 @@ namespace BitcoinNet.Tests
 				Passphrase= "ΜΟΛΩΝ ΛΑΒΕ",
 				PassphraseCode= "passphrased3z9rQJHSyBkNBwTRPkUGNVEVrUAcfAXDyRU1V28ie6hNFbqDwbFBvsTK7yWVK",
 				Encrypted = "6PgGWtx25kUg8QWvwuJAgorN6k9FbE25rv5dMRwu5SKMnfpfVe5mar2ngH",
-				Address = "1Lurmih3KruL4xDB5FmHof38yawNtP9oGf",
+				Address = "bitcoincash:qrdxnygsf20gcdt4duttad27l2m96hcsuqyjqswckl",
 				Unencrypted = "5KMKKuUmAkiNbA3DazMQiLfDq47qs8MAEThm4yL8R2PhV1ov33D",
 				ConfirmationCode = "cfrm38V8G4qq2ywYEFfWLD5Cc6msj9UwsG2Mj4Z6QdGJAFQpdatZLavkgRd1i4iBMdRngDqDs51",
 				LotSequence = new LotSequence(806938,1),
@@ -148,7 +148,7 @@ namespace BitcoinNet.Tests
 				Passphrase= "MOLON LABE",
 				PassphraseCode= "passphraseaB8feaLQDENqCgr4gKZpmf4VoaT6qdjJNJiv7fsKvjqavcJxvuR1hy25aTu5sX",
 				Encrypted = "6PgNBNNzDkKdhkT6uJntUXwwzQV8Rr2tZcbkDcuC9DZRsS6AtHts4Ypo1j",
-				Address = "1Jscj8ALrYu2y9TD8NrpvDBugPedmbj4Yh",
+				Address = "bitcoincash:qrzqesj6uxrz3zn6zqk00dwz2jz0hjmzy5xgg9vp5c",
 				Unencrypted = "5JLdxTtcTHcfYcmJsNVy1v2PMDx432JPoYcBTVVRHpPaxUrdtf8",
 				ConfirmationCode = "cfrm38V8aXBn7JWA1ESmFMUn6erxeBGZGAxJPY4e36S9QWkzZKtaVqLNMgnifETYw7BPwWC9aPD",
 				LotSequence = new LotSequence(263183,1),

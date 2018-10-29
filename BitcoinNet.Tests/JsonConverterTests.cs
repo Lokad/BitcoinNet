@@ -27,17 +27,16 @@ namespace BitcoinNet.Tests
 			CanSerializeInJsonCore(new uint160(RandomUtils.GetBytes(20)));
 			CanSerializeInJsonCore(new AssetId(k.PubKey));
 			CanSerializeInJsonCore(k.PubKey.ScriptPubKey);
-			CanSerializeInJsonCore(new Key().PubKey.WitHash.GetAddress(Network.Main));
-			CanSerializeInJsonCore(new Key().PubKey.WitHash.ScriptPubKey.GetWitScriptAddress(Network.Main));
+			CanSerializeInJsonCore(new Key().PubKey.Hash.GetAddress(Network.Main));
+			CanSerializeInJsonCore(new Key().PubKey.Hash.ScriptPubKey.GetScriptAddress(Network.Main));
 			var sig = k.Sign(new uint256(RandomUtils.GetBytes(32)));
 			CanSerializeInJsonCore(sig);
 			CanSerializeInJsonCore(new TransactionSignature(sig, SigHash.All));
 			CanSerializeInJsonCore(k.PubKey.Hash);
 			CanSerializeInJsonCore(k.PubKey.ScriptPubKey.Hash);
-			CanSerializeInJsonCore(k.PubKey.WitHash);
 			CanSerializeInJsonCore(k);
 			CanSerializeInJsonCore(k.PubKey);
-			CanSerializeInJsonCore(new WitScript(new Script(Op.GetPushOp(sig.ToDER()), Op.GetPushOp(sig.ToDER()))));
+			//CanSerializeInJsonCore(new WitScript(new Script(Op.GetPushOp(sig.ToDER()), Op.GetPushOp(sig.ToDER()))));
 			CanSerializeInJsonCore(new LockTime(1));
 			CanSerializeInJsonCore(new LockTime(DateTime.UtcNow));
 		}

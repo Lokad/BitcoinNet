@@ -142,8 +142,9 @@ namespace BitcoinNet.Tests
 		[Trait("Core", "Core")]
 		public void base58_keys_valid_gen()
 		{
-			var tests = TestCase.read_json("data/base58_keys_valid.json");
-			tests = tests.Concat(TestCase.read_json("data/base58_keys_valid2.json")).ToArray();
+			var tests = TestCase.read_json("data/cashaddr_keys_valid.json");
+			// Following line loads a JSON file which consists only Segwit addresses:
+			// tests = tests.Concat(TestCase.read_json("data/base58_keys_valid2.json")).ToArray();
 			Network network = null;
 
 			foreach(var test in tests)
@@ -182,14 +183,6 @@ namespace BitcoinNet.Tests
 					else if(exp_addrType == "script")
 					{
 						dest = new ScriptId(new uint160(exp_payload));
-					}
-					else if(exp_addrType == "p2wpkh")
-					{
-						dest = new WitKeyId(new uint160(exp_payload));
-					}
-					else if(exp_addrType == "p2wsh")
-					{
-						dest = new WitScriptId(exp_payload);
 					}
 					else if(exp_addrType == "none")
 					{

@@ -408,12 +408,12 @@ namespace BitcoinNet.RPC
 
 		// importmulti
 
-		public void ImportMulti(ImportMultiAddress[] addresses, bool rescan)
+		public bool[] ImportMulti(ImportMultiAddress[] addresses, bool rescan)
 		{
-			ImportMultiAsync(addresses, rescan).GetAwaiter().GetResult();
+			return ImportMultiAsync(addresses, rescan).GetAwaiter().GetResult();
 		}
 
-		public async Task ImportMultiAsync(ImportMultiAddress[] addresses, bool rescan)
+		public async Task<bool[]> ImportMultiAsync(ImportMultiAddress[] addresses, bool rescan)
 		{
 			var parameters = new List<object>();
 
@@ -445,6 +445,8 @@ namespace BitcoinNet.RPC
 				var errorObj = new RPCError(error);
 				throw new RPCException(errorObj.Code, errorObj.Message, response);
 			}
+
+			return ((JArray)response.Result).Select(x => x.Type == JTokenType.Object && x.Value<bool>("success")).ToArray();
 		}
 
 

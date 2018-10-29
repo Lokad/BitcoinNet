@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-#if !WINDOWS_UWP && !USEBC
+#if !NONATIVEHASH
 using System.Security.Cryptography;
 #endif
 
@@ -29,23 +29,28 @@ namespace BitcoinNet.Crypto
 
 		public static uint256 Hash256(byte[] data, int offset, int count)
 		{
-#if USEBC || WINDOWS_UWP || NETCORE
+			return new uint256(Hash256RawBytes(data, offset, count));
+		}
+		#endregion
+
+		public static byte[] Hash256RawBytes(byte[] data, int offset, int count)
+		{
+#if NONATIVEHASH
 			Sha256Digest sha256 = new Sha256Digest();
 			sha256.BlockUpdate(data, offset, count);
 			byte[] rv = new byte[32];
 			sha256.DoFinal(rv, 0);
 			sha256.BlockUpdate(rv, 0, rv.Length);
 			sha256.DoFinal(rv, 0);
-			return new uint256(rv);
+			return rv;
 #else
 			using(var sha = new SHA256Managed())
 			{
 				var h = sha.ComputeHash(data, offset, count);
-				return new uint256(sha.ComputeHash(h, 0, h.Length));
+				return sha.ComputeHash(h, 0, h.Length);
 			}
 #endif
 		}
-		#endregion
 
 		#region Hash160
 		public static uint160 Hash160(byte[] data)
@@ -77,7 +82,7 @@ namespace BitcoinNet.Crypto
 
 		public static byte[] RIPEMD160(byte[] data, int offset, int count)
 		{
-#if USEBC || WINDOWS_UWP || NETCORE
+#if NONATIVEHASH || NETCORE || NETSTANDARD
 			RipeMD160Digest ripemd = new RipeMD160Digest();
 			ripemd.BlockUpdate(data, offset, count);
 			byte[] rv = new byte[20];
@@ -115,8 +120,37 @@ namespace BitcoinNet.Crypto
 			{
 				ulong v0 = v_0, v1 = v_1, v2 = v_2, v3 = v_3;
 				v3 ^= data;
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
 				v0 ^= data;
 
 				v_0 = v0;
@@ -143,8 +177,37 @@ namespace BitcoinNet.Crypto
 					if((c & 7) == 0)
 					{
 						v3 ^= t;
-						SIPROUND(ref v0, ref v1, ref v2, ref v3);
-						SIPROUND(ref v0, ref v1, ref v2, ref v3);
+						//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+						v0 += v1;
+						v2 += v3;
+						v1 =  v1 << 13 | v1 >> 51;
+						v3 =  v3 << 16 | v3 >> 48;
+						v1 ^= v0;
+						v3 ^= v2;
+						v0 =  v0 << 32 | v0 >> 32;
+						v2 += v1;
+						v0 += v3;
+						v1 =  v1 << 17 | v1 >> 47;
+						v3 =  v3 << 21 | v3 >> 43;
+						v1 ^= v2;
+						v3 ^= v0;
+						v2 =  v2 << 32 | v2 >> 32;
+
+						//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+						v0 += v1;
+						v2 += v3;
+						v1 =  v1 << 13 | v1 >> 51;
+						v3 =  v3 << 16 | v3 >> 48;
+						v1 ^= v0;
+						v3 ^= v2;
+						v0 =  v0 << 32 | v0 >> 32;
+						v2 += v1;
+						v0 += v3;
+						v1 =  v1 << 17 | v1 >> 47;
+						v3 =  v3 << 21 | v3 >> 43;
+						v1 ^= v2;
+						v3 ^= v0;
+						v2 =  v2 << 32 | v2 >> 32;
 						v0 ^= t;
 						t = 0;
 					}
@@ -167,14 +230,104 @@ namespace BitcoinNet.Crypto
 				ulong t = tmp | (((ulong)count) << 56);
 
 				v3 ^= t;
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
 				v0 ^= t;
 				v2 ^= 0xFF;
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
 				return v0 ^ v1 ^ v2 ^ v3;
 			}
 
@@ -188,33 +341,248 @@ namespace BitcoinNet.Crypto
 				ulong v2 = 0x6c7967656e657261UL ^ k0;
 				ulong v3 = 0x7465646279746573UL ^ k1 ^ d;
 
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
 				v0 ^= d;
 				d = GetULong(val, 1);
 				v3 ^= d;
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
 				v0 ^= d;
 				d = GetULong(val, 2);
 				v3 ^= d;
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
 				v0 ^= d;
 				d = GetULong(val, 3);
 				v3 ^= d;
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
 				v0 ^= d;
 				v3 ^= ((ulong)4) << 59;
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
 				v0 ^= ((ulong)4) << 59;
 				v2 ^= 0xFF;
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
-				SIPROUND(ref v0, ref v1, ref v2, ref v3);
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
+				//SIPROUND(ref v0, ref v1, ref v2, ref v3);
+				v0 += v1;
+				v2 += v3;
+				v1 =  v1 << 13 | v1 >> 51;
+				v3 =  v3 << 16 | v3 >> 48;
+				v1 ^= v0;
+				v3 ^= v2;
+				v0 =  v0 << 32 | v0 >> 32;
+				v2 += v1;
+				v0 += v3;
+				v1 =  v1 << 17 | v1 >> 47;
+				v3 =  v3 << 21 | v3 >> 43;
+				v1 ^= v2;
+				v3 ^= v0;
+				v2 =  v2 << 32 | v2 >> 32;
+
 				return v0 ^ v1 ^ v2 ^ v3;
 			}
 
@@ -233,24 +601,6 @@ namespace BitcoinNet.Crypto
 					default:
 						throw new ArgumentOutOfRangeException("position should be less than 4", "position");
 				}
-			}
-
-			static void SIPROUND(ref ulong v_0, ref ulong v_1, ref ulong v_2, ref ulong v_3)
-			{
-				v_0 += v_1;
-				v_1 = rotl64(v_1, 13);
-				v_1 ^= v_0;
-				v_0 = rotl64(v_0, 32);
-				v_2 += v_3;
-				v_3 = rotl64(v_3, 16);
-				v_3 ^= v_2;
-				v_0 += v_3;
-				v_3 = rotl64(v_3, 21);
-				v_3 ^= v_0;
-				v_2 += v_1;
-				v_1 = rotl64(v_1, 17);
-				v_1 ^= v_2;
-				v_2 = rotl64(v_2, 32);
 			}
 		}
 
@@ -275,7 +625,7 @@ namespace BitcoinNet.Crypto
 
 		public static byte[] SHA256(byte[] data, int offset, int count)
 		{
-#if USEBC || WINDOWS_UWP || NETCORE
+#if USEBC || WINDOWS_UWP || NETSTANDARD1X
 			Sha256Digest sha256 = new Sha256Digest();
 			sha256.BlockUpdate(data, offset, count);
 			byte[] rv = new byte[32];
@@ -293,10 +643,6 @@ namespace BitcoinNet.Crypto
 		private static uint rotl32(uint x, byte r)
 		{
 			return (x << r) | (x >> (32 - r));
-		}
-		private static ulong rotl64(ulong x, byte b)
-		{
-			return (((x) << (b)) | ((x) >> (64 - (b))));
 		}
 
 		private static uint fmix(uint h)
@@ -383,7 +729,7 @@ namespace BitcoinNet.Crypto
 			}
 		}
 
-#if USEBC || WINDOWS_UWP
+#if NONATIVEHASH
 		public static byte[] HMACSHA512(byte[] key, byte[] data)
 		{
 			var mac = new BitcoinNet.BouncyCastle.Crypto.Macs.HMac(new Sha512Digest());

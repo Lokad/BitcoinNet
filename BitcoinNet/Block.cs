@@ -2,9 +2,6 @@
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using BitcoinNet.RPC;
-#if !NOJSONNET
-using Newtonsoft.Json.Linq;
-#endif
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -44,9 +41,10 @@ namespace BitcoinNet
 			if(consensusFactory == null)
 				throw new ArgumentNullException(nameof(consensusFactory));
 			return new BlockHeader(Encoders.Hex.DecodeData(hex), consensusFactory);
-		}		
+		}
 
-		protected internal BlockHeader()
+		[Obsolete("You should instantiate BlockHeader from ConsensusFactory.CreateBlockHeader")]
+		public BlockHeader()
 		{
 			SetNull();
 		}
@@ -75,7 +73,7 @@ namespace BitcoinNet
 			};
 			this.ReadWrite(bs);
 		}
-		
+
 		public BlockHeader(byte[] data, Network network)
 			: this(data, network?.Consensus?.ConsensusFactory ?? throw new ArgumentNullException(nameof(network)))
 		{
@@ -173,7 +171,7 @@ namespace BitcoinNet
 			}
 		}
 
-		internal void SetNull()
+		protected internal virtual void SetNull()
 		{
 			nVersion = CURRENT_VERSION;
 			hashPrevBlock = 0;
@@ -212,7 +210,7 @@ namespace BitcoinNet
 			return GetHash();
 		}
 
-		public virtual uint256 GetHash()
+		public uint256 GetHash()
 		{
 			uint256 h = null;
 			var hashes = _Hashes;
@@ -223,9 +221,11 @@ namespace BitcoinNet
 			if(h != null)
 				return h;
 
-			using(HashStream hs = new HashStream())
+			using(var hs = CreateHashStream())
 			{
-				this.ReadWrite(new BitcoinStream(hs, true));
+				var stream = new BitcoinStream(hs, true);
+				stream.SerializationTypeScope(SerializationType.Hash);
+				this.ReadWrite(stream);
 				h = hs.GetHash();
 			}
 
@@ -235,6 +235,11 @@ namespace BitcoinNet
 				hashes[0] = h;
 			}
 			return h;
+		}
+
+		protected virtual HashStreamBase CreateHashStream()
+		{
+			return new HashStream();
 		}
 
 		/// <summary>
@@ -370,13 +375,40 @@ namespace BitcoinNet
 			return MerkleNode.GetRoot(Transactions.Select(t => t.GetHash()));
 		}
 
-
-		[Obsolete("Should use Network.Consensus.ConsensusFactory.CreateNewBlock()")]
+		[Obsolete("Should use Block.CreateBlock(Network)")]
 		public Block() : this(Consensus.Main.ConsensusFactory.CreateBlockHeader())
 		{
 		}
 
-		protected internal Block(BlockHeader blockHeader)
+		public static Block CreateBlock(Network network)
+		{
+			return CreateBlock(network.Consensus.ConsensusFactory);
+		}
+		public static Block CreateBlock(ConsensusFactory consensusFactory)
+		{
+			return consensusFactory.CreateBlock();
+		}
+
+		public static Block CreateBlock(BlockHeader header, Network network)
+		{
+			return CreateBlock(header, network.Consensus.ConsensusFactory);
+		}
+		public static Block CreateBlock(BlockHeader header, ConsensusFactory consensusFactory)
+		{
+			var ms = new MemoryStream(100);
+			BitcoinStream bs = new BitcoinStream(ms, true);
+			bs.ConsensusFactory = consensusFactory;
+			bs.ReadWrite(header);
+
+			var block = consensusFactory.CreateBlock();
+			ms.Position = 0;
+			bs = new BitcoinStream(ms, false);
+			block.Header.ReadWrite(bs);
+			return block;
+		}
+
+		[Obsolete("Should use ConsensusFactories")]
+		public Block(BlockHeader blockHeader)
 		{
 			if(blockHeader == null)
 				throw new ArgumentNullException(nameof(blockHeader));
@@ -401,6 +433,16 @@ namespace BitcoinNet
 			}
 		}
 
+		/// <summary>
+		/// Get the coinbase height as specified by the first tx input of this block (BIP 34)
+		/// </summary>
+		/// <returns>Null if block has been created before BIP34 got enforced, else, the height</returns>
+		public int? GetCoinbaseHeight()
+		{
+			if(Header.Version < 2 || Transactions.Count == 0 || Transactions[0].Inputs.Count == 0)
+				return null;
+			return Transactions[0].Inputs[0].ScriptSig.ToOps().FirstOrDefault()?.GetInt();
+		}
 
 		void SetNull()
 		{
@@ -445,9 +487,7 @@ namespace BitcoinNet
 		{
 			if(Transactions.Count == 0)
 				return this;
-			if(options == TransactionOptions.Witness && Transactions[0].HasWitness)
-				return this;
-			if(options == TransactionOptions.None && !Transactions[0].HasWitness)
+			if(options == TransactionOptions.None)
 				return this;
 			var instance = GetConsensusFactory().CreateBlock();
 			var ms = new MemoryStream();
@@ -503,10 +543,7 @@ namespace BitcoinNet
 			block.Header.HashPrevBlock = this.GetHash();
 			block.Header.BlockTime = now;
 			var tx = block.AddTransaction(GetConsensusFactory().CreateTransaction());
-			tx.AddInput(new TxIn()
-			{
-				ScriptSig = new Script(Op.GetPushOp(RandomUtils.GetBytes(30)))
-			});
+			tx.Inputs.Add(scriptSig: new Script(Op.GetPushOp(RandomUtils.GetBytes(30))));
 			tx.Outputs.Add(new TxOut(address.Network.GetReward(height), address)
 			{
 				Value = address.Network.GetReward(height)
@@ -514,7 +551,10 @@ namespace BitcoinNet
 			return block;
 		}
 
-
+		public int GetWeight()
+		{
+			return this.GetSerializedSize(TransactionOptions.None) * 3 + this.GetSerializedSize(TransactionOptions.All);
+		}
 
 		public Block CreateNextBlockWithCoinbase(PubKey pubkey, Money value, DateTimeOffset now, ConsensusFactory consensusFactory)
 		{
@@ -522,11 +562,8 @@ namespace BitcoinNet
 			block.Header.Nonce = RandomUtils.GetUInt32();
 			block.Header.HashPrevBlock = this.GetHash();
 			block.Header.BlockTime = now;
-			var tx = block.AddTransaction(new Transaction());
-			tx.AddInput(new TxIn()
-			{
-				ScriptSig = new Script(Op.GetPushOp(RandomUtils.GetBytes(30)))
-			});
+			var tx = block.AddTransaction(consensusFactory.CreateTransaction());
+			tx.Inputs.Add(scriptSig: new Script(Op.GetPushOp(RandomUtils.GetBytes(30))));
 			tx.Outputs.Add(new TxOut()
 			{
 				Value = value,
@@ -561,7 +598,7 @@ namespace BitcoinNet
 			if(consensusFactory == null)
 				throw new ArgumentNullException(nameof(consensusFactory));
 			var block = consensusFactory.CreateBlock();
-			block.ReadWrite(Encoders.Hex.DecodeData(hex));
+			block.ReadWrite(Encoders.Hex.DecodeData(hex), consensusFactory);
 			return block;
 		}
 
@@ -588,10 +625,10 @@ namespace BitcoinNet
 			if(consensusFactory == null)
 				throw new ArgumentNullException(nameof(consensusFactory));
 			var block = consensusFactory.CreateBlock();
-			block.ReadWrite(hex);
+			block.ReadWrite(hex, consensusFactory);
 			return block;
 		}
-		
+
 		public MerkleBlock Filter(params uint256[] txIds)
 		{
 			return new MerkleBlock(this, txIds);

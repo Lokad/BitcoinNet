@@ -889,7 +889,6 @@ namespace BitcoinNet.RPC
 				Difficulty = result.Value<ulong>("difficulty"),
 				MedianTime = result.Value<ulong>("mediantime"),
 				VerificationProgress = result.Value<float>("verificationprogress"),
-				InitialBlockDownload = result.Value<bool>("initialblockdownload"),
 				ChainWork = new uint256(result.Value<string>("chainwork")), 
 				SizeOnDisk = result.Value<ulong>("size_on_disk"),
 				Pruned = result.Value<bool>("pruned"),
@@ -898,17 +897,7 @@ namespace BitcoinNet.RPC
 						Bip = (string)(x["id"]),
 						Version = (int)(x["version"]),
 						RejectStatus = bool.Parse((string)(x["reject"]["status"]))
-					}).ToList(),
-				Bip9SoftForks = result["bip9_softforks"].Select(x=> {
-					var o = x.First();
-					return new BlockchainInfo.Bip9SoftFork {
-						Name = ((JProperty)x).Name,
-						Status = (string)o["status"],
-						StartTime = epochToDtateTimeOffset((long)o["startTime"]),
-						Timeout =   epochToDtateTimeOffset((long)o["timeout"]),
-						SinceHeight =  (ulong)o["since"],
-					};
-					}).ToList()
+					}).ToList()				
 			};
 
 			return blockchainInfo;
@@ -1177,7 +1166,6 @@ namespace BitcoinNet.RPC
 				TransactionTime = json["time"] != null ? BitcoinNet.Utils.UnixTimeToDateTime(json.Value<long>("time")): (DateTimeOffset?)null,
 				Hash = uint256.Parse(json.Value<string>("hash")),
 				Size = json.Value<uint>("size"),
-				VirtualSize = json.Value<uint>("vsize"),
 				Version = json.Value<uint>("version"),
 				LockTime = new LockTime(json.Value<uint>("locktime")),
 				BlockHash = json["blockhash"] != null ? uint256.Parse(json.Value<string>("blockhash")): null,
@@ -1328,20 +1316,18 @@ namespace BitcoinNet.RPC
 		/// <param name="commentTx">A locally-stored (not broadcast) comment assigned to this transaction. Default is no comment</param>
 		/// <param name="commentDest">A locally-stored (not broadcast) comment assigned to this transaction. Meant to be used for describing who the payment was sent to. Default is no comment</param>
 		/// <param name="subtractFeeFromAmount">The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. </param>
-		/// <param name="replaceable">Allow this transaction to be replaced by a transaction with higher fees. </param>
 		/// <returns>The TXID of the sent transaction</returns>
 		public uint256 SendToAddress(
 			BitcoinAddress address, 
 			Money amount, 
 			string commentTx = null, 
 			string commentDest = null,
-			bool subtractFeeFromAmount = false,
-			bool replaceable = false
+			bool subtractFeeFromAmount = false
 		)
 		{
 			uint256 txid = null;
 
-			txid = SendToAddressAsync(address, amount, commentTx, commentDest, subtractFeeFromAmount, replaceable).GetAwaiter().GetResult();
+			txid = SendToAddressAsync(address, amount, commentTx, commentDest, subtractFeeFromAmount).GetAwaiter().GetResult();
 			return txid;
 		}
 
@@ -1360,21 +1346,24 @@ namespace BitcoinNet.RPC
 			Money amount, 
 			string commentTx = null, 
 			string commentDest = null, 
-			bool subtractFeeFromAmount = false,
-			bool replaceable = false
+			bool subtractFeeFromAmount = false
 			)
 		{
+			// According to Bitcoin ABC repository, we can either send 2 or 5 parameters.
+			// More details:
+			// https://github.com/Bitcoin-ABC/bitcoin-abc/blob/a67d106b8c7f64c7555aa3f7a2eb118b30c50503/src/rpc/client.cpp#L37
+
 			List<object> parameters = new List<object>();
 			parameters.Add(address.ToString());
 			parameters.Add(amount.ToString());
-			parameters.Add($"{commentTx}");
-			parameters.Add($"{commentDest}");
-			if(subtractFeeFromAmount || replaceable)
+
+			if (!String.IsNullOrEmpty(commentTx) || !String.IsNullOrEmpty(commentDest) || subtractFeeFromAmount)
 			{
+				parameters.Add($"{commentTx}");
+				parameters.Add($"{commentDest}");
 				parameters.Add(subtractFeeFromAmount);
-				if(replaceable)
-					parameters.Add(replaceable);
 			}
+			
 			var resp = await SendCommandAsync(RPCOperations.sendtoaddress, parameters.ToArray()).ConfigureAwait(false);
 			return uint256.Parse(resp.Result.ToString());
 		}
@@ -1573,16 +1562,6 @@ namespace BitcoinNet.RPC
 			public int Version { get; set; }
 			public bool RejectStatus { get; set; }
 		}
-
-		public class Bip9SoftFork
-		{
-			public string Name { get; set; }
-			public string Status { get; set; }
-			public DateTimeOffset StartTime { get; set; }
-			public DateTimeOffset Timeout { get; set; }
-			public ulong SinceHeight { get; set; }
-			
-		}
 		
 		public Network Chain { get; set; }
 		public ulong Blocks { get; set; }
@@ -1592,13 +1571,11 @@ namespace BitcoinNet.RPC
 		public ulong MedianTime { get; set; }
 
 		public float VerificationProgress { get; set; }
-		public bool InitialBlockDownload { get; set; }
 		public uint256 ChainWork { get; set; }
 		public ulong SizeOnDisk { get; set; }
 		public bool Pruned { get; set; }
 
-		public List<SoftFork> SoftForks { get; set; } 
-		public List<Bip9SoftFork> Bip9SoftForks { get; set; }
+		public List<SoftFork> SoftForks { get; set; }
 	}
 
 	public class RawTransactionInfo
@@ -1607,7 +1584,6 @@ namespace BitcoinNet.RPC
 		public uint256 TransactionId {get; internal set;}
 		public uint256 Hash {get; internal set;}
 		public uint Size {get; internal set;}
-		public uint VirtualSize {get; internal set;}
 		public uint Version {get; internal set;}
 		public LockTime LockTime {get; internal set;}
 		public uint256 BlockHash {get; internal set;}
