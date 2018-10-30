@@ -87,12 +87,6 @@
     <None Include="data\openasset-known-tx.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="data\NicolasDorierCA.pfx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="data\NicolasDorierMerchant.pfx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="data\paymentack.data">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
