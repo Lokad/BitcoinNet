@@ -1,14 +1,10 @@
-﻿#if !NOFILEIO
-using BitcoinNet.DataEncoders;
+﻿using BitcoinNet.DataEncoders;
 using BitcoinNet.Payment;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-#if !PORTABLE
-using System.Net.Http;
-#endif
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -99,7 +95,6 @@ namespace BitcoinNet.Tests
 			}
 		}
 
-#if WIN
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanReadPaymentRequest()
@@ -127,7 +122,6 @@ namespace BitcoinNet.Tests
 				Assert.True(request.VerifySignature());
 			}
 		}
-#endif
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
@@ -145,7 +139,6 @@ namespace BitcoinNet.Tests
 			}
 		}
 
-#if WIN
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanReadTestVectorPayments()
@@ -185,7 +178,6 @@ namespace BitcoinNet.Tests
 				}
 			}
 		}
-#endif
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
@@ -247,7 +239,7 @@ namespace BitcoinNet.Tests
 			ack.Memo = "thanks customer !";
 			AssertEx.CollectionEquals(ack.ToBytes(), PaymentACK.Load(ack.ToBytes()).ToBytes());
 		}
-#if !NOHTTPCLIENT && !NOHTTPSERVER
+
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanTalkToPaymentServer()
@@ -263,10 +255,8 @@ namespace BitcoinNet.Tests
 				Assert.NotNull(ack);
 			}
 		}
-#endif
-
 	}
-#if !NOHTTPSERVER
+
 	public class PaymentServerTester : IDisposable
 	{
 		HttpListener _Listener;
@@ -361,6 +351,4 @@ namespace BitcoinNet.Tests
 
 		#endregion
 	}
-#endif
 }
-#endif

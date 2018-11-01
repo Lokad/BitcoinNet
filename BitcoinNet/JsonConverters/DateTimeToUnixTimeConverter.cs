@@ -1,5 +1,4 @@
-﻿#if !NOJSONNET
-using BitcoinNet;
+﻿using BitcoinNet;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -9,12 +8,7 @@ using System.Reflection;
 
 namespace BitcoinNet.JsonConverters
 {
-#if !NOJSONNET
-		public
-#else
-	internal
-#endif
-	class DateTimeToUnixTimeConverter : JsonConverter
+	public class DateTimeToUnixTimeConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
         {
@@ -47,4 +41,3 @@ namespace BitcoinNet.JsonConverters
         }
     }
 }
-#endif

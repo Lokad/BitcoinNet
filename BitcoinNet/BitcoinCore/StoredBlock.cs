@@ -194,11 +194,8 @@ namespace BitcoinNet.BitcoinCore
 			return "f:" + File + "p:" + Position;
 		}
 
-		static readonly Regex _Reg = new Regex("f:([0-9]*)p:([0-9]*)"
-#if !PORTABLE
-			, RegexOptions.Compiled
-#endif
-			);
+		static readonly Regex _Reg = new Regex("f:([0-9]*)p:([0-9]*)", RegexOptions.Compiled);
+
 		public static DiskBlockPos Parse(string data)
 		{
 			var match = _Reg.Match(data);
@@ -258,7 +255,7 @@ namespace BitcoinNet.BitcoinCore
 
 
 		#endregion
-#if !NOFILEIO
+
 #pragma warning disable CS0612 // Type or member is obsolete
 		public static IEnumerable<StoredBlock> EnumerateFile(string file, uint fileIndex = 0, DiskBlockPosRange range = null)
 #pragma warning restore CS0612 // Type or member is obsolete
@@ -272,6 +269,5 @@ namespace BitcoinNet.BitcoinCore
 		{
 			return new BlockStore(folder, Network.Main).EnumerateFolder(range);
 		}
-#endif
 	}
 }

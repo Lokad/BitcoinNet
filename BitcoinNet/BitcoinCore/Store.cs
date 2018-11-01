@@ -1,5 +1,4 @@
-﻿#if !NOFILEIO
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -279,4 +278,3 @@ namespace BitcoinNet.BitcoinCore
 		protected abstract TStoredItem ReadStoredItem(Stream stream, DiskBlockPos pos);
 	}
 }
-#endif

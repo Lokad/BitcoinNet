@@ -177,7 +177,7 @@ namespace BitcoinNet.Tests
 			throw new NotSupportedException(lang);
 		}
 	}
-#if !PORTABLE
+
 	public class bip39_Codegen
 	{
 		//[Fact]
@@ -293,5 +293,4 @@ namespace BitcoinNet.Tests
 			return data.Replace("\n", "\\n");
 		}
 	}
-#endif
 }

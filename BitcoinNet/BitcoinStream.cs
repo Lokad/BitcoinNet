@@ -4,9 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-#if !NOSOCKET
 using System.Net.Sockets;
-#endif
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -67,7 +65,7 @@ namespace BitcoinNet
 		}
 
 		//ReadWrite<T>(ref T data)
-		static MethodInfo _ReadWriteTyped;
+		internal static MethodInfo _ReadWriteTyped;
 		static BitcoinStream()
 		{
 			_ReadWriteTyped = typeof(BitcoinStream)
@@ -80,9 +78,8 @@ namespace BitcoinNet
 			.First();
 		}
 
-#if !NOSOCKET
 		private readonly bool _IsNetworkStream;
-#endif
+
 		private readonly Stream _Inner;
 		public Stream Inner
 		{
@@ -103,9 +100,7 @@ namespace BitcoinNet
 		public BitcoinStream(Stream inner, bool serializing)
 		{
 			_Serializing = serializing;
-#if !NOSOCKET
 			_IsNetworkStream = inner is NetworkStream;
-#endif
 			_Inner = inner;
 		}
 
@@ -124,9 +119,9 @@ namespace BitcoinNet
 			}
 			else
 			{
-				var varString = new VarString();
-				varString.ReadWrite(this);
-				return Script.FromBytesUnsafe(varString.GetString(true));
+				byte[] bytes = null;
+				VarString.StaticRead(this, ref bytes);
+				return Script.FromBytesUnsafe(bytes);
 			}
 		}
 
@@ -265,6 +260,12 @@ namespace BitcoinNet
 		{
 			ReadWriteBytes(ref arr);
 		}
+
+		public void ReadWrite(ref Span<byte> arr)
+		{
+			ReadWriteBytes(arr);
+		}
+
 		public void ReadWrite(ref byte[] arr, int offset, int count)
 		{
 			ReadWriteBytes(ref arr, offset, count);
@@ -281,7 +282,6 @@ namespace BitcoinNet
 			value = unchecked((long)uvalue);
 		}
 
-#if HAS_SPAN
 		private void ReadWriteNumber(ref ulong value, int size)
 		{
 			if(_IsNetworkStream && ReadCancellationToken.CanBeCanceled)
@@ -307,13 +307,8 @@ namespace BitcoinNet
 			}
 			value = valueTemp;
 		}
-#endif
 
-#if !HAS_SPAN
-		private void ReadWriteNumber(ref ulong value, int size)
-#else
 		private void ReadWriteNumberInefficient(ref ulong value, int size)
-#endif
 		{
 			var bytes = new byte[size];
 
@@ -335,7 +330,6 @@ namespace BitcoinNet
 			value = valueTemp;
 		}
 
-#if HAS_SPAN
 		private void ReadWriteBytes(ref byte[] data, int offset = 0, int count = -1)
 		{
 			if(data == null)
@@ -364,35 +358,7 @@ namespace BitcoinNet
 
 			}
 		}
-#else
-		private void ReadWriteBytes(ref byte[] data, int offset = 0, int count = -1)
-		{
-			if(data == null)
-				throw new ArgumentNullException(nameof(data));
 
-			if(data.Length == 0)
-				return;
-
-			count = count == -1 ? data.Length : count;
-
-			if(count == 0)
-				return;
-
-			if(Serializing)
-			{
-				Inner.Write(data, offset, count);
-				Counter.AddWritten(count);
-			}
-			else
-			{
-				var readen = Inner.ReadEx(data, offset, count, ReadCancellationToken);
-				if(readen == 0)
-					throw new EndOfStreamException("No more byte to read");
-				Counter.AddReaden(readen);
-
-			}
-		}
-#endif
 		private PerformanceCounter _Counter;
 		public PerformanceCounter Counter
 		{
@@ -498,16 +464,16 @@ namespace BitcoinNet
 			});
 		}
 
-		public void CopyParameters(BitcoinStream stream)
+		public void CopyParameters(BitcoinStream from)
 		{
-			if(stream == null)
-				throw new ArgumentNullException(nameof(stream));
-			ProtocolVersion = stream.ProtocolVersion;
-			ConsensusFactory = stream.ConsensusFactory;
-			_ProtocolCapabilities = stream._ProtocolCapabilities;
-			IsBigEndian = stream.IsBigEndian;
-			MaxArraySize = stream.MaxArraySize;
-			Type = stream.Type;
+			if(from == null)
+				throw new ArgumentNullException(nameof(from));
+			ProtocolVersion = from.ProtocolVersion;
+			ConsensusFactory = from.ConsensusFactory;
+			_ProtocolCapabilities = from._ProtocolCapabilities;
+			IsBigEndian = from.IsBigEndian;
+			MaxArraySize = from.MaxArraySize;
+			Type = from.Type;
 		}
 
 

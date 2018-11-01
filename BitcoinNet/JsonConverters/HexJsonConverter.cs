@@ -1,5 +1,4 @@
-﻿#if !NOJSONNET
-using BitcoinNet.DataEncoders;
+﻿using BitcoinNet.DataEncoders;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -8,12 +7,7 @@ using System.Threading.Tasks;
 
 namespace BitcoinNet.JsonConverters
 {
-#if !NOJSONNET
-	public
-#else
-	internal
-#endif
-	class HexJsonConverter : JsonConverter
+	public class HexJsonConverter : JsonConverter
 	{
 		public override bool CanConvert(Type objectType)
 		{
@@ -41,4 +35,3 @@ namespace BitcoinNet.JsonConverters
 		}
 	}
 }
-#endif

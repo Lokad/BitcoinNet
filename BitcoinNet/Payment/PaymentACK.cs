@@ -4,10 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-#if !NOHTTPCLIENT
 using System.Net.Http;
 using System.Net.Http.Headers;
-#endif
 using System.Text;
 using System.Threading.Tasks;
 
@@ -99,7 +97,7 @@ namespace BitcoinNet.Payment
 				proto.WriteString(Memo);
 			}
 		}
-#if !NOFILEIO
+
 		public static PaymentACK Load(string file, Network network)
 		{
 			using(var fs = File.OpenRead(file))
@@ -113,8 +111,8 @@ namespace BitcoinNet.Payment
 		{
 			return Load(file, null);
 		}
-#endif
 	}
+
 	public class PaymentMessage
 	{
 		public const int MaxLength = 50000;
@@ -262,7 +260,7 @@ namespace BitcoinNet.Payment
 				proto.WriteString(Memo);
 			}
 		}
-#if !NOHTTPCLIENT
+
 		/// <summary>
 		/// Send the payment to given address
 		/// </summary>
@@ -322,8 +320,7 @@ namespace BitcoinNet.Payment
 					httpClient.Dispose();
 			}
 		}
-#endif
-#if !NOFILEIO
+
 		public static PaymentMessage Load(string file, Network network)
 		{
 			using(var fs = File.OpenRead(file))
@@ -339,6 +336,5 @@ namespace BitcoinNet.Payment
 				return Load(fs);
 			}
 		}
-#endif
 	}
 }

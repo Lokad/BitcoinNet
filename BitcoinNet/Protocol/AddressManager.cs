@@ -1,5 +1,4 @@
-﻿#if !NOSOCKET
-using BitcoinNet.Crypto;
+﻿using BitcoinNet.Crypto;
 using BitcoinNet.Protocol.Behaviors;
 using System;
 using System.Collections.Generic;
@@ -279,8 +278,6 @@ namespace BitcoinNet.Protocol
 		//! the maximum number of nodes to return in a getaddr call
 		const int ADDRMAN_GETADDR_MAX = 2500;
 
-
-#if !NOFILEIO
 		public static AddressManager LoadPeerFile(string filePath, Network expectedNetwork = null)
 		{
 			var addrman = new AddressManager();
@@ -330,7 +327,6 @@ namespace BitcoinNet.Protocol
 			}
 			File.WriteAllBytes(filePath, ms.ToArray());
 		}
-#endif
 
 		AddressInfo Find(IPAddress addr)
 		{
@@ -1238,4 +1234,3 @@ namespace BitcoinNet.Protocol
 		}
 	}
 }
-#endif

@@ -1,5 +1,4 @@
-﻿#if !NOJSONNET
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -219,9 +218,7 @@ namespace BitcoinNet.RPC
 
 			var request = WebRequest.CreateHttp(uriBuilder.Uri);
 			request.Method = "GET";
-#if !(PORTABLE || NETCORE)
-			request.KeepAlive = false;
-#endif
+
 			return request;
 		}
 
@@ -309,4 +306,3 @@ namespace BitcoinNet.RPC
 		}
 	}
 }
-#endif

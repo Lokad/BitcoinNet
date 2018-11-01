@@ -21,9 +21,6 @@ using BitcoinNet.BouncyCastle.Crypto.Parameters;
 using BitcoinNet.BouncyCastle.Security;
 using BitcoinNet.Crypto.Internal;
 using System;
-#if !USEBC
-using System.Security.Cryptography;
-#endif
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -141,17 +138,6 @@ namespace BitcoinNet.Crypto
 		///     <c>null</c> will use as many threads as possible.
 		/// </param>
 		/// <returns>The derived key stream.</returns>
-#if !(USEBC || NETCORE)
-		internal static Pbkdf2 GetStream(byte[] key, byte[] salt,
-									   int cost, int blockSize, int parallel, int? maxThreads)
-		{
-			byte[] B = GetEffectivePbkdf2Salt(key, salt, cost, blockSize, parallel, maxThreads);
-			Pbkdf2 kdf = new Pbkdf2(new HMACSHA256(key), B, 1);
-			Security.Clear(B);
-			return kdf;
-		}
-
-#else
 		internal static Pbkdf2 GetStream(byte[] key, byte[] salt,
 									   int cost, int blockSize, int parallel, int? maxThreads)
 		{
@@ -162,7 +148,6 @@ namespace BitcoinNet.Crypto
 			Security.Clear(B);
 			return kdf;
 		}
-#endif
 
 		static byte[] MFcrypt(byte[] P, byte[] S,
 							  int cost, int blockSize, int parallel, int? maxThreads)
@@ -181,13 +166,10 @@ namespace BitcoinNet.Crypto
 			Check.Range("parallel", parallel, 1, int.MaxValue / MFLen);
 			Check.Range("maxThreads", (int)maxThreads, 1, int.MaxValue);
 
-#if !(USEBC || NETCORE)
-			byte[] B = Pbkdf2.ComputeDerivedKey(new HMACSHA256(P), S, 1, parallel * MFLen);
-#else
 			var mac = new BitcoinNet.BouncyCastle.Crypto.Macs.HMac(new BitcoinNet.BouncyCastle.Crypto.Digests.Sha256Digest());
 			mac.Init(new KeyParameter(P));
 			byte[] B = Pbkdf2.ComputeDerivedKey(mac, S, 1, parallel * MFLen);
-#endif
+
 			uint[] B0 = new uint[B.Length / 4];
 			for(int i = 0; i < B0.Length; i++)
 			{
@@ -202,39 +184,7 @@ namespace BitcoinNet.Crypto
 
 			return B;
 		}
-#if !(USEBC || NETCORE)
-		static void ThreadSMixCalls(uint[] B0, int MFLen,
-									int cost, int blockSize, int parallel, int maxThreads)
-		{
-			int current = 0;
-			ThreadStart workerThread = delegate ()
-			{
-				while(true)
-				{
-					int j = Interlocked.Increment(ref current) - 1;
-					if(j >= parallel)
-					{
-						break;
-					}
 
-					SMix(B0, j * MFLen / 4, B0, j * MFLen / 4, (uint)cost, blockSize);
-				}
-			};
-
-			int threadCount = Math.Max(1, Math.Min(Environment.ProcessorCount, Math.Min(maxThreads, parallel)));
-			Thread[] threads = new Thread[threadCount - 1];
-			for(int i = 0; i < threads.Length; i++)
-			{
-				(threads[i] = new Thread(workerThread, 8192)).Start();
-			}
-			workerThread();
-			for(int i = 0; i < threads.Length; i++)
-			{
-				threads[i].Join();
-			}
-		}
-
-#else
 		static void ThreadSMixCalls(uint[] B0, int MFLen,
 									int cost, int blockSize, int parallel, int maxThreads)
 		{
@@ -265,7 +215,7 @@ namespace BitcoinNet.Crypto
 				threads[i].Wait();
 			}
 		}
-#endif
+
 		static void SMix(uint[] B, int Boffset, uint[] Bp, int Bpoffset, uint N, int r)
 		{
 			uint Nmask = N - 1;

@@ -1,5 +1,4 @@
-﻿#if !NOJSONNET
-using BitcoinNet.DataEncoders;
+﻿using BitcoinNet.DataEncoders;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -95,4 +94,3 @@ namespace BitcoinNet.RPC
 		}
 	}
 }
-#endif

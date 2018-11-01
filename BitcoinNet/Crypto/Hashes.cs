@@ -7,10 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-#if !NONATIVEHASH
 using System.Security.Cryptography;
-#endif
 
 namespace BitcoinNet.Crypto
 {
@@ -35,21 +32,11 @@ namespace BitcoinNet.Crypto
 
 		public static byte[] Hash256RawBytes(byte[] data, int offset, int count)
 		{
-#if NONATIVEHASH
-			Sha256Digest sha256 = new Sha256Digest();
-			sha256.BlockUpdate(data, offset, count);
-			byte[] rv = new byte[32];
-			sha256.DoFinal(rv, 0);
-			sha256.BlockUpdate(rv, 0, rv.Length);
-			sha256.DoFinal(rv, 0);
-			return rv;
-#else
 			using(var sha = new SHA256Managed())
 			{
 				var h = sha.ComputeHash(data, offset, count);
 				return sha.ComputeHash(h, 0, h.Length);
 			}
-#endif
 		}
 
 		#region Hash160
@@ -82,18 +69,11 @@ namespace BitcoinNet.Crypto
 
 		public static byte[] RIPEMD160(byte[] data, int offset, int count)
 		{
-#if NONATIVEHASH || NETCORE || NETSTANDARD
 			RipeMD160Digest ripemd = new RipeMD160Digest();
 			ripemd.BlockUpdate(data, offset, count);
 			byte[] rv = new byte[20];
 			ripemd.DoFinal(rv, 0);
 			return rv;
-#else
-			using(var ripm = new RIPEMD160Managed())
-			{
-				return ripm.ComputeHash(data, offset, count);
-			}
-#endif
 		}
 
 		#endregion
@@ -625,18 +605,10 @@ namespace BitcoinNet.Crypto
 
 		public static byte[] SHA256(byte[] data, int offset, int count)
 		{
-#if USEBC || WINDOWS_UWP || NETSTANDARD1X
-			Sha256Digest sha256 = new Sha256Digest();
-			sha256.BlockUpdate(data, offset, count);
-			byte[] rv = new byte[32];
-			sha256.DoFinal(rv, 0);
-			return rv;
-#else
 			using(var sha = new SHA256Managed())
 			{
 				return sha.ComputeHash(data, offset, count);
 			}
-#endif
 		}
 
 
@@ -729,22 +701,11 @@ namespace BitcoinNet.Crypto
 			}
 		}
 
-#if NONATIVEHASH
-		public static byte[] HMACSHA512(byte[] key, byte[] data)
-		{
-			var mac = new BitcoinNet.BouncyCastle.Crypto.Macs.HMac(new Sha512Digest());
-			mac.Init(new KeyParameter(key));
-			mac.Update(data);
-			byte[] result = new byte[mac.GetMacSize()];
-			mac.DoFinal(result, 0);
-			return result;
-		}
-#else
 		public static byte[] HMACSHA512(byte[] key, byte[] data)
 		{
 			return new HMACSHA512(key).ComputeHash(data);
 		}
-#endif
+
 		public static byte[] BIP32Hash(byte[] chainCode, uint nChild, byte header, byte[] data)
 		{
 			byte[] num = new byte[4];

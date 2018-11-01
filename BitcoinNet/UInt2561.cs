@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Linq;
 using System.IO;
 using BitcoinNet.DataEncoders;
@@ -36,26 +35,15 @@ namespace BitcoinNet
 			{
 				if(stream.Serializing)
 				{
-#if !HAS_SPAN
-					var b = Value.ToBytes();
-					stream.ReadWrite(ref b);
-#else
 					Span<byte> b = stackalloc byte[WIDTH_BYTE];
 					Value.ToBytes(b);
 					stream.ReadWrite(ref b);
-#endif
 				}
 				else
 				{
-#if !HAS_SPAN
-					byte[] b = new byte[WIDTH_BYTE];
-					stream.ReadWrite(ref b);
-					_Value = new uint256(b);
-#else
 					Span<byte> b = stackalloc byte[WIDTH_BYTE];
 					stream.ReadWrite(ref b);
 					_Value = new uint256(b);
-#endif
 				}
 			}
 		}
@@ -203,7 +191,6 @@ namespace BitcoinNet
 
 		}
 
-#if HAS_SPAN
 		public uint256(ReadOnlySpan<byte> bytes)
 		{
 			if(bytes.Length != WIDTH_BYTE)
@@ -220,7 +207,6 @@ namespace BitcoinNet
 			pn6 = Utils.ToUInt32(bytes, 4 * 6, true);
 			pn7 = Utils.ToUInt32(bytes, 4 * 7, true);
 		}
-#endif
 
 		public uint256(string str)
 		{
@@ -395,7 +381,6 @@ namespace BitcoinNet
 			Buffer.BlockCopy(Utils.ToBytes(pn7, true), 0, output, 4 * 7, 4);
 		}
 
-#if HAS_SPAN
 		public void ToBytes(Span<byte> output, bool lendian = true)
 		{
 			if(output.Length < WIDTH_BYTE)
@@ -421,7 +406,7 @@ namespace BitcoinNet
 			if(!lendian)
 				initial.Reverse();
 		}
-#endif
+
 		public MutableUint256 AsBitcoinSerializable()
 		{
 			return new MutableUint256(this);

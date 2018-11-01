@@ -1,5 +1,4 @@
-﻿#if !NOSOCKET
-using BitcoinNet.Protocol.Behaviors;
+﻿using BitcoinNet.Protocol.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -289,4 +288,3 @@ namespace BitcoinNet.Protocol
 		#endregion
 	}
 }
-#endif

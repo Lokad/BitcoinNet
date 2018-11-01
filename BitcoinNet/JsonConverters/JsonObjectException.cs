@@ -1,5 +1,4 @@
-﻿#if !NOJSONNET
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,12 +7,7 @@ using System.Threading.Tasks;
 
 namespace BitcoinNet.JsonConverters
 {
-#if !NOJSONNET
-	public
-#else
-	internal
-#endif
-	class JsonObjectException : Exception
+	public class JsonObjectException : Exception
     {
         public JsonObjectException(Exception inner, JsonReader reader)
             : base(inner.Message, inner)
@@ -33,4 +27,3 @@ namespace BitcoinNet.JsonConverters
         }
     }
 }
-#endif

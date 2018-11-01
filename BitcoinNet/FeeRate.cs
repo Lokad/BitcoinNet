@@ -110,11 +110,8 @@ namespace BitcoinNet
 			var m = obj as FeeRate;
 			if (m != null)
 				return _FeePerK.CompareTo(m._FeePerK);
-#if !(PORTABLE || NETCORE)
-			return _FeePerK.CompareTo(obj);
-#else
+
 			return _FeePerK.CompareTo((long)obj);
-#endif
 		}
 
 		#endregion

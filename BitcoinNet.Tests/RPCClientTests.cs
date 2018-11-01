@@ -842,7 +842,6 @@ namespace BitcoinNet.Tests
 			}
 		}
 
-#if !PORTABLE
 		[Fact]
 		public void CanGetPeersInfo()
 		{
@@ -859,8 +858,7 @@ namespace BitcoinNet.Tests
 				}
 			}
 		}
-#endif
-#if !NOSOCKET && WIN
+
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanParseIpEndpoint()
@@ -887,9 +885,6 @@ namespace BitcoinNet.Tests
 		[Fact]
 		public void CanAuthWithCookieFile()
 		{
-#if NOFILEIO
-			Assert.Throws<NotSupportedException>(() => new RPCClient(Network.Main));
-#else
 			using(var builder = NodeBuilderEx.Create())
 			{
 				//Sanity check that it does not throw
@@ -924,10 +919,7 @@ namespace BitcoinNet.Tests
 
 				rpc = new RPCClient("bla:bla", "http://toto/", Network.RegTest);
 			}
-#endif
 		}
-
-
 
 		[Fact]
 		public void RPCSendRPCException()
@@ -1005,7 +997,7 @@ namespace BitcoinNet.Tests
 				}
 			}
 		}
-#endif
+
 		[Fact]
 		public void CanBackupWallet()
 		{

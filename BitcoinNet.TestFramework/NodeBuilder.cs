@@ -114,7 +114,7 @@ namespace BitcoinNet.Tests
 			return new NodeBuilder(caller, path) { Network = network };
 		}
 
-		private static string EnsureDownloaded(NodeDownloadData downloadData)
+		public static string EnsureDownloaded(NodeDownloadData downloadData)
 		{
 			if(!Directory.Exists("TestData"))
 				Directory.CreateDirectory("TestData");
@@ -366,7 +366,7 @@ namespace BitcoinNet.Tests
 			}
 			catch(DirectoryNotFoundException) { }
 		}
-#if !NOSOCKET
+
 		public void Sync(CoreNode node, bool keepConnection = false)
 		{
 			var rpc = CreateRPCClient();
@@ -379,7 +379,7 @@ namespace BitcoinNet.Tests
 			if(!keepConnection)
 				rpc.RemoveNode(node.Endpoint);
 		}
-#endif
+
 		private CoreNodeState _State;
 		public CoreNodeState State
 		{
@@ -429,7 +429,7 @@ namespace BitcoinNet.Tests
 		{
 			return new RestClient(new Uri("http://127.0.0.1:" + ports[1].ToString() + "/"));
 		}
-#if !NOSOCKET
+
 		public Node CreateNodeClient()
 		{
 			return Node.Connect(Network, NodeEndpoint);
@@ -438,7 +438,6 @@ namespace BitcoinNet.Tests
 		{
 			return Node.Connect(Network, "127.0.0.1:" + ports[0].ToString(), parameters);
 		}
-#endif
 
 		/// <summary>
 		/// Nodes connecting to this node will be whitelisted (default: false)

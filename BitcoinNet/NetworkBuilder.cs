@@ -1,6 +1,4 @@
-#if !NOSOCKET
 using BitcoinNet.Protocol;
-#endif
 using BitcoinNet.DataEncoders;
 using System;
 using System.Collections.Generic;
@@ -21,10 +19,8 @@ namespace BitcoinNet
 		internal int _Port;
 		internal uint _Magic;
 		internal Consensus _Consensus;
-#if !NOSOCKET
 		internal List<DNSSeedData> vSeeds = new List<DNSSeedData>();
 		internal List<NetworkAddress> vFixedSeeds = new List<NetworkAddress>();
-#endif
 		internal byte[] _Genesis;
 		internal uint? _MaxP2PVersion;
 		internal INetworkSet _NetworkSet;
@@ -91,7 +87,6 @@ namespace BitcoinNet
 			return this;
 		}
 
-#if !NOSOCKET
 		public NetworkBuilder AddDNSSeeds(IEnumerable<DNSSeedData> seeds)
 		{
 			vSeeds.AddRange(seeds);
@@ -102,7 +97,6 @@ namespace BitcoinNet
 			vFixedSeeds.AddRange(seeds);
 			return this;
 		}
-#endif
 
 		public NetworkBuilder SetConsensus(Consensus consensus)
 		{

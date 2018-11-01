@@ -35,7 +35,7 @@ namespace BitcoinNet
 			this.name = name;
 			this.host = host;
 		}
-#if !NOSOCKET
+
 		IPAddress[] _Addresses = null;
 		public IPAddress[] GetAddressNodes()
 		{
@@ -45,7 +45,7 @@ namespace BitcoinNet
 			_Addresses = Dns.GetHostAddressesAsync(host).GetAwaiter().GetResult();
 			return _Addresses;
 		}
-#endif
+
 		public override string ToString()
 		{
 			return name + " (" + host + ")";
@@ -717,13 +717,8 @@ namespace BitcoinNet
 			}
 		}
 
-#if !NOSOCKET
 		List<DNSSeedData> vSeeds = new List<DNSSeedData>();
 		List<NetworkAddress> vFixedSeeds = new List<NetworkAddress>();
-#else
-		List<string> vSeeds = new List<string>();
-		List<string> vFixedSeeds = new List<string>();
-#endif
 		byte[] _GenesisBytes;
 
 		private int nRPCPort;
@@ -855,7 +850,6 @@ namespace BitcoinNet
 			network.nRPCPort = builder._RPCPort;
 			network.MaxP2PVersion = builder._MaxP2PVersion == null ? BITCOIN_MAX_P2P_VERSION : builder._MaxP2PVersion.Value;
 
-#if !NOSOCKET
 			foreach(var seed in builder.vSeeds)
 			{
 				network.vSeeds.Add(seed);
@@ -864,7 +858,7 @@ namespace BitcoinNet
 			{
 				network.vFixedSeeds.Add(seed);
 			}
-#endif
+
 			network.base58Prefixes = Network.Main.base58Prefixes.ToArray();
 			foreach(var kv in builder._Base58Prefixes)
 			{
@@ -936,14 +930,14 @@ namespace BitcoinNet
 			_GenesisBytes = CreateGenesisBlock(1231006505, 2083236893, 0x1d00ffff, 1, Money.Coins(50m)).ToBytes();
 			consensus.SetBlock(_GenesisBytes);
 			assert(consensus.HashGenesisBlock == uint256.Parse("0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"));
-#if !NOSOCKET
+
 			vSeeds.Add(new DNSSeedData("bitcoinabc.org", "seed.bitcoinabc.org"));
 			vSeeds.Add(new DNSSeedData("bitcoinforks.org", "seed-abc.bitcoinforks.org"));
 			vSeeds.Add(new DNSSeedData("bitcoinunlimited.info", "btccash-seeder.bitcoinunlimited.info"));
 			vSeeds.Add(new DNSSeedData("bitprim.org", "seed.bitprim.org"));
 			vSeeds.Add(new DNSSeedData("deadalnix.me", "seed.deadalnix.me"));
 			vSeeds.Add(new DNSSeedData("criptolayer.net", "seeder.criptolayer.net"));
-#endif
+
 			base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (0) };
 			base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (5) };
 			base58Prefixes[(int)Base58Type.SECRET_KEY] = new byte[] { (128) };
@@ -958,7 +952,6 @@ namespace BitcoinNet
 			base58Prefixes[(int)Base58Type.ASSET_ID] = new byte[] { 23 };
 			base58Prefixes[(int)Base58Type.COLORED_ADDRESS] = new byte[] { 0x13 };
 
-#if !NOSOCKET
 			vFixedSeeds.AddRange(ToSeed(pnSeed6_main));
 			//// Convert the pnSeeds array into usable address objects.
 			//Random rand = new Random();
@@ -974,7 +967,6 @@ namespace BitcoinNet
 			//	addr.Endpoint = Utils.ParseIpEndpoint(pnSeed[i], DefaultPort);
 			//	vFixedSeeds.Add(addr);
 			//}
-#endif
 		}
 		private void InitTest()
 		{
@@ -1020,7 +1012,6 @@ namespace BitcoinNet
 			consensus.SetBlock(_GenesisBytes);
 			assert(consensus.HashGenesisBlock == uint256.Parse("0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
 
-#if !NOSOCKET
 			vFixedSeeds.Clear();
 			vFixedSeeds.AddRange(ToSeed(pnSeed6_test));
 
@@ -1030,7 +1021,6 @@ namespace BitcoinNet
 			vSeeds.Add(new DNSSeedData("bitprim.org", "testnet-seed.bitprim.org"));
 			vSeeds.Add(new DNSSeedData("deadalnix.me", "testnet-seed.deadalnix.me"));
 			vSeeds.Add(new DNSSeedData("criptolayer.net", "testnet-seeder.criptolayer.net"));
-#endif
 
 			base58Prefixes = Network.Main.base58Prefixes.ToArray();
 			base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (111) };
@@ -1083,9 +1073,8 @@ namespace BitcoinNet
 			//strDataDir = "regtest";
 			//assert(consensus.HashGenesisBlock == uint256.Parse("0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"));
 
-#if !NOSOCKET
 			vSeeds.Clear();  // Regtest mode doesn't have any DNS seeds.
-#endif
+
 			base58Prefixes = Network.TestNet.base58Prefixes.ToArray();
 			base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (111) };
 			base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (196) };
@@ -1685,7 +1674,6 @@ namespace BitcoinNet
 			return message;
 		}
 
-#if !NOSOCKET
 		public IEnumerable<NetworkAddress> SeedNodes
 		{
 			get
@@ -1700,7 +1688,7 @@ namespace BitcoinNet
 				return this.vSeeds;
 			}
 		}
-#endif
+
 		byte[] _MagicBytes;
 		public byte[] MagicBytes
 		{

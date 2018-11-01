@@ -1,17 +1,11 @@
-﻿#if !NOJSONNET
-using BitcoinNet;
+﻿using BitcoinNet;
 using System;
 using System.Reflection;
 using Newtonsoft.Json;
 
 namespace BitcoinNet.JsonConverters
 {
-#if !NOJSONNET
-	public
-#else
-	internal
-#endif
-	class KeyPathJsonConverter : JsonConverter
+	public class KeyPathJsonConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
         {
@@ -38,4 +32,3 @@ namespace BitcoinNet.JsonConverters
         }
     }
 }
-#endif

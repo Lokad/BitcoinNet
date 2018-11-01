@@ -1,14 +1,10 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitcoinNet.Crypto;
-#if !WINDOWS_UWP && !USEBC
-using System.Security.Cryptography;
-#endif
 using BitcoinNet.BouncyCastle.Security;
 using BitcoinNet.BouncyCastle.Crypto.Parameters;
 
@@ -179,14 +175,9 @@ namespace BitcoinNet
 			var salt = Concat(NoBOMUTF8.GetBytes("mnemonic"), Normalize(passphrase));
 			var bytes = Normalize(_Mnemonic);
 
-#if USEBC || WINDOWS_UWP || NETCORE
 			var mac = new BitcoinNet.BouncyCastle.Crypto.Macs.HMac(new BitcoinNet.BouncyCastle.Crypto.Digests.Sha512Digest());
 			mac.Init(new KeyParameter(bytes));
 			return Pbkdf2.ComputeDerivedKey(mac, salt, 2048, 64);
-#else
-			return Pbkdf2.ComputeDerivedKey(new HMACSHA512(bytes), salt, 2048, 64);
-#endif
-
 		}
 
 		internal static byte[] Normalize(string str)
@@ -196,7 +187,6 @@ namespace BitcoinNet
 
 		internal static string NormalizeString(string word)
 		{
-#if !NOSTRNORMALIZE
 			if(!SupportOsNormalization())
 			{
 				return KDTable.NormalizeKD(word);
@@ -205,12 +195,8 @@ namespace BitcoinNet
 			{
 				return word.Normalize(NormalizationForm.FormKD);
 			}
-#else
-			return KDTable.NormalizeKD(word);
-#endif
 		}
 
-#if !NOSTRNORMALIZE
 		static bool? _SupportOSNormalization;
 		internal static bool SupportOsNormalization()
 		{
@@ -233,7 +219,6 @@ namespace BitcoinNet
 			}
 			return _SupportOSNormalization.Value;
 		}
-#endif
 
 		public ExtKey DeriveExtKey(string passphrase = null)
 		{
