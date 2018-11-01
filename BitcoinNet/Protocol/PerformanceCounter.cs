@@ -136,9 +136,6 @@ namespace BitcoinNet
 
 		public PerformanceSnapshot Snapshot()
 		{
-#if !(PORTABLE || NETCORE)
-			Thread.MemoryBarrier();
-#endif
 			var snap = new PerformanceSnapshot(ReadenBytes, WrittenBytes)
 			{
 				Start = Start,

@@ -1,17 +1,11 @@
-﻿#if !NOJSONNET
-using BitcoinNet;
+﻿using BitcoinNet;
 using Newtonsoft.Json;
 using System;
 using System.Reflection;
 
 namespace BitcoinNet.JsonConverters
 {
-#if !NOJSONNET
-	public
-#else
-	internal
-#endif
-	class BitcoinStringJsonConverter : JsonConverter
+	public class BitcoinStringJsonConverter : JsonConverter
 	{
 		public BitcoinStringJsonConverter()
 		{
@@ -79,4 +73,3 @@ namespace BitcoinNet.JsonConverters
 		}
 	}
 }
-#endif

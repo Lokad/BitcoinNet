@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Text;
-#if !USEBC
-using System.Security.Cryptography;
-#endif
 using BitcoinNet.Crypto;
 
 namespace BitcoinNet

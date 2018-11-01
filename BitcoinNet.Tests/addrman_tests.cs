@@ -1,5 +1,4 @@
-﻿#if !NOSOCKET
-using BitcoinNet.DataEncoders;
+﻿using BitcoinNet.DataEncoders;
 using BitcoinNet.Protocol;
 using System;
 using System.Collections.Generic;
@@ -15,7 +14,6 @@ namespace BitcoinNet.Tests
 {
 	public class addrman_tests
 	{
-#if !NOFILEIO
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanSerializeDeserializePeerTable()
@@ -38,7 +36,7 @@ namespace BitcoinNet.Tests
 			var after = File.ReadAllBytes("serializerPeer.dat");
 			Assert.True(original.SequenceEqual(after));
 		}
-#endif
+
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanUseAddrManager()
@@ -157,4 +155,3 @@ namespace BitcoinNet.Tests
 		}
 	}
 }
-#endif

@@ -23,10 +23,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 
-#if !WINDOWS_UWP && !USEBC
-using System.Security.Cryptography;
-#endif
-
 namespace BitcoinNet.Crypto
 {
 	/// <summary>
@@ -55,13 +51,7 @@ namespace BitcoinNet.Crypto
 	{
 		#region PBKDF2
 		byte[] _saltBuffer, _digest, _digestT1;
-
-#if USEBC || WINDOWS_UWP || NETCORE
 		IMac _hmacAlgorithm;
-#else
-		KeyedHashAlgorithm _hmacAlgorithm;
-#endif
-
 		int _iterations;
 
 		/// <summary>
@@ -74,7 +64,6 @@ namespace BitcoinNet.Crypto
 		///     A unique salt means a unique PBKDF2 stream, even if the original key is identical.
 		/// </param>
 		/// <param name="iterations">The number of iterations to apply.</param>
-#if USEBC || WINDOWS_UWP || NETCORE
 		internal Pbkdf2(IMac hmacAlgorithm, byte[] salt, int iterations)
 		{
 			BitcoinNet.Crypto.Internal.Check.Null("hmacAlgorithm", hmacAlgorithm);
@@ -89,24 +78,7 @@ namespace BitcoinNet.Crypto
 			_digest = new byte[hmacLength];
 			_digestT1 = new byte[hmacLength];
 		}
-#else
-		public Pbkdf2(KeyedHashAlgorithm hmacAlgorithm, byte[] salt, int iterations)
-		{
-			BitcoinNet.Crypto.Internal.Check.Null("hmacAlgorithm", hmacAlgorithm);
-			BitcoinNet.Crypto.Internal.Check.Null("salt", salt);
-			BitcoinNet.Crypto.Internal.Check.Length("salt", salt, 0, int.MaxValue - 4);
-			BitcoinNet.Crypto.Internal.Check.Range("iterations", iterations, 1, int.MaxValue);
-			if(hmacAlgorithm.HashSize == 0 || hmacAlgorithm.HashSize%8 != 0)
-			{
-				throw Exceptions.Argument("hmacAlgorithm", "Unsupported hash size.");
-			}
 
-			int hmacLength = hmacAlgorithm.HashSize / 8;
-			_saltBuffer = new byte[salt.Length + 4]; Array.Copy(salt, _saltBuffer, salt.Length);
-			_iterations = iterations; _hmacAlgorithm = hmacAlgorithm;
-			_digest = new byte[hmacLength]; _digestT1 = new byte[hmacLength];
-		}
-#endif
 		/// <summary>
 		/// Reads from the derived key stream.
 		/// </summary>
@@ -138,7 +110,6 @@ namespace BitcoinNet.Crypto
 		/// <param name="iterations">The number of iterations to apply.</param>
 		/// <param name="derivedKeyLength">The desired length of the derived key.</param>
 		/// <returns>The derived key.</returns>
-#if USEBC || WINDOWS_UWP || NETCORE
 		internal static byte[] ComputeDerivedKey(IMac hmacAlgorithm, byte[] salt, int iterations,
 											   int derivedKeyLength)
 		{
@@ -149,24 +120,10 @@ namespace BitcoinNet.Crypto
 				return kdf.Read(derivedKeyLength);
 			}
 		}
-#else
-		public static byte[] ComputeDerivedKey(KeyedHashAlgorithm hmacAlgorithm, byte[] salt, int iterations,
-											   int derivedKeyLength)
-		{
-			BitcoinNet.Crypto.Internal.Check.Range("derivedKeyLength", derivedKeyLength, 0, int.MaxValue);
-
-			using(Pbkdf2 kdf = new Pbkdf2(hmacAlgorithm, salt, iterations))
-			{
-				return kdf.Read(derivedKeyLength);
-			}
-		}
-#endif
-
 
 		/// <summary>
 		/// Closes the stream, clearing memory and disposing of the HMAC algorithm.
 		/// </summary>
-#if USEBC || WINDOWS_UWP || NETCORE
 		protected override void Dispose(bool disposing)
 		{
 			Security.Clear(_saltBuffer);
@@ -174,16 +131,6 @@ namespace BitcoinNet.Crypto
 			Security.Clear(_digestT1);
 			_hmacAlgorithm.Reset();
 		}
-#else
-		public override void Close()
-		{
-			BitcoinNet.Crypto.Internal.Security.Clear(_saltBuffer);
-			BitcoinNet.Crypto.Internal.Security.Clear(_digest);
-			BitcoinNet.Crypto.Internal.Security.Clear(_digestT1);
-
-			_hmacAlgorithm.Clear();
-		}
-#endif
 
 		void ComputeBlock(uint pos)
 		{
@@ -203,7 +150,6 @@ namespace BitcoinNet.Crypto
 			BitcoinNet.Crypto.Internal.Security.Clear(_digestT1);
 		}
 
-#if USEBC || WINDOWS_UWP || NETCORE
 		void ComputeHmac(byte[] input, byte[] output)
 		{
 			var hash = new byte[_hmacAlgorithm.GetMacSize()];
@@ -211,15 +157,7 @@ namespace BitcoinNet.Crypto
 			_hmacAlgorithm.DoFinal(hash, 0);
 			Array.Copy(hash, output, output.Length);
 		}
-#else
-		void ComputeHmac(byte[] input, byte[] output)
-		{
-			_hmacAlgorithm.Initialize();
-			_hmacAlgorithm.TransformBlock(input, 0, input.Length, input, 0);
-			_hmacAlgorithm.TransformFinalBlock(new byte[0], 0, 0);
-			Array.Copy(_hmacAlgorithm.Hash, output, output.Length);
-		}
-#endif
+
 		#endregion
 
 		#region Stream

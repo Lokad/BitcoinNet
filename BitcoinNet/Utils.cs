@@ -11,14 +11,7 @@ using BitcoinNet.Protocol;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using BitcoinNet.BouncyCastle.Math;
-#if !NOSOCKET
 using System.Net.Sockets;
-#endif
-#if WINDOWS_UWP
-using System.Net.Sockets;
-using Windows.Networking;
-using Windows.Networking.Connectivity;
-#endif
 
 namespace BitcoinNet
 {
@@ -69,13 +62,19 @@ namespace BitcoinNet
 		public static byte[] ReadBytes(this Stream stream, int bytesToRead)
 		{
 			var buffer = new byte[bytesToRead];
+			ReadBytes(stream, bytesToRead, buffer);
+			return buffer;
+		}
+
+		public static int ReadBytes(this Stream stream, int bytesToRead, byte[] buffer)
+		{
 			int num = 0;
 			int num2;
 			do
 			{
 				num += (num2 = stream.Read(buffer, num, bytesToRead - num));
 			} while(num2 > 0 && num < bytesToRead);
-			return buffer;
+			return num;
 		}
 
 		public static async Task<byte[]> ReadBytesAsync(this Stream stream, int bytesToRead)
@@ -137,8 +136,7 @@ namespace BitcoinNet
 				yield return toReturn;
 			}
 		}
-
-#if !(PORTABLE || NETCORE)
+		
 		public static int ReadEx(this Stream stream, byte[] buffer, int offset, int count, CancellationToken cancellation = default(CancellationToken))
 		{
 			if(stream == null)
@@ -191,46 +189,7 @@ namespace BitcoinNet
 
 			return totalReadCount;
 		}
-#else
 
-		public static int ReadEx(this Stream stream, byte[] buffer, int offset, int count, CancellationToken cancellation = default(CancellationToken))
-		{
-			if(stream == null) throw new ArgumentNullException(nameof(stream));
-			if(buffer == null) throw new ArgumentNullException(nameof(buffer));
-			if(offset < 0 || offset > buffer.Length) throw new ArgumentOutOfRangeException("offset");
-			if(count <= 0 || count > buffer.Length) throw new ArgumentOutOfRangeException("count"); //Disallow 0 as a debugging aid.
-			if(offset > buffer.Length - count) throw new ArgumentOutOfRangeException("count");
-
-			//IO interruption not supported on these platforms.
-			
-			int totalReadCount = 0;
-#if !NOSOCKET
-			var interruptable = stream is NetworkStream && cancellation.CanBeCanceled;
-#endif
-			while(totalReadCount < count)
-			{
-				cancellation.ThrowIfCancellationRequested();
-				int currentReadCount = 0;
-#if !NOSOCKET
-				if(interruptable)
-				{
-					currentReadCount = stream.ReadAsync(buffer, offset + totalReadCount, count - totalReadCount, cancellation).GetAwaiter().GetResult();
-				}
-				else
-#endif
-				{
-					currentReadCount = stream.Read(buffer, offset + totalReadCount, count - totalReadCount);
-				}
-				if(currentReadCount == 0)
-					return 0;
-				totalReadCount += currentReadCount;
-			}
-
-			return totalReadCount;
-		}
-#endif
-
-#if HAS_SPAN
 		public static int ReadEx(this Stream stream, Span<byte> buffer, CancellationToken cancellation = default(CancellationToken))
 		{
 			if(stream == null)
@@ -248,7 +207,7 @@ namespace BitcoinNet
 
 			return totalReadCount;
 		}
-#endif
+
 		public static void AddOrReplace<TKey, TValue>(this IDictionary<TKey, TValue> dico, TKey key, TValue value)
 		{
 			if(dico.ContainsKey(key))
@@ -359,12 +318,8 @@ namespace BitcoinNet
 		{
 			try
 			{
-#if !NETCORE
 				if(!ar.SafeWaitHandle.IsClosed && !ar.SafeWaitHandle.IsInvalid)
 					ar.Set();
-#else
-				ar.Set();
-#endif
 			}
 			catch { }
 		}
@@ -418,7 +373,6 @@ namespace BitcoinNet
 			return ms.ToArray();
 		}
 
-#if !NOSOCKET
 		internal static IPAddress MapToIPv6(IPAddress address)
 		{
 			if(address.AddressFamily == AddressFamily.InterNetworkV6)
@@ -450,13 +404,12 @@ namespace BitcoinNet
 			return bytes[10] == 0xFF && bytes[11] == 0xFF;
 		}
 
-#endif
 		private static void Write(MemoryStream ms, byte[] bytes)
 		{
 			ms.Write(bytes, 0, bytes.Length);
 		}
 
-		internal static Array BigIntegerToBytes(BitcoinNet.BouncyCastle.Math.BigInteger b, int numBytes)
+		internal static byte[] BigIntegerToBytes(BigInteger b, int numBytes)
 		{
 			if(b == null)
 			{
@@ -468,7 +421,6 @@ namespace BitcoinNet
 			int length = Math.Min(biBytes.Length, numBytes);
 			Array.Copy(biBytes, start, bytes, numBytes - length, length);
 			return bytes;
-
 		}
 
 		public static byte[] BigIntegerToBytes(BigInteger num)
@@ -617,8 +569,6 @@ namespace BitcoinNet
 			Shuffle(arr, null);
 		}
 
-
-#if !NOSOCKET
 		internal static void SafeCloseSocket(System.Net.Sockets.Socket socket)
 		{
 			try
@@ -643,7 +593,7 @@ namespace BitcoinNet
 				return endpoint;
 			return new IPEndPoint(endpoint.Address.MapToIPv6Ex(), endpoint.Port);
 		}
-#endif
+
 		public static byte[] ToBytes(uint value, bool littleEndian)
 		{
 			if(littleEndian)
@@ -667,6 +617,25 @@ namespace BitcoinNet
 				};
 			}
 		}
+
+		public static void ToBytes(uint value, bool littleEndian, Span<byte> output)
+		{
+			if(littleEndian)
+			{
+				output[0] = (byte)value;
+				output[1] = (byte)(value >> 8);
+				output[2] = (byte)(value >> 16);
+				output[3] = (byte)(value >> 24);
+			}
+			else
+			{
+				output[0] = (byte)(value >> 24);
+				output[1] = (byte)(value >> 16);
+				output[2] = (byte)(value >> 8);
+				output[3] = (byte)value;
+			}
+		}
+
 		public static byte[] ToBytes(ulong value, bool littleEndian)
 		{
 			if(littleEndian)
@@ -717,6 +686,23 @@ namespace BitcoinNet
 			}
 		}
 
+		public static uint ToUInt32(ReadOnlySpan<byte> value, int index, bool littleEndian)
+		{
+			if(littleEndian)
+			{
+				return value[index]
+					   + ((uint)value[index + 1] << 8)
+					   + ((uint)value[index + 2] << 16)
+					   + ((uint)value[index + 3] << 24);
+			}
+			else
+			{
+				return value[index + 3]
+					   + ((uint)value[index + 2] << 8)
+					   + ((uint)value[index + 1] << 16)
+					   + ((uint)value[index + 0] << 24);
+			}
+		}
 
 		public static int ToInt32(byte[] value, int index, bool littleEndian)
 		{
@@ -753,8 +739,6 @@ namespace BitcoinNet
 			}
 		}
 
-
-#if !NOSOCKET
 		public static IPEndPoint ParseIpEndpoint(string endpoint, int defaultPort)
 		{
 			var splitted = endpoint.Trim().Split(new[] { ':' });
@@ -791,58 +775,11 @@ namespace BitcoinNet
 			}
 			catch(FormatException)
 			{
-#if !(WINDOWS_UWP || NETCORE)
 				address = Dns.GetHostEntry(ip).AddressList[0];
-#else
-				string adr = DnsLookup(ip).GetAwaiter().GetResult();
-				// if not resolved behave like GetHostEntry
-				if (adr == string.Empty)
-					throw new SocketException(11001);
-				else
-					address = IPAddress.Parse(adr);
-#endif
 			}
 			return new IPEndPoint(address, port);
 		}
 
-#if NETCORE
-		private static async Task<string> DnsLookup(string remoteHostName)
-		{
-			IPHostEntry data = await Dns.GetHostEntryAsync(remoteHostName).ConfigureAwait(false);
-
-			if (data != null && data.AddressList.Count() > 0)
-			{
-				foreach (IPAddress adr in data.AddressList)
-				{
-					if (adr != null && adr.IsIPv4() == true)
-					{
-						return adr.ToString();
-					}
-				}
-			}
-			return string.Empty;
-		}
-#endif
-#if WINDOWS_UWP
-		private static async Task<string> DnsLookup(string remoteHostName)
-		{
-			IReadOnlyList<EndpointPair> data = await DatagramSocket.GetEndpointPairsAsync(new HostName(remoteHostName), "0").AsTask().ConfigureAwait(false);
-
-			if(data != null && data.Count > 0)
-			{
-				foreach(EndpointPair item in data)
-				{
-					if(item != null && item.RemoteHostName != null && item.RemoteHostName.Type == HostNameType.Ipv4)
-					{
-						return item.RemoteHostName.CanonicalName;
-					}
-				}
-			}
-			return string.Empty;
-		}
-#endif
-
-#endif
 		public static int GetHashCode(byte[] array)
 		{
 			unchecked

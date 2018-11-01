@@ -100,13 +100,9 @@ namespace BitcoinNet
 
 		public static byte[] ToArrayEfficient(this MemoryStream ms)
 		{
-#if NO_MEM_BUFFER
-			return ms.ToArray();
-#else
 			var bytes = ms.GetBuffer();
 			Array.Resize(ref bytes, (int)ms.Length);
 			return bytes;
-#endif
 		}
 	}
 }

@@ -36,100 +36,25 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
-#if NET_4_0 && !MOBILE
-using System.Web.Configuration;
-#endif
 
 namespace System.Web.Util
 {
-#if NET_4_0
-	public
-#endif
 	internal class HttpEncoder
 	{
 		static char[] hexChars = "0123456789abcdef".ToCharArray();
 		static object entitiesLock = new object();
-#if NET_4_0
-		static Lazy <HttpEncoder> defaultEncoder;
-		static Lazy <HttpEncoder> currentEncoderLazy;
-#else
 		static HttpEncoder defaultEncoder;
-#endif
 		static HttpEncoder currentEncoder;
 
 		static HttpEncoder()
 		{
-#if NET_4_0
-			defaultEncoder = new Lazy <HttpEncoder> (() => new HttpEncoder ());
-			currentEncoderLazy = new Lazy <HttpEncoder> (new Func <HttpEncoder> (GetCustomEncoderFromConfig));
-#else
 			defaultEncoder = new HttpEncoder();
 			currentEncoder = defaultEncoder;
-#endif
 		}
 
 		public HttpEncoder()
 		{
 		}
-
-#if NET_4_0
-		protected internal virtual void HtmlAttributeEncode (string value, TextWriter output)
-		{
-
-			if (output == null)
-				throw new ArgumentNullException ("output");
-
-			if (String.IsNullOrEmpty (value))
-				return;
-
-			output.Write (HtmlAttributeEncode (value));
-		}
-
-		protected internal virtual void HtmlDecode (string value, TextWriter output)
-		{
-			if (output == null)
-				throw new ArgumentNullException ("output");
-
-			output.Write (HtmlDecode (value));
-		}
-
-		protected internal virtual void HtmlEncode (string value, TextWriter output)
-		{
-			if (output == null)
-				throw new ArgumentNullException ("output");
-
-			output.Write (HtmlEncode (value));
-		}
-
-		protected internal virtual byte[] UrlEncode (byte[] bytes, int offset, int count)
-		{
-			return UrlEncodeToBytes (bytes, offset, count);
-		}
-
-		static HttpEncoder GetCustomEncoderFromConfig ()
-		{
-#if MOBILE
-			return defaultEncoder.Value;
-#else
-			var cfg = HttpRuntime.Section;
-			string typeName = cfg.EncoderType;
-
-			if (String.Compare (typeName, "System.Web.Util.HttpEncoder", StringComparison.OrdinalIgnoreCase) == 0)
-				return Default;
-			
-			Type t = Type.GetType (typeName, false);
-			if (t == null)
-				throw new ConfigurationErrorsException (String.Format ("Could not load type '{0}'.", typeName));
-			
-			if (!typeof (HttpEncoder).IsAssignableFrom (t))
-				throw new ConfigurationErrorsException (
-					String.Format ("'{0}' is not allowed here because it does not extend class 'System.Web.Util.HttpEncoder'.", typeName)
-				);
-
-			return Activator.CreateInstance (t, false) as HttpEncoder;
-#endif
-		}
-#endif
 
 		internal static byte[] UrlEncodeToBytes(byte[] bytes, int offset, int count)
 		{
@@ -159,11 +84,7 @@ namespace System.Web.Util
 			//query strings are allowed to contain both ? and / characters, see section 3.4 of http://www.ietf.org/rfc/rfc3986.txt, which is basically the spec written by Tim Berners-Lee and friends governing how the web should operate.
 			//pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
 			//query         = *( pchar / "/" / "?" )
-			return (c == '!' || c == '(' || c == ')' || c == '*' || c == '-' || c == '.' || c == '_' || c == '?' || c == '/' || c == ':'
-#if !NET_4_0
- || c == '\''
-#endif
-);
+			return (c == '!' || c == '(' || c == ')' || c == '*' || c == '-' || c == '.' || c == '_' || c == '?' || c == '/' || c == ':' || c == '\'');
 		}
 
 		internal static void UrlEncodeChar(char c, Stream result, bool isUnicode)

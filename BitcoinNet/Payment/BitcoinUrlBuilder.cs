@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-#if !NOHTTPCLIENT
 using System.Net.Http;
 using System.Net.Http.Headers;
-#endif
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
@@ -100,7 +98,7 @@ namespace BitcoinNet.Payment
 				return _UnknowParameters;
 			}
 		}
-#if !NOHTTPCLIENT
+
 		public PaymentRequest GetPaymentRequest()
 		{
 			if(PaymentRequestUrl == null)
@@ -141,7 +139,7 @@ namespace BitcoinNet.Payment
 					httpClient.Dispose();
 			}
 		}
-#endif
+
 		/// <summary>
 		/// https://github.com/bitcoin/bips/blob/master/bip-0072.mediawiki
 		/// </summary>

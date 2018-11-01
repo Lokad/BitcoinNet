@@ -1365,13 +1365,11 @@ namespace BitcoinNet
 			return new TxPayload(this.Clone());
 		}
 
-#if !NOJSONNET
 		[Obsolete("Do not parse JSON")]
 		public static Transaction Parse(string tx, RawFormat format, Network network = null)
 		{
 			return GetFormatter(format, network).ParseJson(tx);
 		}
-#endif
 
 		public static Transaction Parse(string hex, Network network)
 		{
@@ -1394,7 +1392,7 @@ namespace BitcoinNet
 		{
 			return Encoders.Hex.EncodeData(this.ToBytes());
 		}
-#if !NOJSONNET
+
 		public override string ToString()
 		{
 			return ToString(RawFormat.BlockExplorer);
@@ -1430,7 +1428,7 @@ namespace BitcoinNet
 				throw new ArgumentNullException("formatter");
 			return formatter.ToString(this);
 		}
-#endif
+
 		/// <summary>
 		/// Calculate the fee of the transaction
 		/// </summary>

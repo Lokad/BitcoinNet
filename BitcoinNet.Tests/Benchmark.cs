@@ -1,5 +1,4 @@
-﻿#if !NOFILEIO
-using BitcoinNet.BitcoinCore;
+﻿using BitcoinNet.BitcoinCore;
 using BitcoinNet.Crypto;
 using BitcoinNet.OpenAsset;
 using BitcoinNet.Protocol;
@@ -158,4 +157,3 @@ namespace BitcoinNet.Tests
 		}
 	}
 }
-#endif

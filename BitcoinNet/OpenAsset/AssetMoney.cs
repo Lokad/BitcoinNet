@@ -200,11 +200,8 @@ namespace BitcoinNet.OpenAsset
 			AssetMoney m = obj as AssetMoney;
 			if(m != null)
 				return _Quantity.CompareTo(m.Quantity);
-#if !(PORTABLE || NETCORE)
-			return _Quantity.CompareTo(obj);
-#else
+
 			return _Quantity.CompareTo((long)obj);
-#endif
 		}
 
 		#endregion

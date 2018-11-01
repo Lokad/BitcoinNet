@@ -7,12 +7,7 @@ using System.Threading.Tasks;
 
 namespace BitcoinNet
 {
-#if NOTRACESOURCE
-		internal
-#else
-	public
-#endif
- class TraceCorrelationScope : IDisposable
+	public class TraceCorrelationScope : IDisposable
 	{
 		private Guid old;
 
@@ -58,12 +53,8 @@ namespace BitcoinNet
 
 		#endregion
 	}
-#if NOTRACESOURCE
-		internal
-#else
-	public
-#endif
- class TraceCorrelation
+
+	public class TraceCorrelation
 	{
 
 		TraceSource _Source;

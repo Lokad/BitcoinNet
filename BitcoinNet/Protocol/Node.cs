@@ -1,5 +1,4 @@
-﻿#if !NOSOCKET
-using BitcoinNet.Protocol.Behaviors;
+﻿using BitcoinNet.Protocol.Behaviors;
 using BitcoinNet.Protocol.Filters;
 using System;
 using System.Collections.Concurrent;
@@ -168,12 +167,8 @@ namespace BitcoinNet.Protocol
 					return _Cancel;
 				}
 			}
-#if NOTRACESOURCE
-			internal
-#else
-			public
-#endif
- TraceCorrelation TraceCorrelation
+
+			public TraceCorrelation TraceCorrelation
 			{
 				get
 				{
@@ -886,12 +881,7 @@ namespace BitcoinNet.Protocol
 
 		TraceCorrelation _TraceCorrelation = null;
 		[DebuggerBrowsable(DebuggerBrowsableState.Never)]
-#if NOTRACESOURCE
-		internal
-#else
-		public
-#endif
- TraceCorrelation TraceCorrelation
+		public TraceCorrelation TraceCorrelation
 		{
 			get
 			{
@@ -1602,4 +1592,3 @@ namespace BitcoinNet.Protocol
 		}
 	}
 }
-#endif

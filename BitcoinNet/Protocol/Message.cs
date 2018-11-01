@@ -5,9 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-#if !NOSOCKET
 using System.Net.Sockets;
-#endif
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -139,11 +137,8 @@ namespace BitcoinNet.Protocol
 
 		private static byte[] GetBuffer(MemoryStream ms)
 		{
-#if !(PORTABLE || NETCORE)
-			return ms.GetBuffer();
-#else
+			// TODO (Osman): Shouldn't it be `ms.GetBuffer()`?
 			return ms.ToArray();
-#endif
 		}
 
 		#endregion
@@ -165,7 +160,6 @@ namespace BitcoinNet.Protocol
 			return String.Format("{0} : {1}", Command, Payload);
 		}
 
-#if !NOSOCKET
 		public static Message ReadNext(Socket socket, Network network, uint version, CancellationToken cancellationToken)
 		{
 			PerformanceCounter counter;
@@ -181,7 +175,7 @@ namespace BitcoinNet.Protocol
 			var stream = new NetworkStream(socket, false);
 			return ReadNext(stream, network, version, cancellationToken, buffer, out counter);
 		}
-#endif
+
 		public static Message ReadNext(Stream stream, Network network, uint version, CancellationToken cancellationToken)
 		{
 			PerformanceCounter counter;

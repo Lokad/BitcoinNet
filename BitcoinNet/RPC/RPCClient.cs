@@ -1,5 +1,4 @@
-﻿#if !NOJSONNET
-using BitcoinNet.DataEncoders;
+﻿using BitcoinNet.DataEncoders;
 using BitcoinNet.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -222,7 +221,6 @@ namespace BitcoinNet.RPC
 		static ConcurrentDictionary<Network, string> _DefaultPaths = new ConcurrentDictionary<Network, string>();
 		static RPCClient()
 		{
-#if !NOFILEIO
 			var home = Environment.GetEnvironmentVariable("HOME");
 			var localAppData = Environment.GetEnvironmentVariable("APPDATA");
 
@@ -255,7 +253,6 @@ namespace BitcoinNet.RPC
 				var regtest = Path.Combine(bitcoinFolder, "regtest", ".cookie");
 				RegisterDefaultCookiePath(Network.RegTest, regtest);
 			}
-#endif
 		}
 		public static void RegisterDefaultCookiePath(Network network, string path)
 		{
@@ -497,9 +494,6 @@ namespace BitcoinNet.RPC
 			var bytes = Encoding.UTF8.GetBytes(json);
 
 			var webRequest = CreateWebRequest();
-#if !(PORTABLE || NETCORE)
-			webRequest.ContentLength = bytes.Length;
-#endif
 
 			int responseIndex = 0;
 			var dataStream = await webRequest.GetRequestStreamAsync().ConfigureAwait(false);
@@ -612,7 +606,6 @@ namespace BitcoinNet.RPC
 			if(GetCookiePath() == null)
 				throw new InvalidOperationException("Bug in BitcoinNet notify the developers.");
 
-#if !NOFILEIO
 			try
 			{
 				_Authentication = File.ReadAllText(GetCookiePath());
@@ -624,9 +617,6 @@ namespace BitcoinNet.RPC
 					return;
 				ExceptionDispatchInfo.Capture(ex).Throw();
 			}
-#else
-			throw new NotSupportedException("Cookie authentication is not supported for this plateform");
-#endif
 		}
 
 		async Task<RPCResponse> SendCommandAsyncCore(RPCRequest request, bool throwIfRPCError)
@@ -647,9 +637,7 @@ namespace BitcoinNet.RPC
 				writer.Flush();
 				var json = writer.ToString();
 				var bytes = Encoding.UTF8.GetBytes(json);
-#if !(PORTABLE || NETCORE)
-				webRequest.ContentLength = bytes.Length;
-#endif
+
 				var dataStream = await webRequest.GetRequestStreamAsync().ConfigureAwait(false);
 				await dataStream.WriteAsync(bytes, 0, bytes.Length).ConfigureAwait(false);
 				await dataStream.FlushAsync().ConfigureAwait(false);
@@ -716,7 +704,7 @@ namespace BitcoinNet.RPC
 		}
 
 #region P2P Networking
-#if !NOSOCKET
+
 		public PeerInfo[] GetPeersInfo()
 		{
 			PeerInfo[] peers = null;
@@ -861,7 +849,6 @@ namespace BitcoinNet.RPC
 				throw;
 			}
 		}
-#endif
 
 #endregion
 
@@ -1431,7 +1418,6 @@ namespace BitcoinNet.RPC
 #endregion
 	}
 
-#if !NOSOCKET
 	public class PeerInfo
 	{
 		public int Id
@@ -1551,8 +1537,6 @@ namespace BitcoinNet.RPC
 			get; internal set;
 		}
 	}
-	
-#endif
 
 	public class BlockchainInfo
 	{
@@ -1609,4 +1593,3 @@ namespace BitcoinNet.RPC
 	}
 
 }
-#endif

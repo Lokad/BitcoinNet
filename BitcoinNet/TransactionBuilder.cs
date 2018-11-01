@@ -1104,7 +1104,7 @@ namespace BitcoinNet
 		/// </summary>
 		/// <param name="sign">True if signs all inputs with the available keys</param>
 		/// <returns>The transaction</returns>
-		/// <exception cref="NBitcoin.NotEnoughFundsException">Not enough funds are available</exception>
+		/// <exception cref="BitcoinNet.NotEnoughFundsException">Not enough funds are available</exception>
 		public Transaction BuildTransaction(bool sign)
 		{
 			var tx = BuildTransaction(sign, SigHash.All);
@@ -1118,7 +1118,7 @@ namespace BitcoinNet
 		/// <param name="sign">True if signs all inputs with the available keys</param>
 		/// <param name="sigHash">The type of signature</param>
 		/// <returns>The transaction</returns>
-		/// <exception cref="NBitcoin.NotEnoughFundsException">Not enough funds are available</exception>
+		/// <exception cref="BitcoinNet.NotEnoughFundsException">Not enough funds are available</exception>
 		public Transaction BuildTransaction(bool sign, SigHash sigHash)
 		{
 			DoShuffle();

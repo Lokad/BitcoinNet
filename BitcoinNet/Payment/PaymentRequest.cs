@@ -5,14 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-#if !NOHTTPCLIENT
-using System.Net.Http;
-#endif
 using System.Text;
 using System.Text.RegularExpressions;
-#if WIN
-using System.Security.Cryptography.X509Certificates;
-#endif
 using System.Threading.Tasks;
 
 namespace BitcoinNet.Payment
@@ -381,11 +375,8 @@ namespace BitcoinNet.Payment
 			}
 		}
 
-#if !NOX509
 		private static ICertificateServiceProvider _DefaultCertificateServiceProvider = new WindowsCertificateServiceProvider();
-#else
-		private static ICertificateServiceProvider _DefaultCertificateServiceProvider;		
-#endif
+
 		/// <summary>
 		/// Default application wide certificate service provider
 		/// </summary>
@@ -409,7 +400,7 @@ namespace BitcoinNet.Payment
 			get;
 			set;
 		}
-#if !NOFILEIO
+
 		public static PaymentRequest Load(string file)
 		{
 			using(var fs = File.OpenRead(file))
@@ -417,7 +408,7 @@ namespace BitcoinNet.Payment
 				return Load(fs);
 			}
 		}
-#endif
+
 		public static PaymentRequest Load(byte[] request)
 		{
 			return Load(new MemoryStream(request));
@@ -674,12 +665,6 @@ namespace BitcoinNet.Payment
 			return signed;
 		}
 
-#if WIN
-		public void Sign(X509Certificate2 certificate, Payment.PKIType type)
-		{
-			Sign((object)certificate, type);
-		}
-#endif
 		public void Sign(byte[] certificate, Payment.PKIType type)
 		{
 			Sign((object)certificate, type);

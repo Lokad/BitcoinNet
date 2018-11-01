@@ -1,5 +1,4 @@
-﻿#if !NOSOCKET
-using BitcoinNet.Protocol.Behaviors;
+﻿using BitcoinNet.Protocol.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -161,4 +160,3 @@ namespace BitcoinNet.Protocol
 		}
 	}
 }
-#endif

@@ -4,9 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-#if !NONATIVEHASH
 using System.Security.Cryptography;
-#endif
 
 namespace BitcoinNet.Crypto
 {
@@ -89,7 +87,6 @@ namespace BitcoinNet.Crypto
 			throw new NotImplementedException();
 		}
 
-#if HAS_SPAN
 		public override void Write(ReadOnlySpan<byte> buffer)
 		{
 			int copied = 0;
@@ -107,7 +104,7 @@ namespace BitcoinNet.Crypto
 					innerSpan = _Buffer.AsSpan();
 			}
 		}
-#endif
+
 		public override void Write(byte[] buffer, int offset, int count)
 		{
 			int copied = 0;
@@ -122,13 +119,9 @@ namespace BitcoinNet.Crypto
 			}
 		}
 
-#if NONATIVEHASH
-		byte[] _Buffer = new byte[32];
-#else
 		byte[] _Buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(32 * 10);
-#endif
-
 		int _Pos;
+
 		public override void WriteByte(byte value)
 		{
 			_Buffer[_Pos++] = value;
@@ -145,25 +138,6 @@ namespace BitcoinNet.Crypto
 			return false;
 		}
 
-#if NONATIVEHASH
-		BouncyCastle.Crypto.Digests.Sha256Digest sha = new BouncyCastle.Crypto.Digests.Sha256Digest();
-		private void ProcessBlock()
-		{
-			sha.BlockUpdate(_Buffer, 0, _Pos);
-			_Pos = 0;
-		}
-
-		public override uint256 GetHash()
-		{
-			ProcessBlock();
-			sha.DoFinal(_Buffer, 0);
-			_Pos = 32;
-			ProcessBlock();
-			sha.DoFinal(_Buffer, 0);
-			return new uint256(_Buffer);
-		}
-
-#else
 		SHA256Managed sha = new SHA256Managed();
 		private void ProcessBlock()
 		{
@@ -191,7 +165,6 @@ namespace BitcoinNet.Crypto
 				sha.Dispose();
 			base.Dispose(disposing);
 		}
-#endif
 	}
 
 	/// <summary>
@@ -304,12 +277,7 @@ namespace BitcoinNet.Crypto
 
 		public override uint256 GetHash()
 		{
-#if NO_MEM_BUFFER
-			var copy = ms.ToArray();
-			return GetHash(copy, 0, (int)copy.Length);
-#else
 			return GetHash(ms.GetBuffer(), 0, (int)ms.Length);
-#endif
 		}
 
 		protected abstract uint256 GetHash(byte[] data, int offset, int length);

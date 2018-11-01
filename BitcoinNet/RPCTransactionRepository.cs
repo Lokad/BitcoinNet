@@ -1,5 +1,4 @@
-﻿#if !NOJSONNET
-using BitcoinNet.RPC;
+﻿using BitcoinNet.RPC;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,4 +36,3 @@ namespace BitcoinNet
 #endregion
 	}
 }
-#endif

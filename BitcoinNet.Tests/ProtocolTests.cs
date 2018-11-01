@@ -1,5 +1,4 @@
-﻿#if !NOSOCKET
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -416,7 +415,6 @@ namespace BitcoinNet.Tests
 			}
 		}
 
-#if !NOFILEIO
 		[Fact]
 		public void CanConnectToRandomNode()
 		{
@@ -450,7 +448,6 @@ namespace BitcoinNet.Tests
 			}
 			return new AddressManager();
 		}
-#endif
 
 		[Fact]
 		[Trait("Protocol", "Protocol")]
@@ -725,7 +722,6 @@ namespace BitcoinNet.Tests
 			Assert.True(reject.Hash == uint256.Parse("964182ffbcec5fafd8f33594b17d6aad4937ff1c59f699e91af44fda94967a57"));
 		}
 
-#if WIN
 		[Fact]
 		[Trait("Protocol", "Protocol")]
 		public void CanDownloadBlock()
@@ -744,7 +740,6 @@ namespace BitcoinNet.Tests
 				Assert.True(block.Object.CheckMerkleRoot());
 			}
 		}
-#endif
 
 		[Fact]
 		[Trait("Protocol", "Protocol")]
@@ -813,4 +808,3 @@ namespace BitcoinNet.Tests
 		}
 	}
 }
-#endif

@@ -1,5 +1,4 @@
-﻿#if !NOJSONNET
-using BitcoinNet;
+﻿using BitcoinNet;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -10,12 +9,7 @@ using System.Threading.Tasks;
 
 namespace BitcoinNet.JsonConverters
 {
-#if !NOJSONNET
-	public
-#else
-	internal
-#endif
-	class UInt160JsonConverter : JsonConverter
+	public class UInt160JsonConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
         {
@@ -44,12 +38,8 @@ namespace BitcoinNet.JsonConverters
             writer.WriteValue(value.ToString());
         }
     }
-#if !NOJSONNET
-	public
-#else
-	internal
-#endif
-	class UInt256JsonConverter : JsonConverter
+
+	public class UInt256JsonConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
         {
@@ -79,4 +69,3 @@ namespace BitcoinNet.JsonConverters
         }
     }
 }
-#endif

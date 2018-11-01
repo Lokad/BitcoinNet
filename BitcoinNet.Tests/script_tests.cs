@@ -391,31 +391,32 @@ namespace BitcoinNet.Tests
 		private void EnsureHasLibConsensus()
 		{
 #if !NOCONSENSUSLIB
+			var bitcoinPath = NodeBuilder.EnsureDownloaded(NodeDownloadData.BitcoinCash.v0_18_2);
 
 			string libConsensusDll = null;
-			if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
 				libConsensusDll = "libbitcoinconsensus-0.dll";
 			}
-			else if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+			else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
 			{
 				libConsensusDll = "libbitcoinconsensus.0.dylib";
 			}
-			else if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+			else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 			{
-				libConsensusDll = "libbitcoinconsensus.so";
+				libConsensusDll = "libbitcoinconsensus.so.0.0.0";
 			}
 			else
 			{
 				throw new NotSupportedException("Unknown operating system");
 			}
 
-			var bitcoinBinFolderPath = Path.GetDirectoryName(NodeBuilder.EnsureDownloaded("0.15.1"));
-			var libConsensusPath = Path.Combine(bitcoinBinFolderPath, "../lib", libConsensusDll);
+			var bitcoinBinFolderPath = Path.GetDirectoryName("TestData");
+			var libConsensusPath = Path.Combine(bitcoinPath, "../../lib", libConsensusDll);
 
 			if (File.Exists(Script.LibConsensusDll))
 				return;
-			File.Copy(libConsensusPath, Script.LibConsensusDll, overwrite:false);
+			File.Copy(libConsensusPath, Script.LibConsensusDll, overwrite: false);
 #endif
 		}
 

@@ -27,11 +27,8 @@ namespace BitcoinNet.Protocol
 			if(stream.Serializing)
 			{
 				ulong n = _Value;
-#if HAS_SPAN
 				Span<byte> tmp = stackalloc byte[(_Size * 8 + 6) / 7];
-#else
-				byte[] tmp = new byte[(_Size * 8 + 6) / 7];
-#endif
+
 				int len = 0;
 				while(true)
 				{
