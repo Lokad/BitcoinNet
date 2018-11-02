@@ -459,7 +459,7 @@ namespace BitcoinNet
 			return new BigInteger(1, data);
 		}
 
-		static readonly TraceSource _TraceSource = TraceSourceFactory.CreateTraceSource("BitcoinNet");
+		static readonly TraceSource _TraceSource = new TraceSource("BitcoinNet");
 
 		internal static bool error(string msg)
 		{

@@ -35,10 +35,6 @@
 		<PackageReference Include="System.Net.Http" Version="4.3.3" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<Compile Include="..\Stubs\TraceStub\TraceSource.cs" />
-	</ItemGroup>
-
 
 	<ItemGroup>
 		<None Update="BitcoinStream.Partial.tt">
