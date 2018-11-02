@@ -10,7 +10,7 @@ namespace BitcoinNet.Protocol
 	public static class NodeServerTrace
 	{
 
-		static TraceSource _Trace = TraceSourceFactory.CreateTraceSource("BitcoinNet.NodeServer");
+		static TraceSource _Trace = new TraceSource("BitcoinNet.NodeServer");
 		internal static TraceSource Trace
 		{
 			get
