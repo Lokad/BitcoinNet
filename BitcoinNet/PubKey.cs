@@ -1,6 +1,5 @@
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
-using BitcoinNet.Stealth;
 using BitcoinNet.BouncyCastle.Math;
 using System;
 using System.Collections.Generic;
@@ -355,33 +354,6 @@ namespace BitcoinNet
 			return ToHex().GetHashCode();
 		}
 
-		public PubKey UncoverSender(Key ephem, PubKey scan)
-		{
-			return Uncover(ephem, scan);
-		}
-		public PubKey UncoverReceiver(Key scan, PubKey ephem)
-		{
-			return Uncover(scan, ephem);
-		}
-		public PubKey Uncover(Key priv, PubKey pub)
-		{
-			var curve = ECKey.Secp256k1;
-			var hash = GetStealthSharedSecret(priv, pub);
-			//Q' = Q + cG
-			var qprim = curve.G.Multiply(new BigInteger(1, hash)).Add(curve.Curve.DecodePoint(this.ToBytes()));
-			return new PubKey(qprim.GetEncoded()).Compress(this.IsCompressed);
-		}
-
-		internal static byte[] GetStealthSharedSecret(Key priv, PubKey pub)
-		{
-			var curve = ECKey.Secp256k1;
-			var pubec = curve.Curve.DecodePoint(pub.ToBytes());
-			var p = pubec.Multiply(new BigInteger(1, priv.ToBytes()));
-			var pBytes = new PubKey(p.GetEncoded()).Compress().ToBytes();
-			var hash = Hashes.SHA256(pBytes);
-			return hash;
-		}
-
 		public PubKey Compress(bool compression)
 		{
 			if(IsCompressed == compression)
@@ -390,11 +362,6 @@ namespace BitcoinNet
 				return this.Compress();
 			else
 				return this.Decompress();
-		}
-
-		public BitcoinStealthAddress CreateStealthAddress(PubKey scanKey, Network network)
-		{
-			return new BitcoinStealthAddress(scanKey, new PubKey[] { this }, 1, null, network);
 		}
 
 		public string ToString(Network network)

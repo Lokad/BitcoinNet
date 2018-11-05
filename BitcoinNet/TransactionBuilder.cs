@@ -3,7 +3,6 @@ using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using BitcoinNet.OpenAsset;
 using BitcoinNet.Policy;
-using BitcoinNet.Stealth;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -911,25 +910,6 @@ namespace BitcoinNet
 			}
 		}
 
-		public TransactionBuilder Send(BitcoinStealthAddress address, Money amount, Key ephemKey = null)
-		{
-			if(amount < Money.Zero)
-				throw new ArgumentOutOfRangeException("amount", "amount can't be negative");
-
-			if(_OpReturnUser == null)
-				_OpReturnUser = "Stealth Payment";
-			else
-				throw new InvalidOperationException("Op return already used for " + _OpReturnUser);
-
-			CurrentGroup.Builders.Add(ctx =>
-			{
-				var payment = address.CreatePayment(ephemKey);
-				payment.AddToTransaction(ctx.Transaction, amount);
-				return amount;
-			});
-			return this;
-		}
-
 		public TransactionBuilder IssueAsset(IDestination destination, AssetMoney asset)
 		{
 			return IssueAsset(destination.ScriptPubKey, asset);
@@ -1316,7 +1296,7 @@ namespace BitcoinNet
 			var coin = FindCoin(txIn.PrevOut);
 			if(coin is IColoredCoin)
 				coin = ((IColoredCoin)coin).Bearer;
-			if(coin == null || coin is ScriptCoin || coin is StealthCoin)
+			if(coin == null || coin is ScriptCoin)
 				return coin;
 
 			var hash = ScriptCoin.GetRedeemHash(coin.TxOut.ScriptPubKey);
@@ -1618,19 +1598,6 @@ namespace BitcoinNet
 		private void Sign(TransactionSigningContext ctx, ICoin coin, IndexedTxIn txIn)
 		{
 			var input = txIn.TxIn;
-			if(coin is StealthCoin)
-			{
-				var stealthCoin = (StealthCoin)coin;
-				var scanKey = FindKey(ctx, stealthCoin.Address.ScanPubKey.ScriptPubKey);
-				if(scanKey == null)
-					throw new KeyNotFoundException("Scan key for decrypting StealthCoin not found");
-				var spendKeys = stealthCoin.Address.SpendPubKeys.Select(p => FindKey(ctx, p.ScriptPubKey)).Where(p => p != null).ToArray();
-				ctx.AdditionalKeys.AddRange(stealthCoin.Uncover(spendKeys, scanKey));
-				var normalCoin = new Coin(coin.Outpoint, coin.TxOut);
-				if(stealthCoin.Redeem != null)
-					normalCoin = normalCoin.ToScriptCoin(stealthCoin.Redeem);
-				coin = normalCoin;
-			}
 			var scriptSig = CreateScriptSig(ctx, coin, txIn);
 			if(scriptSig == null)
 				return;
