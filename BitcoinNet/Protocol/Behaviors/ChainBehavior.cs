@@ -335,7 +335,7 @@ namespace BitcoinNet.Protocol.Behaviors
 			}
 		}
 
-		#region ICloneable Members
+		// ICloneable Members
 
 		public override object Clone()
 		{
@@ -350,7 +350,5 @@ namespace BitcoinNet.Protocol.Behaviors
 			};
 			return clone;
 		}
-
-		#endregion
 	}
 }

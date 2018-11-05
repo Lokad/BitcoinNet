@@ -65,7 +65,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#region IDestination Members
+		// IDestination Members
 
 		public Script ScriptPubKey
 		{
@@ -74,8 +74,6 @@ namespace BitcoinNet
 				return Address.ScriptPubKey;
 			}
 		}
-
-		#endregion
 
 		public static string GetWrappedBase58(string base58, Network network)
 		{

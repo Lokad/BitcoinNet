@@ -37,7 +37,8 @@ namespace BitcoinNet.Protocol
 				return _Bytes;
 			return _Bytes.ToArray();
 		}
-		#region IBitcoinSerializable Members
+
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -64,7 +65,5 @@ namespace BitcoinNet.Protocol
 			bytes = new byte[len];
 			bs.ReadWrite(ref bytes);
 		}
-
-		#endregion
 	}
 }

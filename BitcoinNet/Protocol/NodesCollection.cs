@@ -54,14 +54,13 @@ namespace BitcoinNet.Protocol
 			{
 				_Prod = prod;
 			}
-			#region MessageListener<IncomingMessage> Members
+
+			// MessageListener<IncomingMessage> Members
 
 			public void PushMessage(IncomingMessage message)
 			{
 				_Prod.PushMessage(message);
 			}
-
-			#endregion
 		}
 		Bridge bridge;
 		public NodesCollection()
@@ -163,24 +162,19 @@ namespace BitcoinNet.Protocol
 			}
 		}
 
-
-		#region IEnumerable<Node> Members
+		// IEnumerable<Node> Members
 
 		public IEnumerator<Node> GetEnumerator()
 		{
 			return _Nodes.Select(n => n.Key).AsEnumerable().GetEnumerator();
 		}
 
-		#endregion
-
-		#region IEnumerable Members
+		// IEnumerable Members
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
 		}
-
-		#endregion
 
 		public void DisconnectAll(CancellationToken cancellation = default(CancellationToken))
 		{

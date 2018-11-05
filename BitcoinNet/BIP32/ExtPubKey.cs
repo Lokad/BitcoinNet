@@ -166,7 +166,7 @@ namespace BitcoinNet
 			return new BitcoinExtPubKey(this, network);
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -214,14 +214,13 @@ namespace BitcoinNet
 		{
 			return Hash.GetHashCode();
 		}
-		#endregion
 
 		public string ToString(Network network)
 		{
 			return new BitcoinExtPubKey(this, network).ToString();
 		}
 
-		#region IDestination Members
+		// IDestination Members
 
 		/// <summary>
 		/// The P2PKH payment script
@@ -233,7 +232,5 @@ namespace BitcoinNet
 				return PubKey.Hash.ScriptPubKey;
 			}
 		}
-
-		#endregion
 	}
 }

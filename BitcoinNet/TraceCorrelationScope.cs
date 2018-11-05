@@ -39,8 +39,7 @@ namespace BitcoinNet
 			Trace.CorrelationManager.ActivityId = activity;
 		}
 
-
-		#region IDisposable Members
+		// IDisposable Members
 
 		public void Dispose()
 		{
@@ -50,8 +49,6 @@ namespace BitcoinNet
 			}
 			Trace.CorrelationManager.ActivityId = old;
 		}
-
-		#endregion
 	}
 
 	public class TraceCorrelation

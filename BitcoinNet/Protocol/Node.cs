@@ -1558,14 +1558,12 @@ namespace BitcoinNet.Protocol
 			set;
 		}
 
-		#region IDisposable Members
+		// IDisposable Members
 
 		public void Dispose()
 		{
 			Disconnect("Node disposed");
 		}
-
-		#endregion
 
 		/// <summary>
 		/// Emit a ping and wait the pong

@@ -200,7 +200,7 @@ namespace BitcoinNet.Protocol.Behaviors
 			ClearCurrentPing();
 		}
 
-		#region ICloneable Members
+		// ICloneable Members
 
 		public override object Clone()
 		{
@@ -211,7 +211,5 @@ namespace BitcoinNet.Protocol.Behaviors
 				TimeoutInterval = TimeoutInterval
 			};
 		}
-
-		#endregion
 	}
 }

@@ -587,7 +587,8 @@ namespace BitcoinNet
 				return PublicKey.Hash;
 			}
 		}
-		#region IDestination Members
+
+		// IDestination Members
 
 		public Script ScriptPubKey
 		{
@@ -596,8 +597,6 @@ namespace BitcoinNet
 				return Hash.ScriptPubKey;
 			}
 		}
-
-		#endregion
 	}
 	public class PayToPubkeyHashTemplate : ScriptTemplate
 	{

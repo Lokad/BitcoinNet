@@ -29,14 +29,13 @@ namespace BitcoinNet
 					return _Data;
 				}
 			}
-			#region IBitcoinSerializable Members
+
+			// IBitcoinSerializable Members
 
 			public void ReadWrite(BitcoinStream stream)
 			{
 				stream.ReadWriteAsVarString(ref _Data);
 			}
-
-			#endregion
 		}
 
 		public CachedNoSqlRepository(NoSqlRepository inner)

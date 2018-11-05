@@ -20,7 +20,8 @@ namespace BitcoinNet.Protocol
 			_Value = value;
 			_Size = size;
 		}
-		#region IBitcoinSerializable Members
+
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -64,8 +65,6 @@ namespace BitcoinNet.Protocol
 				_Value = n;
 			}
 		}
-
-		#endregion
 
 		public ulong ToLong()
 		{
@@ -159,7 +158,7 @@ namespace BitcoinNet.Protocol
 			return _Value;
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -168,9 +167,5 @@ namespace BitcoinNet.Protocol
 			else
 				_Value = StaticRead(stream);			
 		}
-
-		#endregion
-
-
 	}
 }

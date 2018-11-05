@@ -28,15 +28,12 @@ namespace BitcoinNet
 
 		public abstract BitcoinAddress GetAddress(Network network);
 
-		#region IDestination Members
+		// IDestination Members
 
 		public abstract Script ScriptPubKey
 		{
 			get;
 		}
-
-		#endregion
-
 
 		public byte[] ToBytes()
 		{

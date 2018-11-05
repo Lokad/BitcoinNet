@@ -54,7 +54,7 @@ namespace BitcoinNet
 			get; set;
 		} = true;
 
-		#region ICoinSelector Members
+		// ICoinSelector Members
 
 		public IEnumerable<ICoin> Select(IEnumerable<ICoin> coins, IMoney target)
 		{
@@ -136,8 +136,6 @@ namespace BitcoinNet
 				return null;
 			return result;
 		}
-
-		#endregion
 	}
 
 	/// <summary>
@@ -202,14 +200,13 @@ namespace BitcoinNet
 				this.sigHash = sigHash;
 				this.txIn = txIn;
 			}
-			#region ISigner Members
+
+			// ISigner Members
 
 			public TransactionSignature Sign(Key key)
 			{
 				return txIn.Sign(key, coin, sigHash);
 			}
-
-			#endregion
 		}
 		internal class TransactionBuilderKeyRepository : IKeyRepository
 		{
@@ -220,14 +217,13 @@ namespace BitcoinNet
 				_Ctx = ctx;
 				_TxBuilder = txBuilder;
 			}
-			#region IKeyRepository Members
+
+			// IKeyRepository Members
 
 			public Key FindKey(Script scriptPubkey)
 			{
 				return _TxBuilder.FindKey(_Ctx, scriptPubkey);
 			}
-
-			#endregion
 		}
 
 		class KnownSignatureSigner : ISigner, IKeyRepository

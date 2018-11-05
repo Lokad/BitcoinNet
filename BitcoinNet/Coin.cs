@@ -78,8 +78,7 @@ namespace BitcoinNet
 			set;
 		}
 
-		#region ICoin Members
-
+		// ICoin Members
 
 		public Money Amount
 		{
@@ -101,8 +100,6 @@ namespace BitcoinNet
 			}
 		}
 
-		#endregion
-
 		public Script ScriptPubKey
 		{
 			get
@@ -111,8 +108,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#region IColoredCoin Members
-
+		// IColoredCoin Members
 
 		public Coin Bearer
 		{
@@ -129,9 +125,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#endregion
-
-		#region IColoredCoin Members
+		// IColoredCoin Members
 
 		AssetId IColoredCoin.AssetId
 		{
@@ -149,9 +143,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#endregion
-
-		#region ICoin Members
+		// ICoin Members
 
 		IMoney ICoin.Amount
 		{
@@ -177,10 +169,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#endregion
-
-		#region ICoin Members
-
+		// ICoin Members
 
 		public Script GetScriptCode()
 		{
@@ -199,8 +188,6 @@ namespace BitcoinNet
 		{
 			this.Bearer.OverrideScriptCode(scriptCode);
 		}
-
-		#endregion
 	}
 
 	public class ColoredCoin : IColoredCoin
@@ -252,7 +239,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#region ICoin Members
+		// ICoin Members
 
 		public OutPoint Outpoint
 		{
@@ -269,8 +256,6 @@ namespace BitcoinNet
 				return Bearer.ScriptPubKey;
 			}
 		}
-
-		#endregion
 
 		public static IEnumerable<ColoredCoin> Find(Transaction tx, ColoredTransaction colored)
 		{
@@ -303,7 +288,7 @@ namespace BitcoinNet
 			return Find(txId, tx, colored);
 		}
 
-		#region IColoredCoin Members
+		// IColoredCoin Members
 
 		AssetId IColoredCoin.AssetId
 		{
@@ -321,9 +306,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#endregion
-
-		#region ICoin Members
+		// ICoin Members
 
 		IMoney ICoin.Amount
 		{
@@ -366,8 +349,6 @@ namespace BitcoinNet
 		{
 			this.Bearer.OverrideScriptCode(scriptCode);
 		}
-
-		#endregion
 	}
 	public class Coin : ICoin
 	{
@@ -465,8 +446,7 @@ namespace BitcoinNet
 			set;
 		}
 
-		#region ICoin Members
-
+		// ICoin Members
 
 		public Money Amount
 		{
@@ -495,8 +475,6 @@ namespace BitcoinNet
 			_OverrideScriptCode = scriptCode;
 		}
 
-		#endregion
-
 		public Script ScriptPubKey
 		{
 			get
@@ -512,7 +490,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#region ICoin Members
+		// ICoin Members
 
 		IMoney ICoin.Amount
 		{
@@ -537,8 +515,6 @@ namespace BitcoinNet
 				return TxOut;
 			}
 		}
-
-		#endregion
 	}
 
 

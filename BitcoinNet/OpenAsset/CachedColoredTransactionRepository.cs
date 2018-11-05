@@ -66,7 +66,8 @@ namespace BitcoinNet.OpenAsset
 			_InnerTransactionRepository = new CachedTransactionRepository(inner.Transactions);
 			MaxCachedTransactions = 1000;
 		}
-		#region IColoredTransactionRepository Members
+
+		// IColoredTransactionRepository Members
 
 		public CachedTransactionRepository Transactions
 		{
@@ -133,7 +134,5 @@ namespace BitcoinNet.OpenAsset
 			}
 			return _Inner.PutAsync(txId, tx);
 		}
-
-		#endregion
 	}
 }

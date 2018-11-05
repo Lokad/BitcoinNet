@@ -175,7 +175,7 @@ namespace BitcoinNet.Protocol
 			}
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
@@ -205,9 +205,6 @@ namespace BitcoinNet.Protocol
 				}
 			}
 		}
-
-		#endregion
-
 
 		public override string ToString()
 		{

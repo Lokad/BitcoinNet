@@ -50,7 +50,8 @@ namespace BitcoinNet
 			}
 		}
 
-		#region ISecret Members
+		// ISecret Members
+
 		Key _Key;
 		public Key PrivateKey
 		{
@@ -59,7 +60,6 @@ namespace BitcoinNet
 				return _Key ?? (_Key = new Key(vchData, 32, IsCompressed));
 			}
 		}
-		#endregion
 
 		protected override bool IsValid
 		{
@@ -124,7 +124,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#region IDestination Members
+		// IDestination Members
 
 		public Script ScriptPubKey
 		{
@@ -133,7 +133,5 @@ namespace BitcoinNet
 				return GetAddress().ScriptPubKey;
 			}
 		}
-
-		#endregion
 	}
 }

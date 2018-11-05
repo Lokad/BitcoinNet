@@ -108,7 +108,7 @@ namespace BitcoinNet.BitcoinCore
 			return Spend(position, out undo);
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -242,9 +242,6 @@ namespace BitcoinNet.BitcoinCore
 		// check whether the entire CCoins is spent
 		// note that only !IsPruned() CCoins can be serialized
 		public bool IsPruned => IsEmpty || Outputs.All(v => IsNull(v));
-
-
-		#endregion
 
 		public void ClearUnspendable()
 		{

@@ -97,7 +97,8 @@ namespace BitcoinNet.Protocol
 			}
 		}
 		uint version = 100100;
-		#region IBitcoinSerializable Members
+
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -116,8 +117,6 @@ namespace BitcoinNet.Protocol
 				stream.ReadWrite(ref port);
 			}
 		}
-
-		#endregion
 
 		public void ZeroTime()
 		{

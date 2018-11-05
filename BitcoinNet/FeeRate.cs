@@ -85,7 +85,7 @@ namespace BitcoinNet
 			return String.Format("{0} BTC/kB", _FeePerK.ToString());
 		}
 
-		#region IEquatable<FeeRate> Members
+		// IEquatable<FeeRate> Members
 
 		public bool Equals(FeeRate other)
 		{
@@ -99,9 +99,7 @@ namespace BitcoinNet
 				: _FeePerK.CompareTo(other._FeePerK);
 		}
 
-		#endregion
-
-		#region IComparable Members
+		// IComparable Members
 
 		public int CompareTo(object obj)
 		{
@@ -113,8 +111,6 @@ namespace BitcoinNet
 
 			return _FeePerK.CompareTo((long)obj);
 		}
-
-		#endregion
 
 		public static bool operator <(FeeRate left, FeeRate right)
 		{

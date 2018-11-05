@@ -13,14 +13,13 @@ namespace BitcoinNet
 		{
 			_Instance = RandomNumberGenerator.Create();
 		}
-		#region IRandom Members
+
+		// IRandom Members
 
 		public void GetBytes(byte[] output)
 		{
 			_Instance.GetBytes(output);
 		}
-
-		#endregion
 	}
 
 	public partial class RandomUtils

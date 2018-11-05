@@ -16,7 +16,8 @@ namespace BitcoinNet
 				throw new ArgumentNullException(nameof(client));
 			_Client = client;
 		}
-#region ITransactionRepository Members
+
+		// ITransactionRepository Members
 
 		public Task<Transaction> GetAsync(uint256 txId)
 		{
@@ -32,7 +33,5 @@ namespace BitcoinNet
 		{
 			return Task.FromResult(false);
 		}
-
-#endregion
 	}
 }

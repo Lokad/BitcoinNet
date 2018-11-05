@@ -290,7 +290,7 @@ namespace BitcoinNet.OpenAsset
 			}
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -309,8 +309,6 @@ namespace BitcoinNet.OpenAsset
 				}
 			}
 		}
-
-		#endregion
 
 		public static bool HasValidColorMarker(Transaction tx)
 		{

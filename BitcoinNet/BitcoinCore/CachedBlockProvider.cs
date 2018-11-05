@@ -28,7 +28,8 @@ namespace BitcoinNet.BitcoinCore
 			get;
 			set;
 		}
-		#region IBlockProvider Members
+
+		// IBlockProvider Members
 
 		ConcurrentDictionary<uint256, Block> _Blocks = new ConcurrentDictionary<uint256, Block>();
 
@@ -55,7 +56,5 @@ namespace BitcoinNet.BitcoinCore
 			Random rand = new Random();
 			return id[rand.Next(0, id.Count)];
 		}
-
-		#endregion
 	}
 }

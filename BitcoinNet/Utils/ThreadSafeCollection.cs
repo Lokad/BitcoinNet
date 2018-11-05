@@ -79,23 +79,18 @@ namespace BitcoinNet
 			}
 		}
 
-		#region IEnumerable<T> Members
+		// IEnumerable<T> Members
 
 		public IEnumerator<T> GetEnumerator()
 		{
 			return _Behaviors.Select(k => k.Key).GetEnumerator();
 		}
 
-		#endregion
-
-		#region IEnumerable Members
+		// IEnumerable Members
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
 		}
-
-		#endregion
-
 	}
 }

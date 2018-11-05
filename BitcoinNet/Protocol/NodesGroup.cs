@@ -274,8 +274,7 @@ namespace BitcoinNet.Protocol
 			get; set;
 		}
 
-		#region IDisposable Members
-
+		// IDisposable Members
 
 		/// <summary>
 		/// Same as Disconnect
@@ -284,7 +283,5 @@ namespace BitcoinNet.Protocol
 		{
 			Disconnect();
 		}
-
-		#endregion
 	}
 }

@@ -341,14 +341,12 @@ namespace BitcoinNet.Tests
 
 		volatile bool _Stopped;
 
-		#region IDisposable Members
+		// IDisposable Members
 
 		public void Dispose()
 		{
 			_Stopped = true;
 			_Listener.Close();
 		}
-
-		#endregion
 	}
 }

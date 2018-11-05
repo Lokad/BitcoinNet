@@ -34,14 +34,12 @@ namespace BitcoinNet.Protocol
 			addr_list = addresses.ToArray();
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
 			stream.ReadWrite(ref addr_list);
 		}
-
-		#endregion
 
 		public override string ToString()
 		{

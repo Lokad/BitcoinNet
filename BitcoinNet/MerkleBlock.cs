@@ -76,14 +76,12 @@ namespace BitcoinNet
 			_PartialMerkleTree = new PartialMerkleTree(vHashes.ToArray(), vMatch.ToArray());
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
 			stream.ReadWrite(ref header);
 			stream.ReadWrite(ref _PartialMerkleTree);
 		}
-
-		#endregion
 	}
 }

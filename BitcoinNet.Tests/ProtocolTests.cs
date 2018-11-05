@@ -108,7 +108,7 @@ namespace BitcoinNet.Tests
 			}
 		}
 
-		#region IDisposable Members
+		// IDisposable Members
 
 		public void Dispose()
 		{
@@ -117,8 +117,6 @@ namespace BitcoinNet.Tests
 			foreach(var dispo in _Disposables)
 				dispo.Dispose();
 		}
-
-		#endregion
 
 		public static string NATRuleName = "BitcoinNet Tests";
 

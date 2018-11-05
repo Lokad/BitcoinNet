@@ -54,7 +54,7 @@ namespace BitcoinNet.BitcoinCore
 			}
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -72,9 +72,6 @@ namespace BitcoinNet.BitcoinCore
 				return;
 			stream.ReadWrite(ref size);
 		}
-
-
-		#endregion
 	}
 	public class StoredItem<T> : IBitcoinSerializable where T : IBitcoinSerializable, new()
 	{

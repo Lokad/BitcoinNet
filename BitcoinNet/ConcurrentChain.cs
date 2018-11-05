@@ -305,7 +305,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#region IChain Members
+		// IChain Members
 
 		public override ChainedBlock GetBlock(uint256 id)
 		{
@@ -349,8 +349,6 @@ namespace BitcoinNet
 				return Tip.Height;
 			}
 		}
-
-		#endregion
 
 		protected override IEnumerable<ChainedBlock> EnumerateFromStart()
 		{

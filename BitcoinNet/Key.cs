@@ -136,7 +136,7 @@ namespace BitcoinNet
 			return sigData;
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -146,8 +146,6 @@ namespace BitcoinNet
 				_ECKey = new ECKey(vch, true);
 			}
 		}
-
-		#endregion
 
 		public Key Derivate(byte[] cc, uint nChild, out byte[] ccChild)
 		{
@@ -222,7 +220,7 @@ namespace BitcoinNet
 			return new BitcoinSecret(this, network).ToString();
 		}
 
-		#region IDestination Members
+		// IDestination Members
 
 		public Script ScriptPubKey
 		{
@@ -231,8 +229,6 @@ namespace BitcoinNet
 				return PubKey.Hash.ScriptPubKey;
 			}
 		}
-
-		#endregion
 
 		public TransactionSignature Sign(uint256 hash, SigHash sigHash)
 		{

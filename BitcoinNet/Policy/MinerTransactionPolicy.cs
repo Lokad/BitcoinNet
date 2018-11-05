@@ -64,7 +64,7 @@ namespace BitcoinNet.Policy
 			}
 		}
 
-		#region ITransactionPolicy Members
+		// ITransactionPolicy Members
 
 		public TransactionPolicyError[] Check(Transaction transaction, ICoin[] spentCoins)
 		{
@@ -113,7 +113,5 @@ namespace BitcoinNet.Policy
 			}
 			return errors.ToArray();
 		}
-
-		#endregion
 	}
 }

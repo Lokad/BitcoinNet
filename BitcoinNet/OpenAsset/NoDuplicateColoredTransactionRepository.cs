@@ -15,7 +15,8 @@ namespace BitcoinNet.OpenAsset
 			_Inner = inner;
 		}
 		IColoredTransactionRepository _Inner;
-		#region IColoredTransactionRepository Members
+
+		// IColoredTransactionRepository Members
 
 		public ITransactionRepository Transactions
 		{
@@ -35,9 +36,7 @@ namespace BitcoinNet.OpenAsset
 			return _Inner.PutAsync(txId, tx);
 		}
 
-		#endregion
-
-		#region ITransactionRepository Members
+		// ITransactionRepository Members
 
 		Task<Transaction> ITransactionRepository.GetAsync(uint256 txId)
 		{
@@ -48,8 +47,6 @@ namespace BitcoinNet.OpenAsset
 		{
 			return _Inner.Transactions.PutAsync(txId, tx);
 		}
-
-		#endregion
 
 		Dictionary<string, Task> _Tasks = new Dictionary<string, Task>();
 		ReaderWriterLock @lock = new ReaderWriterLock();

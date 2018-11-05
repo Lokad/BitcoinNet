@@ -703,7 +703,7 @@ namespace BitcoinNet.RPC
 			return ms;
 		}
 
-#region P2P Networking
+		// P2P Networking
 
 		public PeerInfo[] GetPeersInfo()
 		{
@@ -850,9 +850,7 @@ namespace BitcoinNet.RPC
 			}
 		}
 
-#endregion
-
-#region Block chain and UTXO
+		// Block chain and UTXO
 
 		public async Task<BlockchainInfo> GetBlockchainInfoAsync()
 		{
@@ -1083,13 +1081,7 @@ namespace BitcoinNet.RPC
 			return GetTransactions(GetBlockHash(height));
 		}
 
-#endregion
-
-#region Coin generation
-
-#endregion
-
-#region Raw Transaction
+		// Raw Transaction
 
 		public Transaction DecodeRawTransaction(string rawHex)
 		{
@@ -1198,15 +1190,14 @@ namespace BitcoinNet.RPC
 			};
 		}
 
-		#endregion
-
-		#region Utility functions
+		// Utility functions
 
 		// Estimates the approximate fee per kilobyte needed for a transaction to begin
 		// confirmation within conf_target blocks if possible and return the number of blocks
 		// for which the estimate is valid.Uses virtual transaction size as defined
 		// in BIP 141 (witness data is discounted).
-		#region Fee Estimation
+
+		// Fee Estimation
 
 		/// <summary>
 		/// (>= Bitcoin Core v0.14) Get the estimated fee per kb for being confirmed in nblock
@@ -1285,16 +1276,6 @@ namespace BitcoinNet.RPC
 			};
 		}
 
-		#endregion
-
-		// DEPRECATED. Please use estimatesmartfee for more intelligent estimates.
-		// Estimates the approximate fee per kilobyte needed for a transaction to begin
-		// confirmation within nblocks blocks.Uses virtual transaction size of transaction
-		// as defined in BIP 141 (witness data is discounted).
-		#region Obsoleted Fee Estimation
-
-		#endregion
-
 		/// <summary>
 		/// Requires wallet support. Requires an unlocked wallet or an unencrypted wallet.
 		/// </summary>
@@ -1360,8 +1341,6 @@ namespace BitcoinNet.RPC
 			return SendCommand(RPCOperations.settxfee, new[] { feeRate.FeePerK.ToString() }).Result.ToString() == "true";
 		}
 
-#endregion
-
 		public async Task<uint256[]> GenerateAsync(int nBlocks)
 		{
 			if(nBlocks < 0)
@@ -1374,8 +1353,6 @@ namespace BitcoinNet.RPC
 		{
 			return GenerateAsync(nBlocks).GetAwaiter().GetResult();
 		}
-
-#region Region Hidden Methods
 
 		/// <summary>
 		/// Permanently marks a block as invalid, as if it violated a consensus rule.
@@ -1414,8 +1391,6 @@ namespace BitcoinNet.RPC
 		{
 			await SendCommandAsync(RPCOperations.abandontransaction, txId.ToString()).ConfigureAwait(false);
 		}
-
-#endregion
 	}
 
 	public class PeerInfo

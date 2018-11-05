@@ -390,7 +390,8 @@ namespace BitcoinNet.Protocol
 				}
 			});
 		}
-		#region IDisposable Members
+
+		// IDisposable Members
 
 		CancellationTokenSource _Cancel = new CancellationTokenSource();
 		public void Dispose()
@@ -418,8 +419,6 @@ namespace BitcoinNet.Protocol
 				}
 			}
 		}
-
-		#endregion
 
 		internal NodeConnectionParameters CreateNodeConnectionParameters()
 		{

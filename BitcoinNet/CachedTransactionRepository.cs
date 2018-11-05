@@ -36,7 +36,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#region ITransactionRepository Members
+		// ITransactionRepository Members
 
 		public async Task<Transaction> GetAsync(uint256 txId)
 		{
@@ -89,8 +89,6 @@ namespace BitcoinNet
 			}
 			return _Inner.PutAsync(txId, tx);
 		}
-
-		#endregion
 
 		public bool WriteThrough
 		{
