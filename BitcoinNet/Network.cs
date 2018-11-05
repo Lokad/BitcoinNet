@@ -7,7 +7,6 @@ using System.Net;
 using System.Threading;
 using BitcoinNet.DataEncoders;
 using BitcoinNet.Protocol;
-using BitcoinNet.Stealth;
 using System.Collections.Concurrent;
 using BCashAddr;
 
@@ -70,7 +69,6 @@ namespace BitcoinNet
 		ENCRYPTED_SECRET_KEY_NO_EC,
 		PASSPHRASE_CODE,
 		CONFIRMATION_CODE,
-		STEALTH_ADDRESS,
 		ASSET_ID,
 		COLORED_ADDRESS,
 		MAX_BASE58_TYPES,
@@ -948,7 +946,6 @@ namespace BitcoinNet
 			base58Prefixes[(int)Base58Type.ENCRYPTED_SECRET_KEY_EC] = new byte[] { 0x01, 0x43 };
 			base58Prefixes[(int)Base58Type.PASSPHRASE_CODE] = new byte[] { 0x2C, 0xE9, 0xB3, 0xE1, 0xFF, 0x39, 0xE2 };
 			base58Prefixes[(int)Base58Type.CONFIRMATION_CODE] = new byte[] { 0x64, 0x3B, 0xF6, 0xA8, 0x9A };
-			base58Prefixes[(int)Base58Type.STEALTH_ADDRESS] = new byte[] { 0x2a };
 			base58Prefixes[(int)Base58Type.ASSET_ID] = new byte[] { 23 };
 			base58Prefixes[(int)Base58Type.COLORED_ADDRESS] = new byte[] { 0x13 };
 
@@ -1029,7 +1026,6 @@ namespace BitcoinNet
 			base58Prefixes[(int)Base58Type.EXT_PUBLIC_KEY] = new byte[] { (0x04), (0x35), (0x87), (0xCF) };
 			base58Prefixes[(int)Base58Type.EXT_SECRET_KEY] = new byte[] { (0x04), (0x35), (0x83), (0x94) };
 
-			base58Prefixes[(int)Base58Type.STEALTH_ADDRESS] = new byte[] { 0x2b };
 			base58Prefixes[(int)Base58Type.ASSET_ID] = new byte[] { 115 };
 			base58Prefixes[(int)Base58Type.COLORED_ADDRESS] = new byte[] { 0x13 };
 		}
@@ -1448,8 +1444,6 @@ namespace BitcoinNet
 				return CreateEncryptedKeyNoEC(base58);
 			if(type == Base58Type.PASSPHRASE_CODE)
 				return CreatePassphraseCode(base58);
-			if(type == Base58Type.STEALTH_ADDRESS)
-				return CreateStealthAddress(base58);
 			if(type == Base58Type.ASSET_ID)
 				return CreateAssetId(base58);
 			if(type == Base58Type.COLORED_ADDRESS)
@@ -1475,11 +1469,6 @@ namespace BitcoinNet
 		public BitcoinNet.OpenAsset.BitcoinAssetId CreateAssetId(string base58)
 		{
 			return new BitcoinNet.OpenAsset.BitcoinAssetId(base58, this);
-		}
-
-		public BitcoinStealthAddress CreateStealthAddress(string base58)
-		{
-			return new BitcoinStealthAddress(base58, this);
 		}
 
 		private BitcoinPassphraseCode CreatePassphraseCode(string base58)
