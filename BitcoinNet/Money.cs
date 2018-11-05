@@ -254,15 +254,12 @@ namespace BitcoinNet
 			}
 		}
 
-		#region IMoney Members
-
+		// IMoney Members
 
 		IEnumerable<IMoney> IMoney.Split(int parts)
 		{
 			return Split(parts);
 		}
-
-		#endregion
 	}
 
 	public class Money : IComparable, IComparable<Money>, IEquatable<Money>, IMoney
@@ -468,7 +465,7 @@ namespace BitcoinNet
 			return new Money(sats);
 		}
 
-		#region IEquatable<Money> Members
+		// IEquatable<Money> Members
 
 		public bool Equals(Money other)
 		{
@@ -484,9 +481,7 @@ namespace BitcoinNet
 			return _Satoshis.CompareTo(other._Satoshis);
 		}
 
-		#endregion
-
-		#region IComparable Members
+		// IComparable Members
 
 		public int CompareTo(object obj)
 		{
@@ -498,8 +493,6 @@ namespace BitcoinNet
 
 			return _Satoshis.CompareTo((long)obj);
 		}
-
-		#endregion
 
 		public static Money operator -(Money left, Money right)
 		{
@@ -751,7 +744,7 @@ namespace BitcoinNet
 			}
 		}
 
-		#region IMoney Members
+		// IMoney Members
 
 		IMoney IMoney.Add(IMoney money)
 		{
@@ -768,27 +761,21 @@ namespace BitcoinNet
 			return -this;
 		}
 
-		#endregion
-
-		#region IComparable Members
+		// IComparable Members
 
 		int IComparable.CompareTo(object obj)
 		{
 			return this.CompareTo(obj);
 		}
 
-		#endregion
-
-		#region IComparable<IMoney> Members
+		// IComparable<IMoney> Members
 
 		int IComparable<IMoney>.CompareTo(IMoney other)
 		{
 			return this.CompareTo(other);
 		}
 
-		#endregion
-
-		#region IEquatable<IMoney> Members
+		// IEquatable<IMoney> Members
 
 		bool IEquatable<IMoney>.Equals(IMoney other)
 		{
@@ -802,22 +789,16 @@ namespace BitcoinNet
 			return money is Money;
 		}
 
-		#endregion
-
 		public const long COIN = 100 * 1000 * 1000;
 		public const long CENT = COIN / 100;
 		public const long NANO = CENT / 100;
 
-
-		#region IMoney Members
-
+		// IMoney Members
 
 		IEnumerable<IMoney> IMoney.Split(int parts)
 		{
 			return Split(parts);
 		}
-
-		#endregion
 	}
 
 	static class CharExtensions

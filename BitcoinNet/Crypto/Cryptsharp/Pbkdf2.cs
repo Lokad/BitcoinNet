@@ -49,7 +49,8 @@ namespace BitcoinNet.Crypto
 	[Obsolete("This might disappear in favour of .NET BCL's Rfc2898DeriveBytes class")]
 	public class Pbkdf2 : Stream
 	{
-		#region PBKDF2
+		// PBKDF2
+
 		byte[] _saltBuffer, _digest, _digestT1;
 		IMac _hmacAlgorithm;
 		int _iterations;
@@ -158,9 +159,8 @@ namespace BitcoinNet.Crypto
 			Array.Copy(hash, output, output.Length);
 		}
 
-		#endregion
+		// Stream
 
-		#region Stream
 		long _blockStart, _blockEnd, _pos;
 
 		/// <exclude />
@@ -297,6 +297,5 @@ namespace BitcoinNet.Crypto
 				_pos = value;
 			}
 		}
-		#endregion
 	}
 }

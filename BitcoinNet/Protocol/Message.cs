@@ -64,7 +64,7 @@ namespace BitcoinNet.Protocol
 			return payload != null;
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -140,8 +140,6 @@ namespace BitcoinNet.Protocol
 			// TODO (Osman): Shouldn't it be `ms.GetBuffer()`?
 			return ms.ToArray();
 		}
-
-		#endregion
 
 		internal static bool VerifyChecksum(uint256 checksum, byte[] payload, int length)
 		{

@@ -15,7 +15,8 @@ namespace BitcoinNet.Protocol.Filters
 			_OnIncoming = onIncoming ?? new Action<IncomingMessage, Action>((m, n) => n());
 			_OnSending = onSending ?? new Action<Node, Payload, Action>((m, p, n) => n());
 		}
-		#region INodeFilter Members
+
+		// INodeFilter Members
 
 		public void OnReceivingMessage(IncomingMessage message, Action next)
 		{
@@ -26,7 +27,5 @@ namespace BitcoinNet.Protocol.Filters
 		{
 			_OnSending(node, payload, next);
 		}
-
-		#endregion
 	}
 }

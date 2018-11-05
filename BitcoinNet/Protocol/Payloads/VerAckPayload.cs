@@ -9,12 +9,10 @@ namespace BitcoinNet.Protocol
 	[Payload("verack")]
 	public class VerAckPayload : Payload, IBitcoinSerializable
 	{
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
 		}
-
-		#endregion
 	}
 }

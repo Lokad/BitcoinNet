@@ -52,7 +52,7 @@ namespace BitcoinNet.BitcoinCore
 			return GetAsync(id.ToString());
 		}
 
-		#region IBlockProvider Members
+		// IBlockProvider Members
 
 		public Block GetBlock(uint256 id, List<byte[]> searchedData)
 		{
@@ -61,8 +61,6 @@ namespace BitcoinNet.BitcoinCore
 				throw new Exception("Block " + id + " not present in the index");
 			return block;
 		}
-
-		#endregion
 
 		protected override string GetKey(Block item)
 		{

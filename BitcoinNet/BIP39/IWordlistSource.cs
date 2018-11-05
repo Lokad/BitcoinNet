@@ -28,7 +28,7 @@ namespace BitcoinNet
 			_WordLists = dico;
 		}
 
-		#region IWordlistSource Members
+		// IWordlistSource Members
 
 		public Task<Wordlist> Load(string name)
 		{
@@ -39,7 +39,5 @@ namespace BitcoinNet
 				name == "japanese" ? '　' : ' ', name
 				));
 		}
-
-		#endregion
 	}
 }

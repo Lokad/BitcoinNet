@@ -62,7 +62,8 @@ namespace BitcoinNet.Policy
 		}
 #endif
 		public const int MaxScriptSigLength = 1650;
-		#region ITransactionPolicy Members
+
+		// ITransactionPolicy Members
 
 		public TransactionPolicyError[] Check(Transaction transaction, ICoin[] spentCoins)
 		{
@@ -196,8 +197,6 @@ namespace BitcoinNet.Policy
 			}
 #endif
 		}
-
-		#endregion
 
 		public StandardTransactionPolicy Clone()
 		{

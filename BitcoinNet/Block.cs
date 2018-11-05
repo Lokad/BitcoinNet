@@ -188,7 +188,8 @@ namespace BitcoinNet
 				return (nBits == 0);
 			}
 		}
-		#region IBitcoinSerializable Members
+
+		// IBitcoinSerializable Members
 
 		public virtual void ReadWrite(BitcoinStream stream)
 		{
@@ -200,10 +201,6 @@ namespace BitcoinNet
 			stream.ReadWrite(ref nNonce);
 
 		}
-
-
-		#endregion
-
 
 		public virtual uint256 GetPoWHash()
 		{

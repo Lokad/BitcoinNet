@@ -18,7 +18,8 @@ namespace BitcoinNet.OpenAsset
 				throw new ArgumentNullException(nameof(repo));
 			_Inner = repo;
 		}
-		#region IColoredTransactionRepository Members
+
+		// IColoredTransactionRepository Members
 
 		public ITransactionRepository Transactions
 		{
@@ -37,7 +38,5 @@ namespace BitcoinNet.OpenAsset
 		{
 			return Task.FromResult<bool>(true);
 		}
-
-		#endregion
 	}
 }

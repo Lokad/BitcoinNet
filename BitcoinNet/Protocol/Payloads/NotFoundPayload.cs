@@ -43,7 +43,7 @@ namespace BitcoinNet.Protocol
 			}
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
@@ -53,29 +53,23 @@ namespace BitcoinNet.Protocol
 			stream.MaxArraySize = old;
 		}
 
-		#endregion
-
 		public override string ToString()
 		{
 			return "Count: " + Inventory.Count.ToString();
 		}
 
-		#region IEnumerable<uint256> Members
+		// IEnumerable<uint256> Members
 
 		public IEnumerator<InventoryVector> GetEnumerator()
 		{
 			return Inventory.GetEnumerator();
 		}
 
-		#endregion
-
-		#region IEnumerable Members
+		// IEnumerable Members
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
 		}
-
-		#endregion
 	}
 }

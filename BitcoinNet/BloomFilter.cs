@@ -132,7 +132,7 @@ namespace BitcoinNet
 			return vData.Length <= MAX_BLOOM_FILTER_SIZE && nHashFuncs <= MAX_HASH_FUNCS;
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -141,10 +141,6 @@ namespace BitcoinNet
 			stream.ReadWrite(ref nTweak);
 			stream.ReadWrite(ref nFlags);
 		}
-
-		#endregion
-
-
 
 		public bool IsRelevantAndUpdate(Transaction tx)
 		{

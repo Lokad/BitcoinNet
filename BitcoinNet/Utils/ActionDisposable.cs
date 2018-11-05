@@ -16,13 +16,11 @@ namespace BitcoinNet
 			onEnter();
 		}
 
-		#region IDisposable Members
+		// IDisposable Members
 
 		public void Dispose()
 		{
 			onLeave();
 		}
-
-		#endregion
 	}
 }

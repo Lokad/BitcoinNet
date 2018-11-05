@@ -28,14 +28,12 @@ namespace BitcoinNet
 			open();
 		}
 
-#region IDisposable Members
+		// IDisposable Members
 
 		public void Dispose()
 		{
 			close();
 		}
-
-#endregion
 
 		public static IDisposable Nothing
 		{

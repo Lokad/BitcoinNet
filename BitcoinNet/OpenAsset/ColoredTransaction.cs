@@ -45,7 +45,8 @@ namespace BitcoinNet.OpenAsset
 				_Asset = value;
 			}
 		}
-#region IBitcoinSerializable Members
+
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -66,8 +67,6 @@ namespace BitcoinNet.OpenAsset
 				Asset = new AssetMoney(new AssetId(assetId), quantity);
 			}
 		}
-
-#endregion
 
 		public override string ToString()
 		{
@@ -440,7 +439,7 @@ namespace BitcoinNet.OpenAsset
 				.ToArray();
 		}
 
-#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -467,8 +466,6 @@ namespace BitcoinNet.OpenAsset
 			stream.ReadWrite(ref _Issuances);
 			stream.ReadWrite(ref _Transfers);
 		}
-
-#endregion
 
 		List<ColoredEntry> _Inputs;
 		public List<ColoredEntry> Inputs

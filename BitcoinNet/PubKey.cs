@@ -166,7 +166,7 @@ namespace BitcoinNet
 			return Encoders.Hex.EncodeData(vch);
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -174,8 +174,6 @@ namespace BitcoinNet
 			if(!stream.Serializing)
 				_ECKey = new ECKey(vch, false);
 		}
-
-		#endregion
 
 		public byte[] ToBytes()
 		{
@@ -404,7 +402,7 @@ namespace BitcoinNet
 			return new BitcoinPubKeyAddress(this.Hash, network).ToString();
 		}
 
-		#region IDestination Members
+		// IDestination Members
 
 		Script _ScriptPubKey;
 		public Script ScriptPubKey
@@ -437,7 +435,5 @@ namespace BitcoinNet
 			pubkey = pubkey.Normalize();
 			return new ECKey(pubkey.GetEncoded(true), false).GetPubKey(true);
 		}
-		
-		#endregion
 	}
 }

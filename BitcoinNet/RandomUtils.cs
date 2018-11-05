@@ -7,7 +7,8 @@ namespace BitcoinNet
 	public class UnsecureRandom : IRandom
 	{
 		Random _Rand = new Random();
-		#region IRandom Members
+
+		// IRandom Members
 
 		public void GetBytes(byte[] output)
 		{
@@ -16,9 +17,6 @@ namespace BitcoinNet
 				_Rand.NextBytes(output);
 			}
 		}
-
-		#endregion
-
 	}
 
 

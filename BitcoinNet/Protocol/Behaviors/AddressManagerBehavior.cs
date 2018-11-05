@@ -170,7 +170,7 @@ namespace BitcoinNet.Protocol.Behaviors
 			AttachedNode.StateChanged -= AttachedNode_StateChanged;
 		}
 
-		#region ICloneable Members
+		// ICloneable Members
 
 		public override object Clone()
 		{
@@ -186,7 +186,5 @@ namespace BitcoinNet.Protocol.Behaviors
 			if(Mode.HasFlag(AddressManagerBehaviorMode.Discover))
 				AddressManager.DiscoverPeers(network, parameters, PeersToDiscover);
 		}
-
-		#endregion
 	}
 }

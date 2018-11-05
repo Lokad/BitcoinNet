@@ -50,7 +50,7 @@ namespace BitcoinNet
 		}
 
 		// serialization implementation
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -78,8 +78,6 @@ namespace BitcoinNet
 		{
 			return (byte)(v ? 1 : 0);
 		}
-
-		#endregion
 
 		public PartialMerkleTree(uint256[] vTxid, bool[] vMatch)
 		{

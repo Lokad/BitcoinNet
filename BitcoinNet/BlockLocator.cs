@@ -28,13 +28,11 @@ namespace BitcoinNet
 			}
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
 			stream.ReadWrite(ref vHave);
 		}
-
-		#endregion
 	}
 }

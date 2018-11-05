@@ -16,13 +16,11 @@ namespace BitcoinNet.Protocol
 
 	public class NullMessageListener<T> : MessageListener<T>
 	{
-		#region MessageListener<T> Members
+		// MessageListener<T> Members
 
 		public void PushMessage(T message)
 		{
 		}
-
-		#endregion
 	}
 
 	public class NewThreadMessageListener<T> : MessageListener<T>
@@ -34,7 +32,8 @@ namespace BitcoinNet.Protocol
 				throw new ArgumentNullException(nameof(process));
 			_Process = process;
 		}
-		#region MessageListener<T> Members
+
+		// MessageListener<T> Members
 
 		public void PushMessage(T message)
 		{
@@ -51,8 +50,6 @@ namespace BitcoinNet.Protocol
 					}
 				});
 		}
-
-		#endregion
 	}
 
 	public class EventLoopMessageListener<T> : MessageListener<T>, IDisposable
@@ -93,17 +90,14 @@ namespace BitcoinNet.Protocol
 			}
 		}
 
-
-		#region MessageListener Members
+		// MessageListener Members
 
 		public void PushMessage(T message)
 		{
 			_MessageQueue.Add(message);
 		}
 
-		#endregion
-
-		#region IDisposable Members
+		// IDisposable Members
 
 		CancellationTokenSource cancellationSource = new CancellationTokenSource();
 		public void Dispose()
@@ -112,9 +106,6 @@ namespace BitcoinNet.Protocol
 				return;
 			cancellationSource.Cancel();
 		}
-
-		#endregion
-
 	}
 
 	public class PollMessageListener<T> : MessageListener<T>
@@ -134,13 +125,11 @@ namespace BitcoinNet.Protocol
 			return MessageQueue.Take(cancellationToken);
 		}
 
-		#region MessageListener Members
+		// MessageListener Members
 
 		public virtual void PushMessage(T message)
 		{
 			_MessageQueue.Add(message);
 		}
-
-		#endregion
 	}
 }

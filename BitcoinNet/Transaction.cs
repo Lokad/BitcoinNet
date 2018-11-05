@@ -235,7 +235,7 @@ namespace BitcoinNet
 			return scriptSig.GetSigner();
 		}
 		
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public virtual void ReadWrite(BitcoinStream stream)
 		{
@@ -243,8 +243,6 @@ namespace BitcoinNet
 			stream.ReadWrite(ref scriptSig);
 			stream.ReadWrite(ref nSequence);
 		}
-
-		#endregion
 
 		public bool IsFrom(PubKey pubKey)
 		{
@@ -363,7 +361,7 @@ namespace BitcoinNet
 			_TxOut = txOut;
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -383,8 +381,6 @@ namespace BitcoinNet
 			if (!stream.Serializing)
 				_TxOut.ScriptPubKey = new Script(cscript.ScriptBytes);
 		}
-
-		#endregion
 	}
 
 	public class ScriptCompressor : IBitcoinSerializable
@@ -483,11 +479,7 @@ namespace BitcoinNet
 			return null;
 		}
 
-
-
-
-
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -528,10 +520,6 @@ namespace BitcoinNet
 				return 32;
 			return 0;
 		}
-
-
-
-		#endregion
 	}
 
 	public class TxOut : IBitcoinSerializable, IDestination
@@ -595,7 +583,7 @@ namespace BitcoinNet
 			return 3 * minRelayTxFee.GetFee(nSize);
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public virtual void ReadWrite(BitcoinStream stream)
 		{
@@ -605,8 +593,6 @@ namespace BitcoinNet
 				_Value = new Money(value);
 			stream.ReadWrite(ref publicKey);
 		}
-
-		#endregion
 
 		public bool IsTo(IDestination destination)
 		{
@@ -1032,7 +1018,7 @@ namespace BitcoinNet
 		//Since it is impossible to serialize a transaction with 0 input without problems during deserialization with wit activated, we fit a flag in the version to workaround it
 		protected const uint NoDummyInput = (1 << 27);
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public virtual void ReadWrite(BitcoinStream stream)
 		{
@@ -1057,8 +1043,6 @@ namespace BitcoinNet
 			}
 			stream.ReadWriteStruct(ref nLockTime);
 		}
-
-		#endregion
 
 		public uint256 GetHash()
 		{

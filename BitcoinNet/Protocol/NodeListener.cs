@@ -72,14 +72,12 @@ namespace BitcoinNet.Protocol
 
 		List<Func<IncomingMessage, bool>> _Predicates = new List<Func<IncomingMessage, bool>>();
 
-		#region IDisposable Members
+		// IDisposable Members
 
 		public void Dispose()
 		{
 			if(_Subscription != null)
 				_Subscription.Dispose();
 		}
-
-		#endregion
 	}
 }

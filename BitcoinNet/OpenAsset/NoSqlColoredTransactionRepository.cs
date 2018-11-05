@@ -39,7 +39,8 @@ namespace BitcoinNet.OpenAsset
 		}
 
 		ITransactionRepository _Transactions;
-		#region IColoredTransactionRepository Members
+
+		// IColoredTransactionRepository Members
 
 		public ITransactionRepository Transactions
 		{
@@ -63,7 +64,5 @@ namespace BitcoinNet.OpenAsset
 		{
 			return _Repository.PutAsync(GetId(txId), tx);
 		}
-
-		#endregion
 	}
 }

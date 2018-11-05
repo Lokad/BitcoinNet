@@ -24,7 +24,8 @@ namespace BitcoinNet.Protocol
 				_Header = header;
 			}
 			internal BlockHeader _Header;
-			#region IBitcoinSerializable Members
+
+			// IBitcoinSerializable Members
 
 			public void ReadWrite(BitcoinStream stream)
 			{
@@ -32,8 +33,6 @@ namespace BitcoinNet.Protocol
 				VarInt txCount = new VarInt(0);
 				stream.ReadWrite(ref txCount);
 			}
-
-			#endregion
 		}
 		List<BlockHeader> headers = new List<BlockHeader>();
 

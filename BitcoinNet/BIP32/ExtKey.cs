@@ -262,7 +262,7 @@ namespace BitcoinNet
 			return new BitcoinExtKey(this, network);
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -278,8 +278,6 @@ namespace BitcoinNet
 			}
 		}
 
-		#endregion
-
 		/// <summary>
 		/// Converts the extended key to the base58 representation, as a string, within the specified network.
 		/// </summary>
@@ -288,7 +286,7 @@ namespace BitcoinNet
 			return new BitcoinExtKey(this, network).ToString();
 		}
 
-		#region IDestination Members
+		// IDestination Members
 
 		/// <summary>
 		/// Gets the script of the hash of the public key corresponding to the private key.
@@ -300,8 +298,6 @@ namespace BitcoinNet
 				return PrivateKey.PubKey.Hash.ScriptPubKey;
 			}
 		}
-
-		#endregion
 
 		/// <summary>
 		/// Gets whether or not this extended key is a hardened child.

@@ -53,7 +53,8 @@ namespace BitcoinNet.OpenAsset
 				a = -a;
 			return a;
 		}
-		#region ctor
+
+		// ctor
 
 		public AssetMoney(AssetId assetId)
 		{
@@ -117,8 +118,6 @@ namespace BitcoinNet.OpenAsset
 			}
 		}
 		
-		#endregion
-
 		private static int Pow10(int divisibility)
 		{
 			if(divisibility < 0)
@@ -165,7 +164,7 @@ namespace BitcoinNet.OpenAsset
 			return (decimal)Quantity / (int)dec;
 		}
 
-		#region IEquatable<AssetMoney> Members
+		// IEquatable<AssetMoney> Members
 
 		public bool Equals(AssetMoney other)
 		{
@@ -189,9 +188,7 @@ namespace BitcoinNet.OpenAsset
 			return _Quantity.CompareTo(other.Quantity);
 		}
 
-		#endregion
-
-		#region IComparable Members
+		// IComparable Members
 
 		public int CompareTo(object obj)
 		{
@@ -203,8 +200,6 @@ namespace BitcoinNet.OpenAsset
 
 			return _Quantity.CompareTo((long)obj);
 		}
-
-		#endregion
 
 		public static AssetMoney operator -(AssetMoney left, AssetMoney right)
 		{
@@ -350,8 +345,7 @@ namespace BitcoinNet.OpenAsset
 			return b;
 		}
 
-		#region IMoney Members
-
+		// IMoney Members
 
 		IMoney IMoney.Add(IMoney money)
 		{
@@ -395,16 +389,11 @@ namespace BitcoinNet.OpenAsset
 			return assetMoney.Id == Id;
 		}
 
-		#endregion
-
-		#region IMoney Members
-
+		// IMoney Members
 
 		IEnumerable<IMoney> IMoney.Split(int parts)
 		{
 			return Split(parts);
 		}
-
-		#endregion
 	}
 }

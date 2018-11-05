@@ -13,7 +13,7 @@ namespace BitcoinNet.Payment
 	{
 		public class WindowsHashChecker : ISignatureChecker
 		{
-			#region IHashChecker Members
+			// IHashChecker Members
 
 			public bool VerifySignature(byte[] certificate, byte[] hash, string hashOID, byte[] signature)
 			{
@@ -26,12 +26,10 @@ namespace BitcoinNet.Payment
 					return false;
 				}
 			}
-
-#endregion
 		}
 		public class WindowsSigner : ISigner
 		{
-#region ISigner Members
+			// ISigner Members
 
 			public byte[] Sign(byte[] certificate, byte[] hash, string hashOID)
 			{
@@ -56,9 +54,7 @@ namespace BitcoinNet.Payment
 				return new X509Certificate2(certificate.Export(X509ContentType.Cert)).RawData;
 			}
 
-			#endregion
-
-			#region ISigner Members
+			// ISigner Members
 
 			public byte[] Sign(object certificate, byte[] hash, string hashOID)
 			{
@@ -77,8 +73,6 @@ namespace BitcoinNet.Payment
 					return StripPrivateKey((X509Certificate2)certificate);
 				throw new NotSupportedException("Certificate object's type is not supported");
 			}
-
-#endregion
 		}
 		public class WindowsChainChecker : IChainChecker
 		{
@@ -99,7 +93,7 @@ namespace BitcoinNet.Payment
 				set;
 			}
 
-#region IChainChecker Members
+			// IChainChecker Members
 
 			public bool VerifyChain(byte[] certificate, byte[][] additionalCertificates)
 			{
@@ -116,8 +110,6 @@ namespace BitcoinNet.Payment
 					chain.ChainPolicy.ExtraStore.Add(additional);
 				return chain.Build(certificate);
 			}
-
-#endregion
 		}
 
 
@@ -161,7 +153,8 @@ namespace BitcoinNet.Payment
 			_VerificationFlags = verificationFlags;
 			_RevocationMode = revocationMode;
 		}
-#region ICertificateServiceProvider Members
+
+		// ICertificateServiceProvider Members
 
 		public IChainChecker GetChainChecker()
 		{
@@ -181,7 +174,5 @@ namespace BitcoinNet.Payment
 		{
 			return new WindowsSigner();
 		}
-
-#endregion
 	}
 }

@@ -95,7 +95,7 @@ namespace BitcoinNet.Protocol
 			}
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
@@ -137,8 +137,6 @@ namespace BitcoinNet.Protocol
 			ReadWritePayloadFields(seria);
 			payload = new VarString(ms.ToArray());
 		}
-
-		#endregion
 
 		// FIXME: why do we need version parameter? 
 		// it shouldn't be called "version" because the it a field with the same name 

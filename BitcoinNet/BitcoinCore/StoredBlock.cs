@@ -112,7 +112,7 @@ namespace BitcoinNet.BitcoinCore
 			}
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -128,8 +128,6 @@ namespace BitcoinNet.BitcoinCore
 		}
 
 		int _Hash;
-
-		#endregion
 
         public bool Equals(DiskBlockPos other)
         {
@@ -221,9 +219,7 @@ namespace BitcoinNet.BitcoinCore
 		{
 		}
 
-
-		#region IBitcoinSerializable Members
-
+		// IBitcoinSerializable Members
 
 		static byte[] _Unused = new byte[1024 * 4];
 		protected override void ReadWriteItem(BitcoinStream stream, ref Block item)
@@ -252,9 +248,6 @@ namespace BitcoinNet.BitcoinCore
 				}
 			}
 		}
-
-
-		#endregion
 
 #pragma warning disable CS0612 // Type or member is obsolete
 		public static IEnumerable<StoredBlock> EnumerateFile(string file, uint fileIndex = 0, DiskBlockPosRange range = null)

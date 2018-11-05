@@ -20,7 +20,7 @@ namespace BitcoinNet.Protocol
 	{
 		internal class AddressInfo : IBitcoinSerializable
 		{
-			#region IBitcoinSerializable Members
+			// IBitcoinSerializable Members
 
 			public void ReadWrite(BitcoinStream stream)
 			{
@@ -132,8 +132,6 @@ namespace BitcoinNet.Protocol
 					_Address = value;
 				}
 			}
-
-			#endregion
 
 			internal int GetNewBucket(uint256 nKey)
 			{
@@ -378,7 +376,7 @@ namespace BitcoinNet.Protocol
 		Dictionary<IPAddress, int> mapAddr = new Dictionary<IPAddress, int>();
 		private int nIdCount;
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -536,8 +534,6 @@ namespace BitcoinNet.Protocol
 				Check();
 			}
 		}
-
-		#endregion
 
 		//! Add a single address.
 		public bool Add(NetworkAddress addr, IPAddress source)

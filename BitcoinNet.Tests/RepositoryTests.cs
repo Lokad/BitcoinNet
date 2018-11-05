@@ -36,7 +36,8 @@ namespace BitcoinNet.Tests
 			{
 				_Data = data;
 			}
-			#region IBitcoinSerializable Members
+
+			// IBitcoinSerializable Members
 
 			public void ReadWrite(BitcoinStream stream)
 			{
@@ -51,8 +52,6 @@ namespace BitcoinNet.Tests
 					return _Data;
 				}
 			}
-
-			#endregion
 		}
 
 		[Fact]

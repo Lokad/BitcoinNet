@@ -75,15 +75,12 @@ namespace BitcoinNet
 			}
 		}
 
-
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
 			stream.ReadWrite(ref _value);
 		}
-
-		#endregion
 
 		public override string ToString()
 		{

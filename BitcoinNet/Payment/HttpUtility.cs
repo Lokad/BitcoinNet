@@ -45,8 +45,6 @@ namespace System.Web.BitcoinNet
 
 	public static class HttpUtility
 	{
-
-		#region Methods
 		public static string UrlDecode(string str)
 		{
 			return UrlDecode(str, Encoding.UTF8);
@@ -198,7 +196,5 @@ namespace System.Web.BitcoinNet
 
 			return HttpEncoder.UrlEncodeToBytes(bytes, offset, count);
 		}
-
-		#endregion // Methods
 	}
 }

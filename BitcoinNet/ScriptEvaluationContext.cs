@@ -2055,7 +2055,7 @@ namespace BitcoinNet
 			return new Enumerator(this);
 		}
 
-		#region Reverse order enumerator (for Stacks)
+		// Reverse order enumerator (for Stacks)
 
 		/// <summary>
 		/// Implements a reverse enumerator for the ContextStack
@@ -2105,7 +2105,6 @@ namespace BitcoinNet
 			{
 			}
 		}
-		#endregion
 
 		internal void Clear()
 		{

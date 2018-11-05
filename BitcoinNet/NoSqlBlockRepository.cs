@@ -21,14 +21,12 @@ namespace BitcoinNet
 
 		}
 
-		#region IBlockRepository Members
+		// IBlockRepository Members
 
 		public Task<Block> GetBlockAsync(uint256 blockId)
 		{
 			return _Repository.GetAsync<Block>(blockId.ToString());
 		}
-
-		#endregion
 
 		public Task PutAsync(Block block)
 		{

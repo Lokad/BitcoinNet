@@ -78,8 +78,7 @@ namespace BitcoinNet.BitcoinCore
 			}
 		}
 
-
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
@@ -105,8 +104,6 @@ namespace BitcoinNet.BitcoinCore
 				txout = compressor.TxOut;
 			}
 		}
-
-		#endregion
 	}
 	public class TxUndo : IBitcoinSerializable
 	{
@@ -120,14 +117,12 @@ namespace BitcoinNet.BitcoinCore
 			}
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
 			stream.ReadWrite(ref vprevout);
 		}
-
-		#endregion
 	}
 	public class BlockUndo : IBitcoinSerializable
 	{
@@ -140,17 +135,12 @@ namespace BitcoinNet.BitcoinCore
 			}
 		}
 
-
-
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
 			stream.ReadWrite(ref vtxundo);
 		}
-
-		#endregion
-
 
 		public uint256 CalculatedChecksum
 		{

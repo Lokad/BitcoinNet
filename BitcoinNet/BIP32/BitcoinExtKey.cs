@@ -11,15 +11,12 @@
 		{
 		}
 
-
-		#region IDestination Members
+		// IDestination Members
 
 		public abstract Script ScriptPubKey
 		{
 			get;
 		}
-
-		#endregion
 	}
 
 	/// <summary>
@@ -103,7 +100,7 @@
 			return ExtKey.Neuter().GetWif(Network);
 		}
 
-		#region ISecret Members
+		// ISecret Members
 
 		/// <summary>
 		/// Gets the private key of the extended key of this Base58 item.
@@ -115,8 +112,6 @@
 				return ExtKey.PrivateKey;
 			}
 		}
-
-		#endregion
 
 		/// <summary>
 		/// Implicit cast from BitcoinExtKey to ExtKey.

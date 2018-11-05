@@ -209,7 +209,6 @@ namespace BitcoinNet.RPC
 			}
 		}
 
-#region Private methods
 		private WebRequest BuildHttpRequest(string resource, RestResponseFormat format, params string[] parms)
 		{
 			var hasParams = parms != null && parms.Length > 0;
@@ -251,7 +250,6 @@ namespace BitcoinNet.RPC
 			}
 			return response;
 		}
-#endregion
 	}
 
 	public class RestApiException : Exception

@@ -59,15 +59,13 @@ namespace BitcoinNet.Protocol
 			}
 		}
 
-		#region IBitcoinSerializable Members
+		// IBitcoinSerializable Members
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
 			stream.ReadWrite(ref type);
 			stream.ReadWrite(ref hash);
 		}
-
-		#endregion
 
 		public override string ToString()
 		{

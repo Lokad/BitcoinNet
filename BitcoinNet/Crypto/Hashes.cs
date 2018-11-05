@@ -13,7 +13,8 @@ namespace BitcoinNet.Crypto
 {
 	public static class Hashes
 	{
-		#region Hash256
+		// Hash256
+
 		public static uint256 Hash256(byte[] data)
 		{
 			return Hash256(data, 0, data.Length);
@@ -28,7 +29,6 @@ namespace BitcoinNet.Crypto
 		{
 			return new uint256(Hash256RawBytes(data, offset, count));
 		}
-		#endregion
 
 		public static byte[] Hash256RawBytes(byte[] data, int offset, int count)
 		{
@@ -39,7 +39,8 @@ namespace BitcoinNet.Crypto
 			}
 		}
 
-		#region Hash160
+		// Hash160
+
 		public static uint160 Hash160(byte[] data)
 		{
 			return Hash160(data, 0, data.Length);
@@ -54,9 +55,9 @@ namespace BitcoinNet.Crypto
 		{
 			return new uint160(RIPEMD160(SHA256(data, offset, count)));
 		}
-		#endregion
 
-		#region RIPEMD160
+		// RIPEMD160
+
 		private static byte[] RIPEMD160(byte[] data)
 		{
 			return RIPEMD160(data, 0, data.Length);
@@ -75,8 +76,6 @@ namespace BitcoinNet.Crypto
 			ripemd.DoFinal(rv, 0);
 			return rv;
 		}
-
-		#endregion
 
 		internal class SipHasher
 		{
