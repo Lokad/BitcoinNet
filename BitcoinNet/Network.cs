@@ -70,7 +70,6 @@ namespace BitcoinNet
 		PASSPHRASE_CODE,
 		CONFIRMATION_CODE,
 		ASSET_ID,
-		COLORED_ADDRESS,
 		MAX_BASE58_TYPES,
 	};
 	
@@ -947,7 +946,6 @@ namespace BitcoinNet
 			base58Prefixes[(int)Base58Type.PASSPHRASE_CODE] = new byte[] { 0x2C, 0xE9, 0xB3, 0xE1, 0xFF, 0x39, 0xE2 };
 			base58Prefixes[(int)Base58Type.CONFIRMATION_CODE] = new byte[] { 0x64, 0x3B, 0xF6, 0xA8, 0x9A };
 			base58Prefixes[(int)Base58Type.ASSET_ID] = new byte[] { 23 };
-			base58Prefixes[(int)Base58Type.COLORED_ADDRESS] = new byte[] { 0x13 };
 
 			vFixedSeeds.AddRange(ToSeed(pnSeed6_main));
 			//// Convert the pnSeeds array into usable address objects.
@@ -1027,7 +1025,6 @@ namespace BitcoinNet
 			base58Prefixes[(int)Base58Type.EXT_SECRET_KEY] = new byte[] { (0x04), (0x35), (0x83), (0x94) };
 
 			base58Prefixes[(int)Base58Type.ASSET_ID] = new byte[] { 115 };
-			base58Prefixes[(int)Base58Type.COLORED_ADDRESS] = new byte[] { 0x13 };
 		}
 
 		private void InitReg()
@@ -1077,8 +1074,6 @@ namespace BitcoinNet
 			base58Prefixes[(int)Base58Type.SECRET_KEY] = new byte[] { (239) };
 			base58Prefixes[(int)Base58Type.EXT_PUBLIC_KEY] = new byte[] { (0x04), (0x35), (0x87), (0xCF) };
 			base58Prefixes[(int)Base58Type.EXT_SECRET_KEY] = new byte[] { (0x04), (0x35), (0x83), (0x94) };
-
-			base58Prefixes[(int)Base58Type.COLORED_ADDRESS] = new byte[] { 0x13 };
 		}
 
 		private Block CreateGenesisBlock(uint nTime, uint nNonce, uint nBits, int nVersion, Money genesisReward)
@@ -1178,16 +1173,7 @@ namespace BitcoinNet
 				{
 					if(expectedType != null && expectedType.Value != type.Value)
 						continue;
-					if(type.Value == Base58Type.COLORED_ADDRESS)
-					{
-						var raw = Encoders.Base58Check.DecodeData(base58);
-						var version = network.GetVersionBytes(type.Value, false);
-						if(version == null)
-							continue;
-						raw = raw.Skip(version.Length).ToArray();
-						base58 = Encoders.Base58Check.EncodeData(raw);
-						return GetNetworkFromBase58Data(base58, null);
-					}
+
 					return network;
 				}
 			}
@@ -1349,20 +1335,6 @@ namespace BitcoinNet
 				var type = network.GetBase58Type(base58);
 				if (type.HasValue)
 				{
-					if (type.Value == Base58Type.COLORED_ADDRESS)
-					{
-						var wrapped = BitcoinColoredAddress.GetWrappedBase58(base58, network);
-						var wrappedType = network.GetBase58Type(wrapped);
-						if (wrappedType == null)
-							continue;
-						try
-						{
-							var inner = network.CreateBase58Data(wrappedType.Value, wrapped);
-							if (inner.Network != network)
-								continue;
-						}
-						catch (FormatException) { }
-					}
 					IBase58Data data = null;
 					try
 					{
@@ -1446,8 +1418,6 @@ namespace BitcoinNet
 				return CreatePassphraseCode(base58);
 			if(type == Base58Type.ASSET_ID)
 				return CreateAssetId(base58);
-			if(type == Base58Type.COLORED_ADDRESS)
-				return CreateColoredAddress(base58);
 			throw new NotSupportedException("Invalid Base58Data type : " + type.ToString());
 		}
 
@@ -1460,11 +1430,6 @@ namespace BitcoinNet
 		//{
 		//	return new BitcoinWitPubKeyAddress(base58, this);
 		//}
-
-		private BitcoinColoredAddress CreateColoredAddress(string base58)
-		{
-			return new BitcoinColoredAddress(base58, this);
-		}
 
 		public BitcoinNet.OpenAsset.BitcoinAssetId CreateAssetId(string base58)
 		{

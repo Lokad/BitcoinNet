@@ -29,24 +29,10 @@ namespace BitcoinNet.JsonConverters
                 {
                     Value = ((Coin)coin).Amount;
                 }
-                if (coin is ColoredCoin)
-                {
-                    var cc = (ColoredCoin)coin;
-                    AssetId = cc.AssetId.GetWif(network);
-                    Quantity = cc.Amount.Quantity;
-                    Value = cc.Bearer.Amount;
-                    var scc = cc.Bearer as ScriptCoin;
-                    if (scc != null)
-                    {
-                        RedeemScript = scc.Redeem;
-                    }
-                }
             }
             public ICoin ToCoin()
             {
                 var coin = RedeemScript == null ? new Coin(new OutPoint(TransactionId, Index), new TxOut(Value, ScriptPubKey)) : new ScriptCoin(new OutPoint(TransactionId, Index), new TxOut(Value, ScriptPubKey), RedeemScript);
-                if (AssetId != null)
-                    return coin.ToColoredCoin(new AssetMoney(AssetId, Quantity));
                 return coin;
             }
 

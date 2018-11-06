@@ -363,50 +363,6 @@ namespace BitcoinNet
 				}
 			}
 
-			ColorMarker _Marker;
-
-			public ColorMarker GetColorMarker(bool issuance)
-			{
-				if(_Marker == null)
-					_Marker = new ColorMarker();
-				if(!issuance)
-					EnsureMarkerInserted();
-				return _Marker;
-			}
-
-			private TxOut EnsureMarkerInserted()
-			{
-				uint position;
-				var dummy = Transaction.Inputs.Add(new OutPoint(new uint256(1), 0)); //Since a transaction without input will be considered without marker, insert a dummy
-				try
-				{
-					if(ColorMarker.Get(Transaction, out position) != null)
-						return Transaction.Outputs[position];
-				}
-				finally
-				{
-					Transaction.Inputs.Remove(dummy);
-				}
-				var txout = Transaction.Outputs.Add(scriptPubKey: new ColorMarker().GetScript());
-				txout.Value = Money.Zero;
-				return txout;
-			}
-
-			public void Finish()
-			{
-				if(_Marker != null)
-				{
-					var txout = EnsureMarkerInserted();
-					txout.ScriptPubKey = _Marker.GetScript();
-				}
-			}
-
-			public IssuanceCoin IssuanceCoin
-			{
-				get;
-				set;
-			}
-
 			public IMoney ChangeAmount
 			{
 				get;
@@ -422,7 +378,6 @@ namespace BitcoinNet
 
 			public void RestoreMemento(TransactionBuildingContext memento)
 			{
-				_Marker = memento._Marker == null ? null : new ColorMarker(memento._Marker.GetScript());
 				Transaction = memento.Transaction.Clone();
 				AdditionalFees = memento.AdditionalFees;
 			}
@@ -780,32 +735,8 @@ namespace BitcoinNet
 			Money coinAmount = amount as Money;
 			if(coinAmount != null)
 				return Send(scriptPubKey, coinAmount);
-			AssetMoney assetAmount = amount as AssetMoney;
-			if(assetAmount != null)
-				return SendAsset(scriptPubKey, assetAmount);
+
 			throw new NotSupportedException("Type of Money not supported");
-		}
-
-		/// <summary>
-		/// Send assets (Open Asset) to a destination
-		/// </summary>
-		/// <param name="destination">The destination</param>
-		/// <param name="asset">The asset and amount</param>
-		/// <returns></returns>
-		public TransactionBuilder SendAsset(IDestination destination, AssetMoney asset)
-		{
-			return SendAsset(destination.ScriptPubKey, asset);
-		}
-
-		/// <summary>
-		/// Send assets (Open Asset) to a destination
-		/// </summary>
-		/// <param name="destination">The destination</param>
-		/// <param name="asset">The asset and amount</param>
-		/// <returns></returns>
-		public TransactionBuilder SendAsset(IDestination destination, AssetId assetId, ulong quantity)
-		{
-			return SendAsset(destination, new AssetMoney(assetId, quantity));
 		}
 
 		[Obsolete("Transaction builder is automatically shuffled")]
@@ -823,49 +754,6 @@ namespace BitcoinNet
 				foreach (var group in _BuilderGroups)
 					group.Shuffle();
 			}
-		}
-
-		IMoney SetColoredChange(TransactionBuildingContext ctx)
-		{
-			var changeAmount = (AssetMoney)ctx.ChangeAmount;
-			if(changeAmount.Quantity == 0)
-				return changeAmount;
-			var marker = ctx.GetColorMarker(false);
-			var script = ctx.Group.ChangeScript[(int)ChangeType.Colored];
-			var txout = ctx.Transaction.Outputs.Add(GetDust(script), script);
-			marker.SetQuantity(ctx.Transaction.Outputs.Count - 2, changeAmount.Quantity);
-			ctx.AdditionalFees += txout.Value;
-			return changeAmount;
-		}
-
-		public TransactionBuilder SendAsset(Script scriptPubKey, AssetId assetId, ulong assetQuantity)
-		{
-			return SendAsset(scriptPubKey, new AssetMoney(assetId, assetQuantity));
-		}
-
-		public TransactionBuilder SendAsset(Script scriptPubKey, AssetMoney asset)
-		{
-			if(asset.Quantity < 0)
-				throw new ArgumentOutOfRangeException("asset", "Asset amount can't be negative");
-			if(asset.Quantity == 0)
-				return this;
-			AssertOpReturn("Colored Coin");
-			var builders = CurrentGroup.BuildersByAsset.TryGet(asset.Id);
-			if(builders == null)
-			{
-				builders = new List<Builder>();
-				CurrentGroup.BuildersByAsset.Add(asset.Id, builders);
-				builders.Add(SetColoredChange);
-			}
-			builders.Add(ctx =>
-			{
-				var marker = ctx.GetColorMarker(false);
-				var txout = ctx.Transaction.Outputs.Add(GetDust(scriptPubKey), scriptPubKey);
-				marker.SetQuantity(ctx.Transaction.Outputs.Count - 2, asset.Quantity);
-				ctx.AdditionalFees += txout.Value;
-				return asset;
-			});
-			return this;
 		}
 
 		internal Money GetDust()
@@ -910,47 +798,7 @@ namespace BitcoinNet
 			}
 		}
 
-		public TransactionBuilder IssueAsset(IDestination destination, AssetMoney asset)
-		{
-			return IssueAsset(destination.ScriptPubKey, asset);
-		}
-
 		AssetId _IssuedAsset;
-
-		public TransactionBuilder IssueAsset(Script scriptPubKey, AssetMoney asset)
-		{
-			AssertOpReturn("Colored Coin");
-			if(_IssuedAsset == null)
-				_IssuedAsset = asset.Id;
-			else if(_IssuedAsset != asset.Id)
-				throw new InvalidOperationException("You can issue only one asset type in a transaction");
-
-			CurrentGroup.IssuanceBuilders.Add(ctx =>
-			{
-				var marker = ctx.GetColorMarker(true);
-				if(ctx.IssuanceCoin == null)
-				{
-					var issuance = ctx.Group.Coins.Values.OfType<IssuanceCoin>().Where(i => i.AssetId == asset.Id).FirstOrDefault();
-					if(issuance == null)
-						throw new InvalidOperationException("No issuance coin for emitting asset found");
-					ctx.IssuanceCoin = issuance;
-					var input = ctx.Transaction.Inputs.CreateNewTxIn();
-					input.PrevOut = issuance.Outpoint;
-					ctx.Transaction.Inputs.Insert(0, input);
-					ctx.AdditionalFees -= issuance.Bearer.Amount;
-					if(issuance.DefinitionUrl != null)
-					{
-						marker.SetMetadataUrl(issuance.DefinitionUrl);
-					}
-				}
-
-				ctx.Transaction.Outputs.Insert(0, CreateTxOut(GetDust(scriptPubKey), scriptPubKey));
-				marker.Quantities = new[] { checked((ulong)asset.Quantity) }.Concat(marker.Quantities).ToArray();
-				ctx.AdditionalFees += ctx.Transaction.Outputs[0].Value;
-				return asset;
-			});
-			return this;
-		}
 
 		public TransactionBuilder SendFees(Money fees)
 		{
@@ -1116,13 +964,13 @@ namespace BitcoinNet
 				var buildersByAsset = group.BuildersByAsset.ToList();
 				foreach(var builders in buildersByAsset)
 				{
-					var coins = group.Coins.Values.OfType<ColoredCoin>().Where(c => c.Amount.Id == builders.Key);
+					var coins = new ICoin[0]; // TODO (Osman): Temporary hack until OpenAsset removal
 
 					ctx.Dust = new AssetMoney(builders.Key);
 					ctx.CoverOnly = null;
 					ctx.ChangeAmount = new AssetMoney(builders.Key);
-					var btcSpent = BuildTransaction(ctx, group, builders.Value, coins, new AssetMoney(builders.Key))
-						.OfType<IColoredCoin>().Select(c => c.Bearer.Amount).Sum();
+					BuildTransaction(ctx, group, builders.Value, coins, new AssetMoney(builders.Key));
+					var btcSpent = 0; // TODO (Osman): Temporary hack until OpenAsset removal
 					ctx.AdditionalFees -= btcSpent;
 				}
 
@@ -1133,7 +981,6 @@ namespace BitcoinNet
 				ctx.ChangeType = ChangeType.Uncolored;
 				BuildTransaction(ctx, group, group.Builders, group.Coins.Values.OfType<Coin>().Where(IsEconomical), Money.Zero);
 			}
-			ctx.Finish();
 
 			if(sign)
 			{
@@ -1294,8 +1141,6 @@ namespace BitcoinNet
 		public ICoin FindSignableCoin(IndexedTxIn txIn)
 		{
 			var coin = FindCoin(txIn.PrevOut);
-			if(coin is IColoredCoin)
-				coin = ((IColoredCoin)coin).Bearer;
 			if(coin == null || coin is ScriptCoin)
 				return coin;
 
@@ -1508,9 +1353,6 @@ namespace BitcoinNet
 
 		private void EstimateScriptSigSize(ICoin coin, ref int baseSize)
 		{
-			if(coin is IColoredCoin)
-				coin = ((IColoredCoin)coin).Bearer;
-
 			int p2shPushRedeemSize = 0;
 			if(coin is ScriptCoin)
 			{
@@ -1848,7 +1690,7 @@ namespace BitcoinNet
 
 				Money amount = null;
 				if(coin != null)
-					amount = coin is IColoredCoin ? ((IColoredCoin)coin).Bearer.Amount : ((Coin)coin).Amount;
+					amount = ((Coin)coin).Amount;
 				var result = Script.CombineSignatures(
 									scriptPubKey,
 									new TransactionChecker(tx, i, amount),

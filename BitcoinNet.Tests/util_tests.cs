@@ -624,23 +624,12 @@ namespace BitcoinNet.Tests
 		{
 			var address = new
 			{
-				Base58 = "bWyXRVD4J3Y8bG8VQ8aQmnnztdMNzExRdaw",
-				ExpectedType = typeof(BitcoinColoredAddress),
-				Network = Network.RegTest
-			};
-
-			var result = Network.Parse(address.Base58, address.Network);
-			Assert.IsType<BitcoinColoredAddress>(result);
-			Assert.True(result.Network == Network.RegTest);
-
-			address = new
-			{
 				Base58 = new ExtKey().Neuter().ToString(Network.RegTest),
 				ExpectedType = typeof(BitcoinExtPubKey),
 				Network = Network.RegTest
 			};
 
-			result = Network.Parse(address.Base58, address.Network);
+			var result = Network.Parse(address.Base58, address.Network);
 			Assert.IsType<BitcoinExtPubKey>(result);
 			Assert.True(result.Network == Network.RegTest);
 
@@ -658,12 +647,6 @@ namespace BitcoinNet.Tests
 		{
 			var tests = new[]
 				{
-					new
-					{
-						Base58 = "bWqaKUZETiECYgmJNbNZUoanBxnAzoVjCNx",
-						ExpectedType = typeof(BitcoinColoredAddress),
-						Network = Network.TestNet
-					},
 					new
 					{
 						Base58 = "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem",
@@ -740,12 +723,6 @@ namespace BitcoinNet.Tests
 					{
 						Base58 = "xpub661MyMwAqRbcEhHavVcryjNF2uA5woK6JCNRNJB8Z3dxPU8VNBd9E8GP7fusw2bhgYe7BXt6izr5iUaYo483919jjdtfEpG8j97djnEgJqo",
 						ExpectedType = typeof(BitcoinExtPubKey),
-						Network = Network.Main
-					},
-					new
-					{
-						Base58 = "akB4NBW9UuCmHuepksob6yfZs6naHtRCPNy",
-						ExpectedType = typeof(BitcoinColoredAddress),
 						Network = Network.Main
 					}
 				};
