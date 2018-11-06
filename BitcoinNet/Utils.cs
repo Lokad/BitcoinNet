@@ -40,20 +40,11 @@ namespace BitcoinNet
 			if(obj is IBase58Data)
 			{
 				var b58 = (IBase58Data)obj;
-				if(b58.Type != Base58Type.COLORED_ADDRESS)
-				{
 
-					byte[] version = network.GetVersionBytes(b58.Type, true);
-					var inner = Encoders.Base58Check.DecodeData(b58.ToString()).Skip(version.Length).ToArray();
-					var newBase58 = Encoders.Base58Check.EncodeData(version.Concat(inner).ToArray());
-					return Network.Parse<T>(newBase58, network);
-				}
-				else
-				{
-					var colored = BitcoinColoredAddress.GetWrappedBase58(obj.ToString(), obj.Network);
-					var address = Network.Parse<BitcoinAddress>(colored, obj.Network).ToNetwork(network);
-					return (T)(object)address.ToColoredAddress();
-				}
+				byte[] version = network.GetVersionBytes(b58.Type, true);
+				var inner = Encoders.Base58Check.DecodeData(b58.ToString()).Skip(version.Length).ToArray();
+				var newBase58 = Encoders.Base58Check.EncodeData(version.Concat(inner).ToArray());
+				return Network.Parse<T>(newBase58, network);
 			}			
 			else
 				throw new NotSupportedException();

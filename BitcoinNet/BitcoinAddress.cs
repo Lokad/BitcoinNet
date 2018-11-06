@@ -271,12 +271,6 @@ namespace BitcoinNet
 			return new BitcoinScriptAddress(this.ScriptPubKey.Hash, Network);
 		}
 
-		public BitcoinColoredAddress ToColoredAddress()
-		{
-			return new BitcoinColoredAddress(this);
-		}
-
-
 		private readonly Network _Network;
 		public Network Network
 		{
