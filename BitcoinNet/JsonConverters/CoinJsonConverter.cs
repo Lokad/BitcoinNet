@@ -1,5 +1,4 @@
 ﻿using BitcoinNet;
-using BitcoinNet.OpenAsset;
 using Newtonsoft.Json;
 using System;
 using System.Reflection;
@@ -63,12 +62,7 @@ namespace BitcoinNet.JsonConverters
                 get;
                 set;
             }
-            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public BitcoinAssetId AssetId
-            {
-                get;
-                set;
-            }
+
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
             public long Quantity
             {

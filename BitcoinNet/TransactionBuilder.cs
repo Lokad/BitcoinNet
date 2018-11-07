@@ -1,7 +1,6 @@
 ﻿using BitcoinNet.BuilderExtensions;
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
-using BitcoinNet.OpenAsset;
 using BitcoinNet.Policy;
 using System;
 using System.Collections.Generic;
@@ -427,15 +426,10 @@ namespace BitcoinNet
 			}
 			internal List<Builder> Builders = new List<Builder>();
 			internal Dictionary<OutPoint, ICoin> Coins = new Dictionary<OutPoint, ICoin>();
-			internal List<Builder> IssuanceBuilders = new List<Builder>();
-			internal Dictionary<AssetId, List<Builder>> BuildersByAsset = new Dictionary<AssetId, List<Builder>>();
 			internal Script[] ChangeScript = new Script[3];
 			internal void Shuffle()
 			{
 				Shuffle(Builders);
-				foreach(var builders in BuildersByAsset)
-					Shuffle(builders.Value);
-				Shuffle(IssuanceBuilders);
 			}
 			private void Shuffle(List<Builder> builders)
 			{
@@ -798,8 +792,6 @@ namespace BitcoinNet
 			}
 		}
 
-		AssetId _IssuedAsset;
-
 		public TransactionBuilder SendFees(Money fees)
 		{
 			if(fees == null)
@@ -957,22 +949,8 @@ namespace BitcoinNet
 				ctx.AdditionalBuilders.Clear();
 				ctx.AdditionalFees = Money.Zero;
 
+				// TODO (Osman): Revisit following lines which are remainings of OpenAsset
 				ctx.ChangeType = ChangeType.Colored;
-				foreach(var builder in group.IssuanceBuilders)
-					builder(ctx);
-
-				var buildersByAsset = group.BuildersByAsset.ToList();
-				foreach(var builders in buildersByAsset)
-				{
-					var coins = new ICoin[0]; // TODO (Osman): Temporary hack until OpenAsset removal
-
-					ctx.Dust = new AssetMoney(builders.Key);
-					ctx.CoverOnly = null;
-					ctx.ChangeAmount = new AssetMoney(builders.Key);
-					BuildTransaction(ctx, group, builders.Value, coins, new AssetMoney(builders.Key));
-					var btcSpent = 0; // TODO (Osman): Temporary hack until OpenAsset removal
-					ctx.AdditionalFees -= btcSpent;
-				}
 
 				ctx.AdditionalBuilders.Add(_ => _.AdditionalFees);
 				ctx.Dust = GetDust();
@@ -1006,7 +984,6 @@ namespace BitcoinNet
 			IEnumerable<ICoin> coins,
 			IMoney zero)
 		{
-			var hasColoredCoins = _BuilderGroups.Any(g => g.BuildersByAsset.Count != 0 || g.IssuanceBuilders.Count != 0);
 			var originalCtx = ctx.CreateMemento();
 			var fees = _TotalFee + ctx.AdditionalFees;
 
@@ -1089,7 +1066,7 @@ namespace BitcoinNet
 					ctx.NonFinalSequenceSet = true;
 				}
 			}
-			if(MergeOutputs && !hasColoredCoins)
+			if(MergeOutputs)
 			{
 				var collapsedOutputs = ctx.Transaction.Outputs
 							   .GroupBy(o => o.ScriptPubKey)

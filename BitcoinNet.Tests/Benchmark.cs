@@ -1,6 +1,5 @@
 ﻿using BitcoinNet.BitcoinCore;
 using BitcoinNet.Crypto;
-using BitcoinNet.OpenAsset;
 using BitcoinNet.Protocol;
 using System;
 using System.Collections.Generic;

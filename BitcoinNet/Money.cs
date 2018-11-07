@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using BitcoinNet.OpenAsset;
 
 namespace BitcoinNet
 {
@@ -33,28 +32,6 @@ namespace BitcoinNet
 				result = result.Add(money);
 			}
 			return result;
-		}
-
-
-		public static AssetMoney Sum(this IEnumerable<AssetMoney> moneys, AssetId assetId)
-		{
-			if(moneys == null)
-				throw new ArgumentNullException(nameof(moneys));
-			if(assetId == null)
-				throw new ArgumentNullException(nameof(assetId));
-			long result = 0;
-			AssetId id = null;
-			foreach(var money in moneys)
-			{
-				result = checked(result + money.Quantity);
-				if(id == null)
-					id = money.Id;
-				else if(id != money.Id)
-					throw new ArgumentException("Impossible to add AssetMoney with different asset ids", "moneys");
-			}
-			if(id == null)
-				return new AssetMoney(assetId);
-			return new AssetMoney(id, result);
 		}
 	}
 
@@ -196,16 +173,12 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Get the Money corresponding to the input assetId
+		/// Get the amount of Money
 		/// </summary>
-		/// <param name="assetId">The asset id, if null, will assume bitcoin amount</param>
-		/// <returns>Never returns null, eithers the AssetMoney or Money if assetId is null</returns>
-		public IMoney GetAmount(AssetId assetId = null)
+		/// <returns>The amount of Money</returns>
+		public IMoney GetAmount()
 		{
-			if(assetId == null)
-				return this.OfType<Money>().FirstOrDefault() ?? Money.Zero;
-			else
-				return this.OfType<AssetMoney>().Where(a => a.Id == assetId).FirstOrDefault() ?? new AssetMoney(assetId, 0);
+			return this.OfType<Money>().FirstOrDefault() ?? Money.Zero;
 		}
 
 		public override string ToString()
