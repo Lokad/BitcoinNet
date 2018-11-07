@@ -1,7 +1,6 @@
 ﻿using BitcoinNet.BitcoinCore;
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
-using BitcoinNet.OpenAsset;
 using BitcoinNet.Protocol;
 using BitcoinNet.Protocol.Behaviors;
 using BitcoinNet.RPC;

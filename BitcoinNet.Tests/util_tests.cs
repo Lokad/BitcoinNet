@@ -2,7 +2,6 @@
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using BitcoinNet.JsonConverters;
-using BitcoinNet.OpenAsset;
 using BitcoinNet.RPC;
 using Newtonsoft.Json.Linq;
 using System;
@@ -312,50 +311,6 @@ namespace BitcoinNet.Tests
 			Assert.True(splitted.Length == parts);
 			Assert.True(splitted.Sum() == money);
 			var groups = splitted.Select(s => s.Satoshi).GroupBy(o => o);
-			var differentValues = groups.Count();
-			Assert.True(differentValues == 1 || differentValues == 2);
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanSplitMoneyBag()
-		{
-			var gold = new AssetId(new Key());
-			MoneyBag bag = new MoneyBag();
-			bag += Money.Coins(12);
-			bag += new AssetMoney(gold, 10);
-			var splitted = bag.Split(12).ToArray();
-			Assert.Equal(Money.Coins(1.0m), splitted[0].GetAmount(null));
-			Assert.Equal(new AssetMoney(gold, 1), splitted[0].GetAmount(gold));
-			Assert.Equal(new AssetMoney(gold, 0), splitted[11].GetAmount(gold));
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanSplitAssetMoney()
-		{
-			var gold = new AssetId(new Key());
-			CanSplitAssetMoneyCore(gold, 1234, 3);
-			CanSplitAssetMoneyCore(gold, 1234, 2);
-			CanSplitAssetMoneyCore(gold, 1234, 10);
-			CanSplitAssetMoneyCore(gold, 1, 3);
-			Assert.Throws<ArgumentOutOfRangeException>(() => CanSplitAssetMoneyCore(gold, 1000, 0));
-			CanSplitAssetMoneyCore(gold, 0, 10);
-
-			var result = new AssetMoney(gold, 20).Split(3).ToArray();
-			Assert.True(result[0].Quantity == 7);
-			Assert.True(result[1].Quantity == 7);
-			Assert.True(result[2].Quantity == 6);
-			Assert.True(result[0].Id == gold);
-		}
-
-		private void CanSplitAssetMoneyCore(AssetId asset, long amount, int parts)
-		{
-			AssetMoney money = new AssetMoney(asset, amount);
-			var splitted = money.Split(parts).ToArray();
-			Assert.True(splitted.Length == parts);
-			Assert.True(splitted.Sum(asset) == money);
-			var groups = splitted.Select(s => s.Quantity).GroupBy(o => o);
 			var differentValues = groups.Count();
 			Assert.True(differentValues == 1 || differentValues == 2);
 		}
@@ -765,58 +720,6 @@ namespace BitcoinNet.Tests
 
 			Assert.Throws<ArgumentOutOfRangeException>(() => Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(uint.MaxValue) + TimeSpan.FromSeconds(1)));
 			Assert.Throws<ArgumentOutOfRangeException>(() => Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(0) - TimeSpan.FromSeconds(1)));
-		}
-
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void MoneyBagOperations()
-		{
-			var msft = new AssetId("8f316d9a09");
-			var goog = new AssetId("097f175bc8");
-			var usd = new AssetId("6d2e8c766a");
-
-			// 10 MSFT + 3 GOOG
-			var mb = new MoneyBag(new AssetMoney(msft, 10), new AssetMoney(goog, 3));
-
-			// (10 MSFT + 3 GOOG) + 1000 satoshis
-			Assert.Equal(
-				new MoneyBag(new AssetMoney(msft, 10), new AssetMoney(goog, 3), new Money(1000)),
-				mb + Money.Satoshis(1000));
-
-			// (10 MSFT + 3 GOOG) + 30 GOOG == (10 MSFT + 33 GOOG)
-			Assert.Equal(
-				new MoneyBag(new AssetMoney(msft, 10), new AssetMoney(goog, 33)),
-				mb + new AssetMoney(goog, 30));
-
-			// (10 MSFT + 3 GOOG) + (10 MSFT + 3 GOOG) == (20 MSFT + 6 GOOG)
-			Assert.Equal(
-				new MoneyBag(new AssetMoney(msft, 20), new AssetMoney(goog, 6)),
-				mb + mb);
-
-			//-----
-			// (10 MSFT + 3 GOOG) - 1000 satoshis
-			Assert.Equal(
-				new MoneyBag(new AssetMoney(msft, 10), new AssetMoney(goog, 3), new Money(-1000)),
-				mb - (Money.Satoshis(1000)));
-
-			// (10 MSFT + 3 GOOG) - 30 GOOG == (10 MSFT - 27 GOOG)
-			Assert.Equal(
-				new MoneyBag(new AssetMoney(msft, 10), new AssetMoney(goog, -27)),
-				mb - (new AssetMoney(goog, 30)));
-
-			// (10 MSFT + 3 GOOG) - (10 MSFT + 3 GOOG) == ()
-			Assert.Equal(
-				new MoneyBag(),
-				mb - (mb));
-
-			// (10 MSFT + 3 GOOG) - (1 MSFT - 5 GOOG) +  10000 Satoshi == (9 MSFT + 8 GOOG + 10000 Satoshi)
-			var b1 = new MoneyBag(new AssetMoney(msft, 10), new AssetMoney(goog, 3));
-			var b2 = new MoneyBag(new AssetMoney(msft, 1), new AssetMoney(goog, -5));
-
-			var b1_2 = b1 - (b2) + (new Money(10000));
-			Assert.True(
-				b1_2.SequenceEqual(new IMoney[] { new AssetMoney(msft, 9), new AssetMoney(goog, 8), new Money(10000) }));
 		}
 	}
 }

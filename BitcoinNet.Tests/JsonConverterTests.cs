@@ -1,5 +1,4 @@
 ﻿using BitcoinNet.JsonConverters;
-using BitcoinNet.OpenAsset;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +24,6 @@ namespace BitcoinNet.Tests
 			CanSerializeInJsonCore(Network.Main);
 			CanSerializeInJsonCore(new uint256(RandomUtils.GetBytes(32)));
 			CanSerializeInJsonCore(new uint160(RandomUtils.GetBytes(20)));
-			CanSerializeInJsonCore(new AssetId(k.PubKey));
 			CanSerializeInJsonCore(k.PubKey.ScriptPubKey);
 			CanSerializeInJsonCore(new Key().PubKey.Hash.GetAddress(Network.Main));
 			CanSerializeInJsonCore(new Key().PubKey.Hash.ScriptPubKey.GetScriptAddress(Network.Main));

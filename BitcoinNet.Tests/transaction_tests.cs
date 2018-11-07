@@ -2,7 +2,6 @@
 using BitcoinNet.BouncyCastle.Math;
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
-using BitcoinNet.OpenAsset;
 using BitcoinNet.Policy;
 using BitcoinNet.Protocol;
 using Newtonsoft.Json.Linq;
