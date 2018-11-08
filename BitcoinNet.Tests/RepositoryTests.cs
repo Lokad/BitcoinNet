@@ -1,5 +1,4 @@
-﻿using BitcoinNet.BitcoinCore;
-using BitcoinNet.Crypto;
+﻿using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using BitcoinNet.Protocol;
 using BitcoinNet.Protocol.Behaviors;
@@ -50,14 +49,6 @@ namespace BitcoinNet.Tests
 					return _Data;
 				}
 			}
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		//The last block is off by 1 byte + lots of padding zero at the end
-		public void CanEnumerateIncompleteBlk()
-		{
-			Assert.Equal(301, StoredBlock.EnumerateFile(@"data/blocks/incompleteblk.dat").Count());
 		}
 
 		enum CoinType : int
@@ -192,44 +183,6 @@ namespace BitcoinNet.Tests
 								.Where(o => o.ScriptPubKey == carol.ScriptPubKey)
 								.Where(o => o.Value == Money.Coins(1.0m))
 								.Count());
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanCacheNoSqlRepository()
-		{
-			var cached = new CachedNoSqlRepository(new InMemoryNoSqlRepository());
-			byte[] data1 = new byte[] { 1, 2, 3, 4, 5, 6 };
-			byte[] data2 = new byte[] { 11, 22, 33, 4, 5, 66 };
-			cached.InnerRepository.Put("data1", new RawData(data1));
-			Assert.NotNull(cached.Get<RawData>("data1"));
-			cached.InnerRepository.Put("data1", new RawData(data2));
-			cached.Flush();
-			var data1Actual = cached.InnerRepository.Get<RawData>("data1");
-			AssertEx.CollectionEquals(data1Actual.Data, data2);
-			cached.Put("data1", new RawData(data1));
-
-			data1Actual = cached.InnerRepository.Get<RawData>("data1");
-			AssertEx.CollectionEquals(data1Actual.Data, data2);
-
-			cached.Flush();
-
-			data1Actual = cached.InnerRepository.Get<RawData>("data1");
-			AssertEx.CollectionEquals(data1Actual.Data, data1);
-
-			cached.Put("data1", null);
-			cached.Flush();
-			Assert.Null(cached.InnerRepository.Get<RawData>("data1"));
-
-			cached.Put("data1", new RawData(data1));
-			cached.Put("data1", null);
-			cached.Flush();
-			Assert.Null(cached.InnerRepository.Get<RawData>("data1"));
-
-			cached.Put("data1", null);
-			cached.Put("data1", new RawData(data1));
-			cached.Flush();
-			Assert.NotNull(cached.InnerRepository.Get<RawData>("data1"));
 		}
 	}
 }
