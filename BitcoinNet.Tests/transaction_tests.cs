@@ -1,5 +1,4 @@
-﻿using BitcoinNet.BitcoinCore;
-using BitcoinNet.BouncyCastle.Math;
+﻿using BitcoinNet.BouncyCastle.Math;
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using BitcoinNet.Policy;
