@@ -646,30 +646,6 @@ namespace BitcoinNet.Tests
 					},
 					new
 					{
-						Base58 = "6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7",
-						ExpectedType = typeof(BitcoinEncryptedSecretNoEC),
-						Network = (Network)null
-					},
-					new
-					{
-						Base58 = "6PfQu77ygVyJLZjfvMLyhLMQbYnu5uguoJJ4kMCLqWwPEdfpwANVS76gTX",
-						ExpectedType = typeof(BitcoinEncryptedSecretEC),
-						Network = (Network)null
-					},
-					new
-					{
-						Base58 = "passphrasepxFy57B9v8HtUsszJYKReoNDV6VHjUSGt8EVJmux9n1J3Ltf1gRxyDGXqnf9qm",
-						ExpectedType = typeof(BitcoinPassphraseCode),
-						Network = (Network)null
-					},
-					new
-					{
-						Base58 = "cfrm38V8aXBn7JWA1ESmFMUn6erxeBGZGAxJPY4e36S9QWkzZKtaVqLNMgnifETYw7BPwWC9aPD",
-						ExpectedType = typeof(BitcoinConfirmationCode),
-						Network = (Network)null
-					},
-					new
-					{
 						Base58 = "xprv9s21ZrQH143K3Gx1VAAD1ueDmwoPQUApekxWYSJ1f4W4m1nUPpRGdV5sTVhixZJT5cP2NqtEMZ2mrwHdW5RWpohCwspWidCpcLALvioXDyz",
 						ExpectedType = typeof(BitcoinExtKey),
 						Network = Network.Main
