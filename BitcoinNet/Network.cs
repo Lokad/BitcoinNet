@@ -65,10 +65,6 @@ namespace BitcoinNet
 		SECRET_KEY,
 		EXT_PUBLIC_KEY,
 		EXT_SECRET_KEY,
-		ENCRYPTED_SECRET_KEY_EC,
-		ENCRYPTED_SECRET_KEY_NO_EC,
-		PASSPHRASE_CODE,
-		CONFIRMATION_CODE,
 		MAX_BASE58_TYPES,
 	};
 	
@@ -906,11 +902,6 @@ namespace BitcoinNet
 			base58Prefixes[(int)Base58Type.EXT_PUBLIC_KEY] = new byte[] { (0x04), (0x88), (0xB2), (0x1E) };
 			base58Prefixes[(int)Base58Type.EXT_SECRET_KEY] = new byte[] { (0x04), (0x88), (0xAD), (0xE4) };
 
-			base58Prefixes[(int)Base58Type.ENCRYPTED_SECRET_KEY_NO_EC] = new byte[] { 0x01, 0x42 };
-			base58Prefixes[(int)Base58Type.ENCRYPTED_SECRET_KEY_EC] = new byte[] { 0x01, 0x43 };
-			base58Prefixes[(int)Base58Type.PASSPHRASE_CODE] = new byte[] { 0x2C, 0xE9, 0xB3, 0xE1, 0xFF, 0x39, 0xE2 };
-			base58Prefixes[(int)Base58Type.CONFIRMATION_CODE] = new byte[] { 0x64, 0x3B, 0xF6, 0xA8, 0x9A };
-
 			vFixedSeeds.AddRange(ToSeed(pnSeed6_main));
 			//// Convert the pnSeeds array into usable address objects.
 			//Random rand = new Random();
@@ -1370,14 +1361,7 @@ namespace BitcoinNet
 				return new BitcoinScriptAddress(base58, this);
 			if(type == Base58Type.SECRET_KEY)
 				return CreateBitcoinSecret(base58);
-			if(type == Base58Type.CONFIRMATION_CODE)
-				return CreateConfirmationCode(base58);
-			if(type == Base58Type.ENCRYPTED_SECRET_KEY_EC)
-				return CreateEncryptedKeyEC(base58);
-			if(type == Base58Type.ENCRYPTED_SECRET_KEY_NO_EC)
-				return CreateEncryptedKeyNoEC(base58);
-			if(type == Base58Type.PASSPHRASE_CODE)
-				return CreatePassphraseCode(base58);
+
 			throw new NotSupportedException("Invalid Base58Data type : " + type.ToString());
 		}
 
@@ -1390,26 +1374,6 @@ namespace BitcoinNet
 		//{
 		//	return new BitcoinWitPubKeyAddress(base58, this);
 		//}
-
-		private BitcoinPassphraseCode CreatePassphraseCode(string base58)
-		{
-			return new BitcoinPassphraseCode(base58, this);
-		}
-
-		private BitcoinEncryptedSecretNoEC CreateEncryptedKeyNoEC(string base58)
-		{
-			return new BitcoinEncryptedSecretNoEC(base58, this);
-		}
-
-		private BitcoinEncryptedSecretEC CreateEncryptedKeyEC(string base58)
-		{
-			return new BitcoinEncryptedSecretEC(base58, this);
-		}
-
-		private Base58Data CreateConfirmationCode(string base58)
-		{
-			return new BitcoinConfirmationCode(base58, this);
-		}
 
 		private Base58Data CreateBitcoinExtPubKey(string base58)
 		{

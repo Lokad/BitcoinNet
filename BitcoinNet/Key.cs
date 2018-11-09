@@ -16,11 +16,6 @@ namespace BitcoinNet
 			return Network.Parse<BitcoinSecret>(wif, network).PrivateKey;
 		}
 
-		public static Key Parse(string wif, string password, Network network = null)
-		{
-			return Network.Parse<BitcoinEncryptedSecret>(wif, network).GetKey(password);
-		}
-
 		byte[] vch = new byte[0];
 		internal ECKey _ECKey;
 		public bool IsCompressed
@@ -193,11 +188,6 @@ namespace BitcoinNet
 		public BitcoinSecret GetWif(Network network)
 		{
 			return new BitcoinSecret(this, network);
-		}
-
-		public BitcoinEncryptedSecretNoEC GetEncryptedBitcoinSecret(string password, Network network)
-		{
-			return new BitcoinEncryptedSecretNoEC(this, password, network);
 		}
 
 		public string ToString(Network network)
