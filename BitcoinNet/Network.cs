@@ -167,34 +167,10 @@ namespace BitcoinNet
 				}
 			}
 		}
-		public class BIP9DeploymentsArray
-		{
-			Consensus _Parent;
-			BIP9DeploymentsParameters[] _Parameters;
-			public BIP9DeploymentsArray(Consensus parent)
-			{
-				_Parent = parent;
-				_Parameters = new BIP9DeploymentsParameters[Enum.GetValues(typeof(BIP9Deployments)).Length];
-			}
-
-			public BIP9DeploymentsParameters this[BIP9Deployments index]
-			{
-				get
-				{
-					return _Parameters[(int)index];
-				}
-				set
-				{
-					_Parent.EnsureNotFrozen();
-					_Parameters[(int)index] = value;
-				}
-			}
-		}
 
 		public Consensus()
 		{
 			_BuriedDeployments = new BuriedDeploymentsArray(this);
-			_BIP9Deployments = new BIP9DeploymentsArray(this);
 		}
 		private readonly BuriedDeploymentsArray _BuriedDeployments;
 		public BuriedDeploymentsArray BuriedDeployments
@@ -202,16 +178,6 @@ namespace BitcoinNet
 			get
 			{
 				return _BuriedDeployments;
-			}
-		}
-
-
-		private readonly BIP9DeploymentsArray _BIP9Deployments;
-		public BIP9DeploymentsArray BIP9Deployments
-		{
-			get
-			{
-				return _BIP9Deployments;
 			}
 		}
 
