@@ -304,6 +304,25 @@ namespace BitcoinNet
 
 	public class Utils
 	{
+		private static readonly byte[] BitLengthTable =
+		{
+			0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+			5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+			6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+			6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+			7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+			7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+			7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+			7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+			8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+			8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+			8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+			8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+			8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+			8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+			8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+			8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8
+		};
 
 		internal static void SafeSet(ManualResetEvent ar)
 		{
@@ -398,6 +417,22 @@ namespace BitcoinNet
 		private static void Write(MemoryStream ms, byte[] bytes)
 		{
 			ms.Write(bytes, 0, bytes.Length);
+		}
+
+		internal static int IntLog2(long value)
+		{
+			var v = (ulong) value;
+			for (var i = 7; i > 0; --i)
+			{
+				var shift = 8 * i;
+				var t = v >> shift;
+				if (t != 0)
+				{
+					return shift + BitLengthTable[t];
+				}
+			}
+
+			return BitLengthTable[v];
 		}
 
 		internal static byte[] BigIntegerToBytes(BigInteger b, int numBytes)

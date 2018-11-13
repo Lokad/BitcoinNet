@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ooo = BitcoinNet.BouncyCastle.Math;
 using System.Reflection;
 
 namespace BitcoinNet
@@ -306,11 +305,45 @@ namespace BitcoinNet
 		{
 			return _OpcodeByName.TryGetValue(name, out result);
 		}
-	
+
 		public static Op GetPushOp(long value)
 		{
-			return GetPushOp(Utils.BigIntegerToBytes(ooo.BigInteger.ValueOf(value)));
+			byte[] bytes;
+
+			if (value != 0)
+			{
+				var isPositive = true;
+				if (value < 0)
+				{
+					value = -value;
+					isPositive = false;
+				}
+
+				// Calculate required bits. We need extra 1 bit for sign.
+				var numBits = Utils.IntLog2(value) + 1;
+				var numBytes = (numBits + 7) / 8;
+
+				var input = (ulong) value;
+				bytes = new byte[numBytes];
+				for (var i = 0; i < numBytes; ++i)
+				{
+					bytes[i] = (byte) (input & 0xff);
+					input >>= 8;
+				}
+
+				if (!isPositive)
+				{
+					bytes[numBytes - 1] |= 0x80;
+				}
+			}
+			else
+			{
+				bytes = new byte[0];
+			}
+
+			return GetPushOp(bytes);
 		}
+
 		public static Op GetPushOp(byte[] data)
 		{
 			Op op = new Op();
