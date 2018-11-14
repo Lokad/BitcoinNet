@@ -1,33 +1,19 @@
 ﻿using System;
+using System.Security.Cryptography;
 using System.Text;
 using BitcoinNet.Crypto;
 
 namespace BitcoinNet
 {
-	public class UnsecureRandom : IRandom
+	public class RandomUtils
 	{
-		Random _Rand = new Random();
-
-		// IRandom Members
-
-		public void GetBytes(byte[] output)
+		static RandomUtils()
 		{
-			lock(_Rand)
-			{
-				_Rand.NextBytes(output);
-			}
+			//Thread safe http://msdn.microsoft.com/en-us/library/system.security.cryptography.rngcryptoserviceprovider(v=vs.110).aspx
+			Random = RandomNumberGenerator.Create();
 		}
-	}
 
-
-	public interface IRandom
-	{
-		void GetBytes(byte[] output);
-	}
-
-	public partial class RandomUtils
-	{
-		public static IRandom Random
+		public static RandomNumberGenerator Random
 		{
 			get;
 			set;
@@ -39,57 +25,9 @@ namespace BitcoinNet
 			if(Random == null)
 				throw new InvalidOperationException("You must set the RNG (RandomUtils.Random) before generating random numbers");
 			Random.GetBytes(data);
-			PushEntropy(data);
 			return data;
 		}
-
-		private static void PushEntropy(byte[] data)
-		{
-			if(additionalEntropy == null || data.Length == 0)
-				return;
-			int pos = entropyIndex;
-			var entropy = additionalEntropy;
-			for(int i = 0; i < data.Length; i++)
-			{
-				data[i] ^= entropy[pos % 32];
-				pos++;
-			}
-			entropy = Hashes.SHA256(data);
-			for(int i = 0; i < data.Length; i++)
-			{
-				data[i] ^= entropy[pos % 32];
-				pos++;
-			}
-			entropyIndex = pos % 32;
-		}
-
-		static volatile byte[] additionalEntropy = null;
-		static volatile int entropyIndex = 0;
-
-		public static void AddEntropy(string data)
-		{
-			if(data == null)
-				throw new ArgumentNullException(nameof(data));
-			AddEntropy(Encoding.UTF8.GetBytes(data));
-		}
-
-		public static void AddEntropy(byte[] data)
-		{
-			if(data == null)
-				throw new ArgumentNullException(nameof(data));
-			var entropy = Hashes.SHA256(data);
-			if(additionalEntropy == null)
-				additionalEntropy = entropy;
-			else
-			{
-				for(int i = 0; i < 32; i++)
-				{
-					additionalEntropy[i] ^= entropy[i];
-				}
-				additionalEntropy = Hashes.SHA256(additionalEntropy);
-			}
-		}
-
+		
 		public static uint GetUInt32()
 		{
 			return BitConverter.ToUInt32(GetBytes(sizeof(uint)), 0);
@@ -114,7 +52,6 @@ namespace BitcoinNet
 			if(Random == null)
 				throw new InvalidOperationException("You must set the RNG (RandomUtils.Random) before generating random numbers");
 			Random.GetBytes(output);
-			PushEntropy(output);
 		}
 	}
 }

@@ -36,16 +36,7 @@ namespace BitcoinNet.Tests
 			// Stop parsing at invalid value
 			Assert.Throws<FormatException>(() => Encoders.Hex.DecodeData("1234 invalid 1234"));
 		}
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanAddEntropyToRandom()
-		{
-			RandomUtils.AddEntropy(new byte[] { 1, 2, 3 });
-			for(int i = 0; i < 100; i++)
-			{
-				Assert.Equal(50, RandomUtils.GetBytes(50).Length);
-			}
-		}
+
 		[Fact]
 		[Trait("Core", "Core")]
 		public void util_HexStr()
