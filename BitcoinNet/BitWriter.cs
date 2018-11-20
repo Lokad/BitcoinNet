@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BitcoinNet
 {
-	class BitReader
+	public class BitReader
 	{
 		BitArray array;
 		public BitReader(byte[] data, int bitCount)
@@ -100,7 +100,8 @@ namespace BitcoinNet
 			return builder.ToString();
 		}
 	}
-	class BitWriter
+
+	public class BitWriter
 	{
 		List<bool> values = new List<bool>();
 		public int Count
@@ -116,7 +117,7 @@ namespace BitcoinNet
 			_Position++;
 		}
 
-		internal void Write(byte[] bytes)
+		public void Write(byte[] bytes)
 		{
 			Write(bytes, bytes.Length * 8);
 		}
@@ -159,13 +160,6 @@ namespace BitcoinNet
 		{
 			return new BitArray(values.ToArray());
 		}
-
-		public int[] ToIntegers()
-		{
-			var array = new BitArray(values.ToArray());
-			return Wordlist.ToIntegers(array);
-		}
-
 
 		static byte[] SwapEndianBytes(byte[] bytes)
 		{

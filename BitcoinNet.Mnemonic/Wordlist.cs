@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BitcoinNet
+namespace BitcoinNet.Mnemonic
 {
 	public class Wordlist
 	{
@@ -96,7 +96,7 @@ namespace BitcoinNet
 			return LoadWordList(name);
 		}
 
-		internal static string GetLanguageFileName(Language language)
+		public static string GetLanguageFileName(Language language)
 		{
 			string name = null;
 			switch(language)
@@ -168,7 +168,7 @@ namespace BitcoinNet
 		public Wordlist(String[] words, char space, string name)
 		{
 			_words = words
-						.Select(w => Mnemonic.NormalizeString(w))
+						.Select(w => MnemonicSequence.NormalizeString(w))
 						.ToArray();
 			_Space = space;
 			_Name = name;
@@ -198,7 +198,7 @@ namespace BitcoinNet
 		/// <returns>Exists (true/false)</returns>
 		public bool WordExists(string word, out int index)
 		{
-			word = Mnemonic.NormalizeString(word);
+			word = MnemonicSequence.NormalizeString(word);
 			if(_words.Contains(word))
 			{
 				index = Array.IndexOf(_words, word);
