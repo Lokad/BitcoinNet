@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using BitcoinNet.Crypto;
-using BitcoinNet.BouncyCastle.Security;
-using BitcoinNet.BouncyCastle.Crypto.Parameters;
 
-namespace BitcoinNet
+namespace BitcoinNet.Mnemonic
 {
 	/// <summary>
 	/// A .NET implementation of the Bitcoin Improvement Proposal - 39 (BIP39)
@@ -18,9 +17,9 @@ namespace BitcoinNet
 	/// I ♥ Bitcoin :)
 	/// Bitcoin:1ETQjMkR1NNh4jwLuN5LxY7bMsHC9PUPSV
 	/// </summary>
-	public class Mnemonic
+	public class MnemonicSequence
 	{
-		public Mnemonic(string mnemonic, Wordlist wordlist = null)
+		public MnemonicSequence(string mnemonic, Wordlist wordlist = null)
 		{
 			if(mnemonic == null)
 				throw new ArgumentNullException(nameof(mnemonic));
@@ -45,7 +44,7 @@ namespace BitcoinNet
 		/// </summary>
 		/// <param name="wordList"></param>
 		/// <param name="entropy"></param>
-		public Mnemonic(Wordlist wordList, byte[] entropy = null)
+		public MnemonicSequence(Wordlist wordList, byte[] entropy = null)
 		{
 			wordList = wordList ?? Wordlist.English;
 			_WordList = wordList;
@@ -67,7 +66,7 @@ namespace BitcoinNet
 			_Mnemonic = _WordList.GetSentence(_Indices);
 		}
 
-		public Mnemonic(Wordlist wordList, WordCount wordCount)
+		public MnemonicSequence(Wordlist wordList, WordCount wordCount)
 			: this(wordList, GenerateEntropy(wordCount))
 		{
 
@@ -175,9 +174,8 @@ namespace BitcoinNet
 			var salt = Concat(NoBOMUTF8.GetBytes("mnemonic"), Normalize(passphrase));
 			var bytes = Normalize(_Mnemonic);
 
-			var mac = new BitcoinNet.BouncyCastle.Crypto.Macs.HMac(new BitcoinNet.BouncyCastle.Crypto.Digests.Sha512Digest());
-			mac.Init(new KeyParameter(bytes));
-			return Pbkdf2.ComputeDerivedKey(mac, salt, 2048, 64);
+			var rfcKey = new Rfc2898DeriveBytes(bytes, salt, 2048, HashAlgorithmName.SHA512);
+			return rfcKey.GetBytes(64);
 		}
 
 		internal static byte[] Normalize(string str)

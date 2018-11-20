@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Company>Lokad</Company>
+    <Copyright>Copyright © 2018 Lokad</Copyright>
+    <Description>The C# Bitcoin Library</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BitcoinNet\BitcoinNet.csproj" />
+  </ItemGroup>
+
+</Project>

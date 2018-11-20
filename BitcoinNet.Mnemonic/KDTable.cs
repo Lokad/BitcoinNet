@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BitcoinNet
+namespace BitcoinNet.Mnemonic
 {
-	class KDTable
+	public class KDTable
 	{
 		public static string NormalizeKD(string str)
 		{

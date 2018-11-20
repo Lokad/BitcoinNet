@@ -71,17 +71,6 @@ namespace BitcoinNet.Tests
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
-		public void ScryptTest()
-		{
-			var message = "Hello world message";
-			var salt = Encoding.UTF8.GetBytes("This is salt");
-			var result = SCrypt.BitcoinComputeDerivedKey(message, salt);
-			Assert.Equal("2331e1fe210127c9ac8fa95eb388e9dd072893890e2ee5646318ceb66089bbfe5ab45f762feeddf53d21c9a2cb183869247c9814f2bff1917fbea8239c548d1d"
-				, Encoders.Hex.EncodeData(result));
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
 		//https://en.bitcoin.it/wiki/Difficulty
 		public void CanReadConvertTargetToDifficulty()
 		{

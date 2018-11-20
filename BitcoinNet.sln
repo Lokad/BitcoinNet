@@ -16,6 +16,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitcoinNet.Tests", "Bitcoin
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitcoinNet.TestFramework", "BitcoinNet.TestFramework\BitcoinNet.TestFramework.csproj", "{653C0F21-25FE-4B72-95AC-20D070A45415}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitcoinNet.Mnemonic", "BitcoinNet.Mnemonic\BitcoinNet.Mnemonic.csproj", "{0CC560A6-1D70-4B5B-A544-01240E6AE667}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitcoinNet.Mnemonic.Tests", "BitcoinNet.Mnemonic.Tests\BitcoinNet.Mnemonic.Tests.csproj", "{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +38,14 @@ Global
 		{653C0F21-25FE-4B72-95AC-20D070A45415}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{653C0F21-25FE-4B72-95AC-20D070A45415}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{653C0F21-25FE-4B72-95AC-20D070A45415}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CC560A6-1D70-4B5B-A544-01240E6AE667}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CC560A6-1D70-4B5B-A544-01240E6AE667}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CC560A6-1D70-4B5B-A544-01240E6AE667}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CC560A6-1D70-4B5B-A544-01240E6AE667}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -7,9 +7,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitcoinNet.Mnemonic;
 using Xunit;
 
-namespace BitcoinNet.Tests
+namespace BitcoinNet.Mnemonic.Tests
 {
 	public class bip39_tests
 	{
@@ -20,7 +21,7 @@ namespace BitcoinNet.Tests
 		{
 			foreach(var count in new[] { WordCount.Twelve, WordCount.TwentyFour, WordCount.TwentyOne, WordCount.Fifteen, WordCount.Eighteen })
 			{
-				Assert.Equal((int)count, new Mnemonic(Wordlist.English, count).Words.Length);
+				Assert.Equal((int)count, new MnemonicSequence(Wordlist.English, count).Words.Length);
 			}
 		}
 
@@ -28,9 +29,9 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanDetectBadChecksum()
 		{
-			var mnemonic = new Mnemonic("turtle front uncle idea crush write shrug there lottery flower risk shell", Wordlist.English);
+			var mnemonic = new MnemonicSequence("turtle front uncle idea crush write shrug there lottery flower risk shell", Wordlist.English);
 			Assert.True(mnemonic.IsValidChecksum);
-			mnemonic = new Mnemonic("front front uncle idea crush write shrug there lottery flower risk shell", Wordlist.English);
+			mnemonic = new MnemonicSequence("front front uncle idea crush write shrug there lottery flower risk shell", Wordlist.English);
 			Assert.False(mnemonic.IsValidChecksum);
 		}
 
@@ -49,10 +50,10 @@ namespace BitcoinNet.Tests
 
 		private void CanCheckBIP39TestVectorsCore(string file, Wordlist wordlist)
 		{
-			var tests = JArray.Parse(File.ReadAllText($"data/bip39_vectors.{file}.json"));
+			var tests = JArray.Parse(File.ReadAllText($"Data/bip39_vectors.{file}.json"));
 			foreach(var test in tests.Children().OfType<JObject>())
 			{
-				var mnemonic = new Mnemonic(test["mnemonic"].Value<string>(), wordlist);
+				var mnemonic = new MnemonicSequence(test["mnemonic"].Value<string>(), wordlist);
 				var actual = mnemonic.DeriveExtKey(test["passphrase"].Value<string>()).GetWif(Network.Main);
 				var expected = new BitcoinExtKey(test["bip32_xprv"].Value<string>(), Network.Main);
 				Assert.Equal(actual, expected);
@@ -63,7 +64,7 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void EngTest()
 		{
-			var test = JObject.Parse(File.ReadAllText("data/bip39_vectors.json"));
+			var test = JObject.Parse(File.ReadAllText("Data/bip39_vectors.json"));
 
 			foreach(var language in test.Properties())
 			{
@@ -73,11 +74,11 @@ namespace BitcoinNet.Tests
 					var entropy = Encoders.Hex.DecodeData(langTest[0].ToString());
 					string mnemonicStr = langTest[1].ToString();
 					string seed = langTest[2].ToString();
-					var mnemonic = new Mnemonic(mnemonicStr, lang);
+					var mnemonic = new MnemonicSequence(mnemonicStr, lang);
 					Assert.True(mnemonic.IsValidChecksum);
 					Assert.Equal(seed, Encoders.Hex.EncodeData(mnemonic.DeriveSeed("TREZOR")));
 
-					mnemonic = new Mnemonic(lang, entropy);
+					mnemonic = new MnemonicSequence(lang, entropy);
 					Assert.True(mnemonic.IsValidChecksum);
 					Assert.Equal(seed, Encoders.Hex.EncodeData(mnemonic.DeriveSeed("TREZOR")));
 				}
@@ -99,7 +100,7 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void JapTest()
 		{
-			var test = JArray.Parse(File.ReadAllText("data/bip39_JP.json", Encoding.UTF32));
+			var test = JArray.Parse(File.ReadAllText("Data/bip39_JP.json", Encoding.UTF32));
 
 			foreach(var unitTest in test.OfType<JObject>())
 			{
@@ -107,13 +108,13 @@ namespace BitcoinNet.Tests
 				string mnemonicStr = unitTest["mnemonic"].ToString();
 				string seed = unitTest["seed"].ToString();
 				string passphrase = unitTest["passphrase"].ToString();
-				var mnemonic = new Mnemonic(mnemonicStr, Wordlist.Japanese);
+				var mnemonic = new MnemonicSequence(mnemonicStr, Wordlist.Japanese);
 				Assert.True(mnemonic.IsValidChecksum);
 				Assert.Equal(seed, Encoders.Hex.EncodeData(mnemonic.DeriveSeed(passphrase)));
 				var bip32 = unitTest["bip32_xprv"].ToString();
 				var bip32Actual = mnemonic.DeriveExtKey(passphrase).ToString(Network.Main);
 				Assert.Equal(bip32, bip32Actual.ToString());
-				mnemonic = new Mnemonic(Wordlist.Japanese, entropy);
+				mnemonic = new MnemonicSequence(Wordlist.Japanese, entropy);
 				Assert.True(mnemonic.IsValidChecksum);
 				bip32Actual = mnemonic.DeriveExtKey(passphrase).ToString(Network.Main);
 				Assert.Equal(bip32, bip32Actual.ToString());
