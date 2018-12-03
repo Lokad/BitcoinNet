@@ -341,12 +341,8 @@ namespace BitcoinNet.Tests
 			Assert.Equal("abc", RPCCredentialString.Parse("abc:def").UserPassword.UserName);
 			Assert.Equal("def", RPCCredentialString.Parse("abc:def").UserPassword.Password);
 			Assert.Equal("def:def", RPCCredentialString.Parse("abc:def:def").UserPassword.Password);
-
-			Assert.Equal("abc", RPCCredentialString.Parse("wallet=abcd;abc:def").UserPassword.UserName);
-			Assert.Equal("abcd", RPCCredentialString.Parse("wallet=abcd;abc:def").WalletName);
-			Assert.Equal("wallet=abcd;abc:def", RPCCredentialString.Parse("wallet=abcd;abc:def").ToString());
-
-			Assert.Equal("wallet=abcd;server=toto:3030;abc:def", RPCCredentialString.Parse("wallet=abcd;server=toto:3030;abc:def").ToString());
+			Assert.Equal("abc:def", RPCCredentialString.Parse("abc:def").ToString());
+			Assert.Equal("server=toto:3030;abc:def", RPCCredentialString.Parse("server=toto:3030;abc:def").ToString());
 		}
 
 		[Fact]

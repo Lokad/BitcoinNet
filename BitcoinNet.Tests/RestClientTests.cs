@@ -92,34 +92,6 @@ namespace BitcoinNet.Tests
 		}
 
 		[Fact]
-		public void CanGetUTXOsMempool()
-		{
-			using(var builder = NodeBuilderEx.Create())
-			{
-				var client = builder.CreateNode().CreateRESTClient();
-				var rpc = builder.Nodes[0].CreateRPCClient();
-				builder.StartAll();
-				var k = new Key().GetBitcoinSecret(Network.RegTest);
-				rpc.Generate(102);
-				rpc.ImportPrivKey(k);
-				rpc.SendToAddress(k.GetAddress(), Money.Coins(50m));
-				rpc.Generate(1);
-				var c = rpc.ListUnspent().First();
-				c = rpc.ListUnspent(0, 999999, k.GetAddress()).First();
-				var outPoint = c.OutPoint;
-				var utxos = client.GetUnspentOutputsAsync(new[] { outPoint }, true).Result;
-				Assert.Equal(1, utxos.Outputs.Length);
-				Assert.Equal(0, (int)utxos.Outputs[0].Version);
-				Assert.Equal(Money.Coins(50m), utxos.Outputs[0].Output.Value);
-
-				var countBefore = rpc.ListUnspent().Length;
-				rpc.LockUnspent(outPoint);
-				var countAfter = rpc.ListUnspent().Length;
-				Assert.Equal(countBefore - 1, countAfter);
-			}
-		}
-
-		[Fact]
 		public void CanGetUTXOs()
 		{
 			using(var builder = NodeBuilderEx.Create())

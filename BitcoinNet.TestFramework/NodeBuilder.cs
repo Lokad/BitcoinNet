@@ -617,19 +617,6 @@ namespace BitcoinNet.Tests
 			return result;
 		}
 
-		private BitcoinSecret GetFirstSecret(RPCClient rpc)
-		{
-			if(MinerSecret != null)
-				return MinerSecret;
-			var dest = rpc.ListSecrets().FirstOrDefault();
-			if(dest == null)
-			{
-				var address = rpc.GetNewAddress();
-				dest = rpc.DumpPrivKey(address);
-			}
-			return dest;
-		}
-
 		public void Restart()
 		{
 			Kill(false);
