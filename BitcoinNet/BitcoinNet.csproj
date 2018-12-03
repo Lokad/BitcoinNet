@@ -28,8 +28,12 @@
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
     <DefineConstants>$(DefineConstants)</DefineConstants>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="RPC\**" />
+    <EmbeddedResource Remove="RPC\**" />
+    <None Remove="RPC\**" />
+  </ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
 		<PackageReference Include="System.Buffers" Version="4.5.0" />
 		<PackageReference Include="System.Net.Requests" Version="4.3.0" />
 		<PackageReference Include="System.Net.Http" Version="4.3.3" />

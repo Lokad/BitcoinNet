@@ -1,7 +1,6 @@
 ﻿using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using BitcoinNet.Protocol;
-using BitcoinNet.RPC;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -910,12 +909,6 @@ namespace BitcoinNet
 		}
 	}
 
-	public enum RawFormat
-	{
-		Satoshi,
-		BlockExplorer,
-	}
-
 	[Flags]
 	public enum TransactionOptions : uint
 	{
@@ -1349,12 +1342,6 @@ namespace BitcoinNet
 			return new TxPayload(this.Clone());
 		}
 
-		[Obsolete("Do not parse JSON")]
-		public static Transaction Parse(string tx, RawFormat format, Network network = null)
-		{
-			return GetFormatter(format, network).ParseJson(tx);
-		}
-
 		public static Transaction Parse(string hex, Network network)
 		{
 			var tx = network.Consensus.ConsensusFactory.CreateTransaction();
@@ -1365,52 +1352,9 @@ namespace BitcoinNet
 			return tx;
 		}
 
-
-		[Obsolete("Use Transaction.Parse(string hex, Network network)")]
-		public static Transaction Parse(string hex)
-		{
-			return new Transaction(Encoders.Hex.DecodeData(hex));
-		}
-
-		public string ToHex()
-		{
-			return Encoders.Hex.EncodeData(this.ToBytes());
-		}
-
 		public override string ToString()
 		{
-			return ToString(RawFormat.BlockExplorer);
-		}
-
-		public string ToString(RawFormat rawFormat, Network network = null)
-		{
-			var formatter = GetFormatter(rawFormat, network);
-			return ToString(formatter);
-		}
-
-		static private RawFormatter GetFormatter(RawFormat rawFormat, Network network)
-		{
-			RawFormatter formatter = null;
-			switch (rawFormat)
-			{
-				case RawFormat.Satoshi:
-					formatter = new SatoshiFormatter();
-					break;
-				case RawFormat.BlockExplorer:
-					formatter = new BlockExplorerFormatter();
-					break;
-				default:
-					throw new NotSupportedException(rawFormat.ToString());
-			}
-			formatter.Network = network ?? formatter.Network;
-			return formatter;
-		}
-
-		internal string ToString(RawFormatter formatter)
-		{
-			if (formatter == null)
-				throw new ArgumentNullException("formatter");
-			return formatter.ToString(this);
+			return Encoders.Hex.EncodeData(this.ToBytes());
 		}
 
 		/// <summary>

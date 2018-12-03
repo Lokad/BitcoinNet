@@ -2,7 +2,6 @@
 using BitcoinNet.DataEncoders;
 using BitcoinNet.Protocol;
 using BitcoinNet.Protocol.Behaviors;
-using BitcoinNet.RPC;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;

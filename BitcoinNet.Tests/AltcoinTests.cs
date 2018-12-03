@@ -1,5 +1,4 @@
-﻿using BitcoinNet.RPC;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -98,7 +97,7 @@ namespace BitcoinNet.Tests
 				builder.StartAll();
 
 				var address = new Key().PubKey.GetAddress(builder.Network);
-				var isValid = ((JObject)node.CreateRPCClient().SendCommand(RPCOperations.validateaddress, address.ToString()).Result)["isvalid"].Value<bool>();
+				var isValid = ((JObject)node.CreateRPCClient().SendCommand("validateaddress", address.ToString()).Result)["isvalid"].Value<bool>();
 				Assert.True(isValid);
 			}
 		}

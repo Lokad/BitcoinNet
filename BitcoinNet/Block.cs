@@ -1,7 +1,6 @@
 ﻿using BitcoinNet.BouncyCastle.Math;
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
-using BitcoinNet.RPC;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,7 +18,7 @@ namespace BitcoinNet
 	/// </summary>
 	public class BlockHeader : IBitcoinSerializable
 	{
-		internal const int Size = 80;
+		public const int Size = 80;
 
 
 		public static BlockHeader Parse(string hex, Network network)

@@ -1,8 +1,6 @@
 ﻿using BitcoinNet.BouncyCastle.Math;
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
-using BitcoinNet.JsonConverters;
-using BitcoinNet.RPC;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
@@ -334,19 +332,6 @@ namespace BitcoinNet.Tests
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
-		public void CanParseRPCCredentialString()
-		{
-			Assert.True(RPCCredentialString.Parse("default").UseDefault);
-			Assert.Equal("c:/", RPCCredentialString.Parse("cookiefile=c:/").CookieFile);
-			Assert.Equal("abc", RPCCredentialString.Parse("abc:def").UserPassword.UserName);
-			Assert.Equal("def", RPCCredentialString.Parse("abc:def").UserPassword.Password);
-			Assert.Equal("def:def", RPCCredentialString.Parse("abc:def:def").UserPassword.Password);
-			Assert.Equal("abc:def", RPCCredentialString.Parse("abc:def").ToString());
-			Assert.Equal("server=toto:3030;abc:def", RPCCredentialString.Parse("server=toto:3030;abc:def").ToString());
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
 		public void Overflow()
 		{
 			Assert.Throws<OverflowException>(() => Money.Satoshis(decimal.MaxValue));
@@ -541,14 +526,6 @@ namespace BitcoinNet.Tests
 			Assert.Equal(addr.Network, Network.Main);
 		}
 
-		public class DummyClass
-		{
-			public BitcoinExtPubKey ExtPubKey
-			{
-				get; set;
-			}
-		}
-
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanDetectBase58WithoutAmbiguity()
@@ -566,9 +543,6 @@ namespace BitcoinNet.Tests
 
 			result = Network.Parse(address.Base58, null);
 			Assert.True(result.Network == Network.TestNet);
-
-			var str = Serializer.ToString(new DummyClass() { ExtPubKey = new ExtKey().Neuter().GetWif(Network.RegTest) }, Network.RegTest);
-			Assert.NotNull(Serializer.ToObject<DummyClass>(str, Network.RegTest));
 		}
 
 		[Fact]
