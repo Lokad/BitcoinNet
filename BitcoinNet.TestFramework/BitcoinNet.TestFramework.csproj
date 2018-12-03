@@ -16,6 +16,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\BitcoinNet.JsonRpc\BitcoinNet.JsonRpc.csproj" />
 		<ProjectReference Include="..\BitcoinNet\BitcoinNet.csproj" />
 		<PackageReference Include="System.Net.Http" Version="4.3.3" />
 		<PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />

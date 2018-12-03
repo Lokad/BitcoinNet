@@ -1,5 +1,4 @@
 ﻿using BitcoinNet.Protocol;
-using BitcoinNet.RPC;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -127,73 +126,6 @@ namespace BitcoinNet
 		public abstract string CryptoCode
 		{
 			get;
-		}
-
-		protected class FolderName
-		{
-			public string TestnetFolder
-			{
-				get; set;
-			} = "testnet3";
-		}
-
-		protected void RegisterDefaultCookiePath(string folderName, FolderName folder = null)
-		{
-			folder = folder ?? new FolderName();
-			var home = Environment.GetEnvironmentVariable("HOME");
-			var localAppData = Environment.GetEnvironmentVariable("APPDATA");
-
-			if(string.IsNullOrEmpty(home) && string.IsNullOrEmpty(localAppData))
-				return;
-
-			if(!string.IsNullOrEmpty(home))
-			{
-				var bitcoinFolder = Path.Combine(home, "." + folderName.ToLowerInvariant());
-
-				var mainnet = Path.Combine(bitcoinFolder, ".cookie");
-				RPCClient.RegisterDefaultCookiePath(Mainnet, mainnet);
-
-				var testnet = Path.Combine(bitcoinFolder, folder.TestnetFolder, ".cookie");
-				RPCClient.RegisterDefaultCookiePath(Testnet, testnet);
-
-				var regtest = Path.Combine(bitcoinFolder, "regtest", ".cookie");
-				RPCClient.RegisterDefaultCookiePath(Regtest, regtest);
-			}
-			else if(!string.IsNullOrEmpty(localAppData))
-			{
-				var bitcoinFolder = Path.Combine(localAppData, char.ToUpperInvariant(folderName[0]) + folderName.Substring(1));
-
-				var mainnet = Path.Combine(bitcoinFolder, ".cookie");
-				RPCClient.RegisterDefaultCookiePath(Mainnet, mainnet);
-
-				var testnet = Path.Combine(bitcoinFolder, folder.TestnetFolder, ".cookie");
-				RPCClient.RegisterDefaultCookiePath(Testnet, testnet);
-
-				var regtest = Path.Combine(bitcoinFolder, "regtest", ".cookie");
-				RPCClient.RegisterDefaultCookiePath(Regtest, regtest);
-			}
-		}
-
-		public static void RegisterDefaultCookiePath(Network network, params string[] subfolders)
-		{
-			var home = Environment.GetEnvironmentVariable("HOME");
-			var localAppData = Environment.GetEnvironmentVariable("APPDATA");
-			if(!string.IsNullOrEmpty(home))
-			{
-				var pathList = new List<string> { home, ".dash" };
-				pathList.AddRange(subfolders);
-
-				var fullPath = Path.Combine(pathList.ToArray());
-				RPCClient.RegisterDefaultCookiePath(network, fullPath);
-			}
-			else if(!string.IsNullOrEmpty(localAppData))
-			{
-				var pathList = new List<string> { localAppData, "Dash" };
-				pathList.AddRange(subfolders);
-
-				var fullPath = Path.Combine(pathList.ToArray());
-				RPCClient.RegisterDefaultCookiePath(network, fullPath);
-			}
 		}
 
 		protected static IEnumerable<NetworkAddress> ToSeed(Tuple<byte[], int>[] tuples)

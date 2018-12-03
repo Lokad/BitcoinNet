@@ -1,7 +1,7 @@
 ﻿using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using BitcoinNet.Protocol;
-using BitcoinNet.RPC;
+using BitcoinNet.JsonRpc;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

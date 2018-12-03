@@ -18,7 +18,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitcoinNet.TestFramework", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitcoinNet.Mnemonic", "BitcoinNet.Mnemonic\BitcoinNet.Mnemonic.csproj", "{0CC560A6-1D70-4B5B-A544-01240E6AE667}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitcoinNet.Mnemonic.Tests", "BitcoinNet.Mnemonic.Tests\BitcoinNet.Mnemonic.Tests.csproj", "{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitcoinNet.Mnemonic.Tests", "BitcoinNet.Mnemonic.Tests\BitcoinNet.Mnemonic.Tests.csproj", "{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitcoinNet.JsonRpc", "BitcoinNet.JsonRpc\BitcoinNet.JsonRpc.csproj", "{E5CCA61A-9057-45F7-9633-74B414BF85CC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitcoinNet.JsonRpc.Tests", "BitcoinNet.JsonRpc.Tests\BitcoinNet.JsonRpc.Tests.csproj", "{D4754A32-8CC6-45A5-8047-B127E590D90B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,6 +50,14 @@ Global
 		{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{19CBD2F7-F84C-4405-B6C6-47CA38C1272D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5CCA61A-9057-45F7-9633-74B414BF85CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5CCA61A-9057-45F7-9633-74B414BF85CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5CCA61A-9057-45F7-9633-74B414BF85CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5CCA61A-9057-45F7-9633-74B414BF85CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4754A32-8CC6-45A5-8047-B127E590D90B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4754A32-8CC6-45A5-8047-B127E590D90B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4754A32-8CC6-45A5-8047-B127E590D90B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4754A32-8CC6-45A5-8047-B127E590D90B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
