@@ -25,7 +25,6 @@ namespace BitcoinNet.RPC
 				throw new ArgumentNullException(nameof(str));
 
 			var parts = str.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-			string walletName = null;
 			string server = null;
 			foreach(var part in parts)
 			{
@@ -33,10 +32,6 @@ namespace BitcoinNet.RPC
 				{
 					TryParseAuth(part, out connectionString);
 					break;
-				}
-				if(part.StartsWith("wallet=", StringComparison.OrdinalIgnoreCase))
-				{
-					walletName = part.Substring("wallet=".Length);
 				}
 				else if(part.StartsWith("server=", StringComparison.OrdinalIgnoreCase))
 				{
@@ -48,7 +43,6 @@ namespace BitcoinNet.RPC
 
 			if(connectionString == null)
 				return false;
-			connectionString.WalletName = walletName;
 			connectionString.Server = server;
 			return true;
 		}
@@ -105,14 +99,6 @@ namespace BitcoinNet.RPC
 		}
 
 		/// <summary>
-		/// Name of the wallet in multi wallet mode
-		/// </summary>
-		public string WalletName
-		{
-			get; set;
-		}
-
-		/// <summary>
 		/// Path to cookie file
 		/// </summary>
 		public string CookieFile
@@ -158,10 +144,6 @@ namespace BitcoinNet.RPC
 		public override string ToString()
 		{
 			StringBuilder builder = new StringBuilder();
-			if(!string.IsNullOrEmpty(WalletName))
-			{
-				builder.Append($"wallet={WalletName};");
-			}
 			if(!string.IsNullOrEmpty(Server))
 			{
 				builder.Append($"server={Server};");

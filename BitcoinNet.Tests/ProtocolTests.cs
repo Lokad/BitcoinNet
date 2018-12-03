@@ -246,7 +246,7 @@ namespace BitcoinNet.Tests
 					var address = new Key().PubKey.GetAddress(rpc.Network);
 					knownAddresses.Add(address.Hash);
 #pragma warning disable CS4014
-					batch.SendToAddressAsync(address, Money.Coins(0.5m));
+					batch.SendCommandAsync("sendtoaddress", address.ToString(), "0.5");
 #pragma warning restore CS4014
 				}
 				batch.SendBatch();
@@ -405,7 +405,7 @@ namespace BitcoinNet.Tests
 				node.Start();
 				var rpc = node.CreateRPCClient();
 				rpc.Generate(101);
-				rpc.SendToAddress(new Key().PubKey.GetAddress(Network.RegTest), Money.Coins(1.0m));
+				rpc.SendCommand("sendtoaddress", new Key().PubKey.GetAddress(Network.RegTest).ToString(), "1.0");
 				var client = node.CreateNodeClient();
 				client.VersionHandshake();
 				var transactions = client.GetMempoolTransactions();
@@ -481,7 +481,8 @@ namespace BitcoinNet.Tests
 				node.Start();
 				rpc.Generate(102);
 				for(int i = 0; i < 2; i++)
-					node.CreateRPCClient().SendToAddress(new Key().PubKey.GetAddress(Network.RegTest), Money.Coins(1.0m));
+					node.CreateRPCClient().SendCommand("sendtoaddress",
+						new Key().PubKey.GetAddress(Network.RegTest).ToString(), "1.0");
 				var client = node.CreateNodeClient();
 				var txIds = client.GetMempool();
 				Assert.True(txIds.Length == 2);

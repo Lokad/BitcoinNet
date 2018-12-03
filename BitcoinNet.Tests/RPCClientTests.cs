@@ -55,36 +55,6 @@ namespace BitcoinNet.Tests
 		}
 
 		[Fact]
-		public void CanUseMultipleWallets()
-		{
-			using(var builder = NodeBuilderEx.Create())
-			{
-				var node = builder.CreateNode();
-				node.ConfigParameters.Add("wallet", "w1");
-				//node.ConfigParameters.Add("wallet", "w2");
-				node.Start();
-				var rpc = node.CreateRPCClient();
-				var creds = RPCCredentialString.Parse(rpc.CredentialString.ToString());
-				creds.Server = rpc.Address.AbsoluteUri;
-				creds.WalletName = "w1";
-				rpc = new RPCClient(creds, Network.RegTest);
-				rpc.SendCommandAsync(RPCOperations.getwalletinfo).GetAwaiter().GetResult().ThrowIfError();
-				Assert.NotNull(rpc.GetBalance());
-				Assert.NotNull(rpc.GetBestBlockHash());
-				var block = rpc.GetBlock(rpc.Generate(1)[0]);
-
-				rpc = rpc.PrepareBatch();
-				var b = rpc.GetBalanceAsync();
-				var b2 = rpc.GetBestBlockHashAsync();
-				var a = rpc.SendCommandAsync(RPCOperations.gettransaction, block.Transactions.First().GetHash().ToString());
-				rpc.SendBatch();
-				b.GetAwaiter().GetResult();
-				b2.GetAwaiter().GetResult();
-				a.GetAwaiter().GetResult();
-			}
-		}
-
-		[Fact]
 		public void CanGetGenesisFromRPC()
 		{
 			using(var builder = NodeBuilderEx.Create())
@@ -107,7 +77,10 @@ namespace BitcoinNet.Tests
 				var rpc = node.CreateRPCClient();
 				builder.StartAll();
 				node.Generate(101);
-				var txid = rpc.SendToAddress(new Key().PubKey.GetAddress(rpc.Network), Money.Coins(1.0m), "hello", "world");
+
+				var txid = new uint256(rpc.SendCommand("sendtoaddress",
+					new Key().PubKey.GetAddress(rpc.Network).ToString(),
+					"1.0").Result.ToString());
 				var ids = rpc.GetRawMempool();
 				Assert.Equal(1, ids.Length);
 				Assert.Equal(txid, ids[0]);
@@ -134,14 +107,17 @@ namespace BitcoinNet.Tests
 			using(var builder = NodeBuilderEx.Create())
 			{
 				var node = builder.CreateNode();
+				var rpc = node.CreateRPCClient();
 				builder.StartAll();
 				node.Generate(101);
 
-				var tx = new Transaction();
+				var tx = rpc.Network.CreateTransaction();
 				tx.Outputs.Add(new TxOut(Money.Coins(1.0m), new Key()));
-				var funded = node.CreateRPCClient().FundRawTransaction(tx);
-				var signed = node.CreateRPCClient().SignRawTransaction(funded.Transaction);
-				node.CreateRPCClient().SendRawTransaction(signed);
+				var funded = Transaction.Parse(
+					rpc.SendCommand("fundrawtransaction", tx.ToHex())
+						.Result["hex"].ToString(), rpc.Network);
+				var signed = rpc.SignRawTransaction(funded);
+				rpc.SendRawTransaction(signed);
 			}
 		}
 		
@@ -189,7 +165,8 @@ namespace BitcoinNet.Tests
 				Assert.Equal((uint)firstTx.GetSerializedSize(), txInfo.Size);
 
 				// unconfirmed tx doesn't have blockhash, blocktime nor transactiontime.
-				var mempoolTxId = rpc.SendToAddress(new Key().PubKey.GetAddress(builder.Network), Money.Coins(1));
+				var mempoolTxId = new uint256(rpc.SendCommand("sendtoaddress",
+					new Key().PubKey.GetAddress(builder.Network).ToString(), "1.0").Result.ToString());
 				txInfo = rpc.GetRawTransactionInfo(mempoolTxId);
 				Assert.Null(txInfo.TransactionTime);
 				Assert.Null(txInfo.BlockHash);
@@ -237,7 +214,8 @@ namespace BitcoinNet.Tests
 				// 2. Spend the first coin
 				var address = new Key().PubKey.GetAddress(rpc.Network);
 				Money sendAmount = Money.Parse("49");
-				txId = await rpc.SendToAddressAsync(address, sendAmount);
+				txId = new uint256((await rpc.SendCommandAsync("sendtoaddress",
+					address.ToString(), sendAmount.ToString())).Result.ToString());
 
 				// 3. Make sure if we don't include the mempool into the database the txo will not be considered utxo
 				getTxOutResponse = await rpc.GetTxOutAsync(txId, 0, false);
@@ -278,8 +256,6 @@ namespace BitcoinNet.Tests
 				node.Generate(101);
 				var rpc = node.CreateRPCClient();
 				Assert.Throws<NoEstimationException>(() => rpc.EstimateSmartFee(1));
-				Assert.Equal(Money.Coins(50m), rpc.GetBalance(1, false));
-				Assert.Equal(Money.Coins(50m), rpc.GetBalance());
 			}
 		}
 
@@ -297,49 +273,6 @@ namespace BitcoinNet.Tests
 		}
 
 		[Fact]
-		public void TestFundRawTransaction()
-		{
-			using(var builder = NodeBuilderEx.Create())
-			{
-				var node = builder.CreateNode();
-				var rpc = node.CreateRPCClient();
-				node.Start();
-				rpc.Generate(101);
-
-				var k = new Key();
-				var tx = new Transaction();
-				tx.Outputs.Add(new TxOut(Money.Coins(1), k));
-				var result = rpc.FundRawTransaction(tx);
-				TestFundRawTransactionResult(tx, result);
-
-				result = rpc.FundRawTransaction(tx, new FundRawTransactionOptions());
-				TestFundRawTransactionResult(tx, result);
-				var result1 = result;
-
-				var change = rpc.GetNewAddress();
-				var change2 = rpc.GetRawChangeAddress();
-				result = rpc.FundRawTransaction(tx, new FundRawTransactionOptions()
-				{
-					FeeRate = new FeeRate(Money.Satoshis(50), 1),
-					IncludeWatching = true,
-					ChangeAddress = change,
-				});
-				TestFundRawTransactionResult(tx, result);
-				Assert.True(result1.Fee < result.Fee);
-				Assert.True(result.Transaction.Outputs.Any(o => o.ScriptPubKey == change.ScriptPubKey));
-			}
-		}
-
-		private static void TestFundRawTransactionResult(Transaction tx, FundRawTransactionResponse result)
-		{
-			Assert.Equal(tx.Version, result.Transaction.Version);
-			Assert.True(result.Transaction.Inputs.Count > 0);
-			Assert.True(result.Transaction.Outputs.Count > 1);
-			Assert.True(result.ChangePos != -1);
-			Assert.Equal(Money.Coins(50m) - result.Transaction.Outputs.Select(txout => txout.Value).Sum(), result.Fee);
-		}
-
-		[Fact]
 		public void CanGetTransactionBlockFromRPC()
 		{
 			using(var builder = NodeBuilderEx.Create())
@@ -349,319 +282,6 @@ namespace BitcoinNet.Tests
 				var blockId = rpc.GetBestBlockHash();
 				var block = rpc.GetBlock(blockId);
 				Assert.True(block.CheckMerkleRoot());
-			}
-		}
-
-		[Fact]
-		public void CanGetPrivateKeysFromAccount()
-		{
-			using(var builder = NodeBuilderEx.Create())
-			{
-				var rpc = builder.CreateNode().CreateRPCClient();
-				builder.StartAll();
-				Key key = new Key();
-				rpc.ImportAddress(key.PubKey.GetAddress(builder.Network), TestAccount, false);
-				BitcoinAddress address = rpc.GetAccountAddress(TestAccount);
-				BitcoinSecret secret = rpc.DumpPrivKey(address);
-				BitcoinSecret secret2 = rpc.GetAccountSecret(TestAccount);
-
-				Assert.Equal(secret.ToString(), secret2.ToString());
-				var p2pkh = secret.GetAddress().ToString();
-				var wit = secret.PubKey.Hash.GetAddress(builder.Network).ToString();
-				var p2shwit = secret.PubKey.Hash.ScriptPubKey.GetScriptAddress(builder.Network).ToString();
-				Assert.True(address.ToString() == p2pkh || address.ToString() == wit || address.ToString() == p2shwit);
-			}
-		}
-
-		[Fact]
-		public void CanImportMultiAddresses()
-		{
-			// Test cases borrowed from: https://github.com/bitcoin/bitcoin/blob/master/test/functional/importmulti.py
-			using(var builder = NodeBuilderEx.Create())
-			{
-				var rpc = builder.CreateNode().CreateRPCClient();
-				builder.StartAll();
-
-				Key key;
-				RPCException response;
-				List<ImportMultiAddress> multiAddresses;
-				Network network = Network.RegTest;
-
-				// 20 total test cases
-
-				// Bitcoin Address
-				Console.WriteLine("Should import an address");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { Address = key.PubKey.GetAddress(network) },
-						Timestamp = Utils.UnixTimeToDateTime(0)
-					}
-				};
-
-				rpc.ImportMulti(multiAddresses.ToArray(), false);
-
-				// ScriptPubKey + internal
-				Console.WriteLine("Should import a scriptPubKey with internal flag");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject (key.ScriptPubKey),
-						Internal = true
-					}
-				};
-
-				rpc.ImportMulti(multiAddresses.ToArray(), false);
-
-				// ScriptPubKey + !internal
-				Console.WriteLine("Should not import a scriptPubKey without internal flag");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { ScriptPubKey = key.ScriptPubKey },
-					}
-				};
-
-				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-				Assert.Equal(response.RPCCode, RPCErrorCode.RPC_INVALID_PARAMETER);
-				Assert.Equal(response.Message, "Internal must be set for hex scriptPubKey");
-
-				// Address + Public key + !internal
-				Console.WriteLine("Should import an address with public key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject(key.PubKey.GetAddress(network)),
-						PubKeys = new string[] { key.PubKey.ToString() }
-					}
-				};
-
-				rpc.ImportMulti(multiAddresses.ToArray(), false);
-
-				// ScriptPubKey + Public key + internal
-				Console.WriteLine("Should import a scriptPubKey with internal and with public key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { ScriptPubKey = key.ScriptPubKey },
-						PubKeys = new string[] { key.PubKey.ToString() },
-						Internal = true
-					}
-				};
-
-				rpc.ImportMulti(multiAddresses.ToArray(), false);
-
-				// ScriptPubKey + Public key + !internal
-				// Console.WriteLine("Should not import a scriptPubKey without internal and with public key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { ScriptPubKey = key.ScriptPubKey },
-						PubKeys = new string[] { key.PubKey.ToString() }
-					}
-				};
-
-				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-				Assert.Equal(response.RPCCode, RPCErrorCode.RPC_INVALID_PARAMETER);
-				Assert.Equal(response.Message, "Internal must be set for hex scriptPubKey");
-
-				// Address + Private key + !watchonly
-				// Console.WriteLine("Should import an address with private key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { Address = key.PubKey.GetAddress(network) },
-						Keys = new string[] { key.GetWif(network).ToString() }
-					}
-				};
-
-				rpc.ImportMulti(multiAddresses.ToArray(), false);
-
-				Console.WriteLine("Should not import an address with private key if is already imported");
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { Address = key.PubKey.GetAddress(network) },
-						Keys = new string[] { key.GetWif(network).ToString() }
-					}
-				};
-
-				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-				Assert.Equal(response.RPCCode, RPCErrorCode.RPC_WALLET_ERROR);
-				Assert.Equal(response.Message, "The wallet already contains the private key for this address or script");
-
-				// Address + Private key + watchonly
-				Console.WriteLine("Should not import an address with private key and with watchonly");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { Address = key.PubKey.GetAddress(network) },
-						Keys = new string[] { key.GetWif(network).ToString() },
-						WatchOnly = true
-					}
-				};
-
-				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-				Assert.Equal(response.RPCCode, RPCErrorCode.RPC_INVALID_PARAMETER);
-				Assert.Equal(response.Message, "Incompatibility found between watchonly and keys");
-
-				// ScriptPubKey + Private key + internal
-				Console.WriteLine("Should import a scriptPubKey with internal and with private key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { ScriptPubKey = key.ScriptPubKey },
-						Keys = new string[] { key.GetWif(network).ToString() },
-						Internal = true
-					}
-				};
-
-				rpc.ImportMulti(multiAddresses.ToArray(), false);
-
-				// ScriptPubKey + Private key + !internal
-				Console.WriteLine("Should not import a scriptPubKey without internal and with private key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { ScriptPubKey = key.ScriptPubKey },
-						Keys = new string[] { key.GetWif(network).ToString() }
-					}
-				};
-
-				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-
-				// P2SH address
-				//Blocked : Dependent on implementation of rpc.CreateMultiSig()
-
-				// P2SH + Redeem script
-				//Blocked : Dependent on implementation of rpc.CreateMultiSig()
-
-				// P2SH + Redeem script + Private Keys + !Watchonly
-				//Blocked : Dependent on implementation of rpc.CreateMultiSig()
-
-				// P2SH + Redeem script + Private Keys + Watchonly
-				//Blocked : Dependent on implementation of rpc.CreateMultiSig()
-
-				// Address + Public key + !Internal + Wrong pubkey
-				Console.WriteLine("Should not import an address with a wrong public key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { Address = key.PubKey.GetAddress(network) },
-						PubKeys = new string[] { new Key().PubKey.ToString() }
-					}
-				};
-
-				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-				Assert.Equal(response.RPCCode, RPCErrorCode.RPC_INVALID_ADDRESS_OR_KEY);
-				Assert.Equal(response.Message, "Consistency check failed");
-
-				// ScriptPubKey + Public key + internal + Wrong pubkey
-				Console.WriteLine("Should not import a scriptPubKey with internal and with a wrong public key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { ScriptPubKey = key.ScriptPubKey },
-						PubKeys = new string[] { new Key().PubKey.ToString() },
-						Internal = true
-					}
-				};
-
-				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-				Assert.Equal(response.RPCCode, RPCErrorCode.RPC_INVALID_ADDRESS_OR_KEY);
-				Assert.Equal(response.Message, "Consistency check failed");
-
-				// Address + Private key + !watchonly + Wrong private key
-				Console.WriteLine("Should not import an address with a wrong private key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { Address = key.PubKey.GetAddress(network) },
-						Keys = new string[] { new Key().GetWif(network).ToString() }
-					}
-				};
-
-				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-				Assert.Equal(response.RPCCode, RPCErrorCode.RPC_INVALID_ADDRESS_OR_KEY);
-				Assert.Equal(response.Message, "Consistency check failed");
-
-				// ScriptPubKey + Private key + internal + Wrong private key
-				Console.WriteLine("Should not import a scriptPubKey with internal and with a wrong private key");
-				key = new Key();
-				multiAddresses = new List<ImportMultiAddress>
-				{
-					new ImportMultiAddress
-					{
-						ScriptPubKey = new ImportMultiAddress.ScriptPubKeyObject { ScriptPubKey = key.ScriptPubKey },
-						Keys = new string[] { new Key().GetWif(network).ToString() },
-						Internal = true
-					}
-				};
-
-				response = Assert.Throws<RPCException>(() => rpc.ImportMulti(multiAddresses.ToArray(), false));
-				Assert.Equal(response.RPCCode, RPCErrorCode.RPC_INVALID_ADDRESS_OR_KEY);
-				Assert.Equal(response.Message, "Consistency check failed");
-
-				// Importing existing watch only address with new timestamp should replace saved timestamp.
-				//TODO
-
-				// restart nodes to check for proper serialization/deserialization of watch only address
-				//TODO
-			}
-
-
-		}
-
-		[Fact]
-		public void CanGetPrivateKeysFromLockedAccount()
-		{
-			using(var builder = NodeBuilderEx.Create())
-			{
-				var rpc = builder.CreateNode().CreateRPCClient();
-				builder.StartAll();
-				Key key = new Key();
-				var passphrase = "password1234";
-				rpc.SendCommand(RPCOperations.encryptwallet, passphrase);
-				builder.Nodes[0].Restart();
-				rpc.ImportAddress(key.PubKey.GetAddress(Network.RegTest), TestAccount, false);
-				BitcoinAddress address = rpc.GetAccountAddress(TestAccount);
-				rpc.WalletPassphrase(passphrase, 60);
-				BitcoinSecret secret = rpc.DumpPrivKey(address);
-				BitcoinSecret secret2 = rpc.GetAccountSecret(TestAccount);
-
-				Assert.Equal(secret.ToString(), secret2.ToString());
-
-				var p2pkh = secret.GetAddress().ToString();
-				var wit = secret.PubKey.Hash.GetAddress(builder.Network).ToString();
-				var p2shwit = secret.PubKey.Hash.ScriptPubKey.GetScriptAddress(builder.Network).ToString();
-				Assert.True(address.ToString() == p2pkh || address.ToString() == wit || address.ToString() == p2shwit);
 			}
 		}
 
@@ -972,29 +592,6 @@ namespace BitcoinNet.Tests
 				{
 					Thread.Sleep(100);
 					totalTry--;
-				}
-			}
-		}
-
-		[Fact]
-		public void CanBackupWallet()
-		{
-			using(var builder = NodeBuilderEx.Create())
-			{
-				var node = builder.CreateNode();
-				node.Start();
-				var buildOutputDir = Path.GetDirectoryName(".");
-				var filePath = Path.Combine(buildOutputDir, "wallet_backup.dat");
-				try
-				{
-					var rpc = node.CreateRPCClient();
-					rpc.BackupWallet(filePath);
-					Assert.True(File.Exists(filePath));
-				}
-				finally
-				{
-					if(File.Exists(filePath))
-						File.Delete(filePath);
 				}
 			}
 		}

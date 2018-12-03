@@ -85,47 +85,6 @@ namespace BitcoinNet.RPC
 		hidden			reconsiderblock
 		hidden			setmocktime
 		hidden			resendwallettransactions
-
-		------------------ Wallet
-		wallet			 addmultisigaddress
-		wallet			 backupwallet				 Yes
-		wallet			 dumpprivkey				  Yes
-		wallet			 dumpwallet
-		wallet			 encryptwallet
-		wallet			 getaccountaddress			Yes
-		wallet			 getaccount
-		wallet			 getaddressesbyaccount
-		wallet			 getbalance
-		wallet			 getnewaddress
-		wallet			 getrawchangeaddress
-		wallet			 getreceivedbyaccount
-		wallet			 getreceivedbyaddress
-		wallet			 gettransaction
-		wallet			 getunconfirmedbalance
-		wallet			 getwalletinfo
-		wallet			 importprivkey				Yes
-		wallet			 importwallet
-		wallet			 importaddress				Yes
-		wallet			 keypoolrefill
-		wallet			 listaccounts				 Yes
-		wallet			 listaddressgroupings		 Yes
-		wallet			 listlockunspent
-		wallet			 listreceivedbyaccount
-		wallet			 listreceivedbyaddress
-		wallet			 listsinceblock
-		wallet			 listtransactions
-		wallet			 listunspent				  Yes
-		wallet			 lockunspent				  Yes
-		wallet			 move
-		wallet			 sendfrom
-		wallet			 sendmany
-		wallet			 sendtoaddress
-		wallet			 setaccount
-		wallet			 settxfee
-		wallet			 signmessage
-		wallet			 walletlock
-		wallet			 walletpassphrasechange
-		wallet			 walletpassphrase			yes
 	*/
 	public partial class RPCClient : IBlockRepository
 	{
@@ -367,28 +326,6 @@ namespace BitcoinNet.RPC
 		public RPCResponse SendCommand(RPCOperations commandName, params object[] parameters)
 		{
 			return SendCommand(commandName.ToString(), parameters);
-		}
-
-		public BitcoinAddress GetNewAddress()
-		{
-			return BitcoinAddress.Create(SendCommand(RPCOperations.getnewaddress).Result.ToString(), Network);
-		}
-
-		public async Task<BitcoinAddress> GetNewAddressAsync()
-		{
-			var result = await SendCommandAsync(RPCOperations.getnewaddress).ConfigureAwait(false);
-			return BitcoinAddress.Create(result.Result.ToString(), Network);
-		}
-
-		public BitcoinAddress GetRawChangeAddress()
-		{
-			return GetRawChangeAddressAsync().GetAwaiter().GetResult();
-		}
-
-		public async Task<BitcoinAddress> GetRawChangeAddressAsync()
-		{
-			var result = await SendCommandAsync(RPCOperations.getrawchangeaddress).ConfigureAwait(false);
-			return BitcoinAddress.Create(result.Result.ToString(), Network);
 		}
 
 		public Task<RPCResponse> SendCommandAsync(RPCOperations commandName, params object[] parameters)
@@ -682,12 +619,6 @@ namespace BitcoinNet.RPC
 		private HttpWebRequest CreateWebRequest()
 		{
 			var address = Address.AbsoluteUri;
-			if(!string.IsNullOrEmpty(CredentialString.WalletName))
-			{
-				if(!address.EndsWith("/"))
-					address = address + "/";
-				address += "wallet/" + CredentialString.WalletName;
-			}
 			var webRequest = (HttpWebRequest)WebRequest.Create(address);
 			webRequest.Headers[HttpRequestHeader.Authorization] = "Basic " + Encoders.Base64.EncodeData(Encoders.ASCII.DecodeData(_Authentication));
 			webRequest.ContentType = "application/json-rpc";
@@ -1173,21 +1104,27 @@ namespace BitcoinNet.RPC
 			return SendCommandAsync(RPCOperations.sendrawtransaction, Encoders.Hex.EncodeData(bytes));
 		}
 
-		public BumpResponse BumpFee(uint256 txid)
+		/// <summary>
+		/// Sign a transaction
+		/// </summary>
+		/// <param name="tx">The transaction to be signed</param>
+		/// <returns>The signed transaction</returns>
+		public Transaction SignRawTransaction(Transaction tx)
 		{
-			return BumpFeeAsync(txid).GetAwaiter().GetResult();
+			if (tx == null)
+				throw new ArgumentNullException(nameof(tx));
+			return SignRawTransactionAsync(tx).GetAwaiter().GetResult();
 		}
 
-		public async Task<BumpResponse> BumpFeeAsync(uint256 txid)
+		/// <summary>
+		/// Sign a transaction
+		/// </summary>
+		/// <param name="tx">The transaction to be signed</param>
+		/// <returns>The signed transaction</returns>
+		public async Task<Transaction> SignRawTransactionAsync(Transaction tx)
 		{
-			var response = await SendCommandAsync(RPCOperations.bumpfee, txid);
-			var o = response.Result;
-			return new BumpResponse{
-				TransactionId = uint256.Parse((string)o["txid"]),
-				OriginalFee = (ulong)o["origfee"],
-				Fee = (ulong)o["fee"],
-				Errors = o["errors"].Select(x=>(string)x).ToList()
-			};
+			var result = await SendCommandAsync(RPCOperations.signrawtransaction, tx.ToHex()).ConfigureAwait(false);
+			return new Transaction(result.Result["hex"].Value<string>());
 		}
 
 		// Utility functions
@@ -1276,71 +1213,6 @@ namespace BitcoinNet.RPC
 			};
 		}
 
-		/// <summary>
-		/// Requires wallet support. Requires an unlocked wallet or an unencrypted wallet.
-		/// </summary>
-		/// <param name="address">A P2PKH or P2SH address to which the bitcoins should be sent</param>
-		/// <param name="amount">The amount to spend</param>
-		/// <param name="commentTx">A locally-stored (not broadcast) comment assigned to this transaction. Default is no comment</param>
-		/// <param name="commentDest">A locally-stored (not broadcast) comment assigned to this transaction. Meant to be used for describing who the payment was sent to. Default is no comment</param>
-		/// <param name="subtractFeeFromAmount">The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. </param>
-		/// <returns>The TXID of the sent transaction</returns>
-		public uint256 SendToAddress(
-			BitcoinAddress address, 
-			Money amount, 
-			string commentTx = null, 
-			string commentDest = null,
-			bool subtractFeeFromAmount = false
-		)
-		{
-			uint256 txid = null;
-
-			txid = SendToAddressAsync(address, amount, commentTx, commentDest, subtractFeeFromAmount).GetAwaiter().GetResult();
-			return txid;
-		}
-
-		/// <summary>
-		/// Requires wallet support. Requires an unlocked wallet or an unencrypted wallet.
-		/// </summary>
-		/// <param name="address">A P2PKH or P2SH address to which the bitcoins should be sent</param>
-		/// <param name="amount">The amount to spend</param>
-		/// <param name="commentTx">A locally-stored (not broadcast) comment assigned to this transaction. Default is no comment</param>
-		/// <param name="commentDest">A locally-stored (not broadcast) comment assigned to this transaction. Meant to be used for describing who the payment was sent to. Default is no comment</param>
-		/// <param name="subtractFeeFromAmount">The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. </param>
-		/// <param name="replaceable">Allow this transaction to be replaced by a transaction with higher fees. </param>
-		/// <returns>The TXID of the sent transaction</returns>
-		public async Task<uint256> SendToAddressAsync(
-			BitcoinAddress address, 
-			Money amount, 
-			string commentTx = null, 
-			string commentDest = null, 
-			bool subtractFeeFromAmount = false
-			)
-		{
-			// According to Bitcoin ABC repository, we can either send 2 or 5 parameters.
-			// More details:
-			// https://github.com/Bitcoin-ABC/bitcoin-abc/blob/a67d106b8c7f64c7555aa3f7a2eb118b30c50503/src/rpc/client.cpp#L37
-
-			List<object> parameters = new List<object>();
-			parameters.Add(address.ToString());
-			parameters.Add(amount.ToString());
-
-			if (!String.IsNullOrEmpty(commentTx) || !String.IsNullOrEmpty(commentDest) || subtractFeeFromAmount)
-			{
-				parameters.Add($"{commentTx}");
-				parameters.Add($"{commentDest}");
-				parameters.Add(subtractFeeFromAmount);
-			}
-			
-			var resp = await SendCommandAsync(RPCOperations.sendtoaddress, parameters.ToArray()).ConfigureAwait(false);
-			return uint256.Parse(resp.Result.ToString());
-		}
-
-		public bool SetTxFee(FeeRate feeRate)
-		{
-			return SendCommand(RPCOperations.settxfee, new[] { feeRate.FeePerK.ToString() }).Result.ToString() == "true";
-		}
-
 		public async Task<uint256[]> GenerateAsync(int nBlocks)
 		{
 			if(nBlocks < 0)
@@ -1370,26 +1242,6 @@ namespace BitcoinNet.RPC
 		public async Task InvalidateBlockAsync(uint256 blockhash)
 		{
 			await SendCommandAsync(RPCOperations.invalidateblock, blockhash).ConfigureAwait(false);
-		}
-
-		/// <summary>
-		/// Marks a transaction and all its in-wallet descendants as abandoned which will allow
-		/// for their inputs to be respent.
-		/// </summary>
-		/// <param name="txId">the transaction id to be marked as abandoned.</param>
-		public void AbandonTransaction(uint256 txId)
-		{
-			SendCommand(RPCOperations.abandontransaction, txId.ToString());
-		}
-
-		/// <summary>
-		/// Marks a transaction and all its in-wallet descendants as abandoned which will allow
-		/// for their inputs to be respent.
-		/// </summary>
-		/// <param name="txId">the transaction id to be marked as abandoned.</param>
-		public async Task AbandonTransactionAsync(uint256 txId)
-		{
-			await SendCommandAsync(RPCOperations.abandontransaction, txId.ToString()).ConfigureAwait(false);
 		}
 	}
 
@@ -1549,14 +1401,6 @@ namespace BitcoinNet.RPC
 		public uint Confirmations {get; internal set;}
 		public DateTimeOffset? TransactionTime {get; internal set;}
 		public DateTimeOffset? BlockTime {get; internal set;}
-	}
-	
-	public class BumpResponse
-	{
-		public uint256 TransactionId { get; set; }
-		public ulong OriginalFee { get; set; }
-		public ulong Fee { get; set; }
-		public List<string> Errors { get; set; }
 	}
 
 	public class NoEstimationException : Exception

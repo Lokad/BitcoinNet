@@ -72,12 +72,12 @@ namespace BitcoinNet.Tests
 
 				var alice = new Key().GetBitcoinSecret(builder.Network);
 				var aliceAddress = alice.GetAddress();
-				var txid = rpc.SendToAddress(aliceAddress, Money.Coins(1.0m));
+				var txid = new uint256(rpc.SendCommand("sendtoaddress",
+					aliceAddress.ToString(), "1.0").Result.ToString());
 				var tx = rpc.GetRawTransaction(txid);
 				var coin = tx.Outputs.AsCoins().First(c => c.ScriptPubKey == aliceAddress.ScriptPubKey);
 
-				TransactionBuilder txbuilder = new TransactionBuilder();
-				txbuilder.SetConsensusFactory(builder.Network);
+				TransactionBuilder txbuilder = builder.Network.CreateTransactionBuilder();
 				txbuilder.AddCoins(coin);
 				txbuilder.AddKeys(alice);
 				txbuilder.Send(new Key().ScriptPubKey, Money.Coins(0.4m));
@@ -96,12 +96,9 @@ namespace BitcoinNet.Tests
 			{
 				var node = builder.CreateNode();
 				builder.StartAll();
-				var addr = node.CreateRPCClient().SendCommand(RPC.RPCOperations.getnewaddress).Result.ToString();
-				var addr2 = BitcoinAddress.Create(addr, builder.Network).ToString();
-				Assert.Equal(addr, addr2);
 
 				var address = new Key().PubKey.GetAddress(builder.Network);
-				var isValid = ((JObject)node.CreateRPCClient().SendCommand("validateaddress", address.ToString()).Result)["isvalid"].Value<bool>();
+				var isValid = ((JObject)node.CreateRPCClient().SendCommand(RPCOperations.validateaddress, address.ToString()).Result)["isvalid"].Value<bool>();
 				Assert.True(isValid);
 			}
 		}
