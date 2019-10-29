@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading.Tasks;
+using BitcoinNet.Scripting;
 using Builder = System.Func<BitcoinNet.TransactionBuilder.TransactionBuildingContext, BitcoinNet.IMoney>;
 
 namespace BitcoinNet

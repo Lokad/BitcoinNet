@@ -9,6 +9,7 @@ using BitcoinNet.DataEncoders;
 using BitcoinNet.Protocol;
 using System.Collections.Concurrent;
 using BCashAddr;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {

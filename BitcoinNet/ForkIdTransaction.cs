@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 using BitcoinNet.Crypto;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {

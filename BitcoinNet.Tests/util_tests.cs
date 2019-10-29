@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using BitcoinNet.Scripting;
 using Xunit;
 
 namespace BitcoinNet.Tests

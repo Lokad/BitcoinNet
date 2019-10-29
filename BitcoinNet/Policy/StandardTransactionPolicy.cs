@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet.Policy
 {
@@ -10,7 +11,7 @@ namespace BitcoinNet.Policy
 	{
 		public StandardTransactionPolicy()
 		{
-			ScriptVerify = BitcoinNet.ScriptVerify.Standard;
+			ScriptVerify = Scripting.ScriptVerify.Standard;
 			MaxTransactionSize = 100000;
 			MaxTxFee = new FeeRate(Money.Coins(0.1m));
 			MinRelayTxFee = new FeeRate(Money.Satoshis(1000), 1000);
@@ -174,14 +175,14 @@ namespace BitcoinNet.Policy
 #endif
 			{
 				if(input.Transaction is IHasForkId)
-					scriptVerify |= BitcoinNet.ScriptVerify.ForkId;
+					scriptVerify |= Scripting.ScriptVerify.ForkId;
 				return input.VerifyScript(scriptPubKey, value, scriptVerify, out error);
 			}
 #if !NOCONSENSUSLIB
 			else
 			{
 			if(input.Transaction is IHasForkId)
-					scriptVerify |= (BitcoinNet.ScriptVerify)(1U << 16);
+					scriptVerify |= (ScriptVerify)(1U << 16);
 				var ok = Script.VerifyScriptConsensus(scriptPubKey, input.Transaction, input.Index, scriptVerify);
 				if(!ok)
 				{

@@ -1,5 +1,6 @@
 ﻿using BitcoinNet.Policy;
 using System.Linq;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {

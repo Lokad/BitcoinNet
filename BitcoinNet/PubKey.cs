@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BitcoinNet.BouncyCastle.Math.EC;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {

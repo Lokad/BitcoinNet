@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using Xunit;
 using Newtonsoft.Json.Linq;
 using System.Runtime.InteropServices;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet.Tests
 {
