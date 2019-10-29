@@ -1,6 +1,7 @@
 ﻿using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using System;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {

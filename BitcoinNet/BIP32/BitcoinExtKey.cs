@@ -1,4 +1,6 @@
-﻿namespace BitcoinNet
+﻿using BitcoinNet.Scripting;
+
+namespace BitcoinNet
 {
 	public abstract class BitcoinExtKeyBase : Base58Data, IDestination
 	{

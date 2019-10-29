@@ -3,6 +3,7 @@ using BitcoinNet.DataEncoders;
 using BitcoinNet.BouncyCastle.Math;
 using System;
 using System.Linq;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {

@@ -2,6 +2,7 @@
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
 using System.Linq;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {

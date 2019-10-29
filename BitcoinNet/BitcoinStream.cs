@@ -8,7 +8,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-
+using BitcoinNet.Scripting;
 
 
 namespace BitcoinNet

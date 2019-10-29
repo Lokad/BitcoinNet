@@ -2,6 +2,7 @@
 using System.Linq;
 using BCashAddr;
 using BitcoinNet.DataEncoders;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {

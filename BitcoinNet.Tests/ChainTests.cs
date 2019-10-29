@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using BitcoinNet.Scripting;
 using Xunit;
 
 namespace BitcoinNet.Tests

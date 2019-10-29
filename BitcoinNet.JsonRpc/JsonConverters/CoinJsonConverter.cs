@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Reflection;
+using BitcoinNet.Scripting;
 
 namespace BitcoinNet.JsonRpc.JsonConverters
 {
