@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet.BuilderExtensions
@@ -26,7 +22,7 @@ namespace BitcoinNet.BuilderExtensions
 
 		public override bool CanGenerateScriptSig(Script scriptPubKey)
 		{
-			return scriptPubKey.Length == 1 && scriptPubKey.ToBytes(true)[0] == (byte)OpcodeType.OP_TRUE;
+			return scriptPubKey.Length == 1 && scriptPubKey.ToBytes(true)[0] == (byte) OpcodeType.OP_TRUE;
 		}
 
 		public override Script CombineScriptSig(Script scriptPubKey, Script a, Script b)

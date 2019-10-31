@@ -1,60 +1,56 @@
-﻿using BitcoinNet.DataEncoders;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using BitcoinNet.DataEncoders;
 using BitcoinNet.Scripting;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BitcoinNet.JsonRpc
 {
-	class SatoshiFormatter : RawFormatter
+	internal class SatoshiFormatter : RawFormatter
 	{
 		protected override void BuildTransaction(JObject json, Transaction tx)
 		{
-			tx.Version = (uint)json.GetValue("version");
-			tx.LockTime = (uint)json.GetValue("locktime");
+			tx.Version = (uint) json.GetValue("version");
+			tx.LockTime = (uint) json.GetValue("locktime");
 
-			var vin = (JArray)json.GetValue("vin");
-			for(int i = 0; i < vin.Count; i++)
+			var vin = (JArray) json.GetValue("vin");
+			for (var i = 0; i < vin.Count; i++)
 			{
-				var jsonIn = (JObject)vin[i];
+				var jsonIn = (JObject) vin[i];
 				var txin = new TxIn();
 				tx.Inputs.Add(txin);
 
-				var script = (JObject)jsonIn.GetValue("scriptSig");
-				if(script != null)
+				var script = (JObject) jsonIn.GetValue("scriptSig");
+				if (script != null)
 				{
-					txin.ScriptSig = new Script(Encoders.Hex.DecodeData((string)script.GetValue("hex")));
-					txin.PrevOut.Hash = uint256.Parse((string)jsonIn.GetValue("txid"));
-					txin.PrevOut.N = (uint)jsonIn.GetValue("vout");
+					txin.ScriptSig = new Script(Encoders.Hex.DecodeData((string) script.GetValue("hex")));
+					txin.PrevOut.Hash = uint256.Parse((string) jsonIn.GetValue("txid"));
+					txin.PrevOut.N = (uint) jsonIn.GetValue("vout");
 				}
 				else
 				{
-					var coinbase = (string)jsonIn.GetValue("coinbase");
+					var coinbase = (string) jsonIn.GetValue("coinbase");
 					txin.ScriptSig = new Script(Encoders.Hex.DecodeData(coinbase));
 				}
 
-				txin.Sequence = (uint)jsonIn.GetValue("sequence");
-
+				txin.Sequence = (uint) jsonIn.GetValue("sequence");
 			}
 
-			var vout = (JArray)json.GetValue("vout");
-			for(int i = 0; i < vout.Count; i++)
+			var vout = (JArray) json.GetValue("vout");
+			for (var i = 0; i < vout.Count; i++)
 			{
-				var jsonOut = (JObject)vout[i];
+				var jsonOut = (JObject) vout[i];
 				var txout = new TxOut();
 				tx.Outputs.Add(txout);
 
-				var btc = (decimal)jsonOut.GetValue("value");
-				var satoshis = btc * Money.COIN;
-				txout.Value = new Money((long)(satoshis));
+				var btc = (decimal) jsonOut.GetValue("value");
+				var satoshis = btc * Money.Coin;
+				txout.Value = new Money((long) satoshis);
 
-				var script = (JObject)jsonOut.GetValue("scriptPubKey");
-				txout.ScriptPubKey = new Script(Encoders.Hex.DecodeData((string)script.GetValue("hex")));
+				var script = (JObject) jsonOut.GetValue("scriptPubKey");
+				txout.ScriptPubKey = new Script(Encoders.Hex.DecodeData((string) script.GetValue("hex")));
 			}
 		}
 
@@ -66,11 +62,11 @@ namespace BitcoinNet.JsonRpc
 
 			writer.WritePropertyName("vin");
 			writer.WriteStartArray();
-			foreach(var txin in tx.Inputs)
+			foreach (var txin in tx.Inputs)
 			{
 				writer.WriteStartObject();
 
-				if(txin.PrevOut.Hash == uint256.Zero)
+				if (txin.PrevOut.Hash == uint256.Zero)
 				{
 					WritePropertyValue(writer, "coinbase", Encoders.Hex.EncodeData(txin.ScriptSig.ToBytes()));
 				}
@@ -86,16 +82,18 @@ namespace BitcoinNet.JsonRpc
 
 					writer.WriteEndObject();
 				}
-				WritePropertyValue(writer, "sequence", (uint)txin.Sequence);
+
+				WritePropertyValue(writer, "sequence", (uint) txin.Sequence);
 				writer.WriteEndObject();
 			}
+
 			writer.WriteEndArray();
 
 			writer.WritePropertyName("vout");
 			writer.WriteStartArray();
 
-			int i = 0;
-			foreach(var txout in tx.Outputs)
+			var i = 0;
+			foreach (var txout in tx.Outputs)
 			{
 				writer.WriteStartObject();
 				writer.WritePropertyName("value");
@@ -108,14 +106,15 @@ namespace BitcoinNet.JsonRpc
 				WritePropertyValue(writer, "asm", txout.ScriptPubKey.ToString());
 				WritePropertyValue(writer, "hex", Encoders.Hex.EncodeData(txout.ScriptPubKey.ToBytes()));
 
-				var destinations = new List<TxDestination>() { txout.ScriptPubKey.GetDestination() };
-				if(destinations[0] == null)
+				var destinations = new List<TxDestination> {txout.ScriptPubKey.GetDestination()};
+				if (destinations[0] == null)
 				{
 					destinations = txout.ScriptPubKey.GetDestinationPublicKeys()
-														.Select(p => p.Hash)
-														.ToList<TxDestination>();
+						.Select(p => p.Hash)
+						.ToList<TxDestination>();
 				}
-				if(destinations.Count == 1)
+
+				if (destinations.Count == 1)
 				{
 					WritePropertyValue(writer, "reqSigs", 1);
 					WritePropertyValue(writer, "type", GetScriptType(txout.ScriptPubKey.FindTemplate()));
@@ -127,17 +126,21 @@ namespace BitcoinNet.JsonRpc
 				else
 				{
 					var multi = PayToMultiSigTemplate.Instance.ExtractScriptPubKeyParameters(txout.ScriptPubKey);
-					if(multi != null)
+					if (multi != null)
+					{
 						WritePropertyValue(writer, "reqSigs", multi.SignatureCount);
+					}
+
 					WritePropertyValue(writer, "type", GetScriptType(txout.ScriptPubKey.FindTemplate()));
-					if(multi != null)
+					if (multi != null)
 					{
 						writer.WritePropertyName("addresses");
 						writer.WriteStartArray();
-						foreach(var key in multi.PubKeys)
+						foreach (var key in multi.PubKeys)
 						{
 							writer.WriteValue(key.Hash.GetAddress(Network).ToString());
 						}
+
 						writer.WriteEndArray();
 					}
 				}
@@ -146,25 +149,32 @@ namespace BitcoinNet.JsonRpc
 				writer.WriteEndObject(); //in out
 				i++;
 			}
+
 			writer.WriteEndArray();
 		}
 
 		private string ValueFromAmount(Money money)
 		{
-			var satoshis = (decimal)money.Satoshi;
-			var btc = satoshis / Money.COIN;
+			var satoshis = (decimal) money.Satoshi;
+			var btc = satoshis / Money.Coin;
 			//return btc.ToString("0.###E+00", CultureInfo.InvariantCulture);
-			var result = ((double)btc).ToString(CultureInfo.InvariantCulture);
-			if(!result.ToCharArray().Contains('.'))
+			var result = ((double) btc).ToString(CultureInfo.InvariantCulture);
+			if (!result.ToCharArray().Contains('.'))
+			{
 				result = result + ".0";
+			}
+
 			return result;
 		}
 
 		private string GetScriptType(ScriptTemplate template)
 		{
-			if(template == null)
+			if (template == null)
+			{
 				return "nonstandard";
-			switch(template.Type)
+			}
+
+			switch (template.Type)
 			{
 				case TxOutType.TX_PUBKEY:
 					return "pubkey";
@@ -177,6 +187,7 @@ namespace BitcoinNet.JsonRpc
 				case TxOutType.TX_NULL_DATA:
 					return "nulldata";
 			}
+
 			return "nonstandard";
 		}
 	}

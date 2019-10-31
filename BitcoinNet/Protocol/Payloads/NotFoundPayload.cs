@@ -1,62 +1,41 @@
-﻿using System;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.Protocol
 {
 	/// <summary>
-	/// A getdata message for an asked hash is not found by the remote peer
+	///     A getdata message for an asked hash is not found by the remote peer
 	/// </summary>
 	public class NotFoundPayload : Payload, IEnumerable<InventoryVector>
 	{
+		private List<InventoryVector> _inventory = new List<InventoryVector>();
+
 		public NotFoundPayload()
 		{
-
 		}
+
 		public NotFoundPayload(params Transaction[] transactions)
 			: this(transactions.Select(tx => new InventoryVector(InventoryType.MSG_TX, tx.GetHash())).ToArray())
 		{
-
 		}
+
 		public NotFoundPayload(params Block[] blocks)
 			: this(blocks.Select(b => new InventoryVector(InventoryType.MSG_BLOCK, b.GetHash())).ToArray())
 		{
-
 		}
+
 		public NotFoundPayload(InventoryType type, params uint256[] hashes)
 			: this(hashes.Select(h => new InventoryVector(type, h)).ToArray())
 		{
-
 		}
+
 		public NotFoundPayload(params InventoryVector[] invs)
 		{
-			_Inventory.AddRange(invs);
-		}
-		List<InventoryVector> _Inventory = new List<InventoryVector>();
-		public List<InventoryVector> Inventory
-		{
-			get
-			{
-				return _Inventory;
-			}
+			_inventory.AddRange(invs);
 		}
 
-		// IBitcoinSerializable Members
-
-		public override void ReadWriteCore(BitcoinStream stream)
-		{
-			var old = stream.MaxArraySize;
-			stream.MaxArraySize = 5000;
-			stream.ReadWrite(ref _Inventory);
-			stream.MaxArraySize = old;
-		}
-
-		public override string ToString()
-		{
-			return "Count: " + Inventory.Count.ToString();
-		}
+		public List<InventoryVector> Inventory => _inventory;
 
 		// IEnumerable<uint256> Members
 
@@ -67,9 +46,24 @@ namespace BitcoinNet.Protocol
 
 		// IEnumerable Members
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
+		}
+
+		// IBitcoinSerializable Members
+
+		public override void ReadWriteCore(BitcoinStream stream)
+		{
+			var old = stream.MaxArraySize;
+			stream.MaxArraySize = 5000;
+			stream.ReadWrite(ref _inventory);
+			stream.MaxArraySize = old;
+		}
+
+		public override string ToString()
+		{
+			return "Count: " + Inventory.Count;
 		}
 	}
 }

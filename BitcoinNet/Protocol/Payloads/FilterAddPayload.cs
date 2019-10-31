@@ -1,38 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Protocol
+﻿namespace BitcoinNet.Protocol
 {
 	[Payload("filteradd")]
 	public class FilterAddPayload : Payload
 	{
+		private byte[] _data;
+
 		public FilterAddPayload()
 		{
-
 		}
+
 		public FilterAddPayload(byte[] data)
 		{
-			_Data = data;
+			_data = data;
 		}
-		byte[] _Data;
+
 		public byte[] Data
 		{
-			get
-			{
-				return _Data;
-			}
-			set
-			{
-				_Data = value;
-			}
+			get => _data;
+			set => _data = value;
 		}
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			stream.ReadWriteAsVarString(ref _Data);
+			stream.ReadWriteAsVarString(ref _data);
 		}
 	}
 }

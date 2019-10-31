@@ -1,45 +1,47 @@
-﻿using BitcoinNet;
-using BitcoinNet.DataEncoders;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
+using BitcoinNet.DataEncoders;
+using Newtonsoft.Json;
 
 namespace BitcoinNet.JsonRpc.JsonConverters
 {
 	public class BitcoinSerializableJsonConverter : JsonConverter
-    {
-        public override bool CanConvert(Type objectType)
-        {
-            return typeof(IBitcoinSerializable).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
-        }
+	{
+		public override bool CanConvert(Type objectType)
+		{
+			return typeof(IBitcoinSerializable).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
+		}
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            if (reader.TokenType == JsonToken.Null)
-                return null;
+		public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
+			JsonSerializer serializer)
+		{
+			if (reader.TokenType == JsonToken.Null)
+			{
+				return null;
+			}
 
-            try
-            {
+			try
+			{
+				var obj = (IBitcoinSerializable) Activator.CreateInstance(objectType);
+				var bytes = Encoders.Hex.DecodeData((string) reader.Value);
+				obj.ReadWrite(bytes);
+				return obj;
+			}
+			catch (EndOfStreamException)
+			{
+			}
+			catch (FormatException)
+			{
+			}
 
-                var obj = (IBitcoinSerializable)Activator.CreateInstance(objectType);
-                var bytes = Encoders.Hex.DecodeData((string)reader.Value);
-                obj.ReadWrite(bytes);
-                return obj;
-            }
-            catch (EndOfStreamException)
-            {
-            }
-            catch (FormatException)
-            {
-            }
-            throw new JsonObjectException("Invalid bitcoin object of type " + objectType.Name, reader);
-        }
+			throw new JsonObjectException("Invalid bitcoin object of type " + objectType.Name, reader);
+		}
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            var bytes = ((IBitcoinSerializable)value).ToBytes();
-            writer.WriteValue(Encoders.Hex.EncodeData(bytes));
-        }
-    }
+		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+		{
+			var bytes = ((IBitcoinSerializable) value).ToBytes();
+			writer.WriteValue(Encoders.Hex.EncodeData(bytes));
+		}
+	}
 }

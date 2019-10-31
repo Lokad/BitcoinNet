@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Mnemonic
+﻿namespace BitcoinNet.Mnemonic
 {
 	public enum Language
 	{
@@ -16,5 +10,5 @@ namespace BitcoinNet.Mnemonic
 		French,
 		PortugueseBrazil,
 		Unknown
-	};
+	}
 }

@@ -1,18 +1,12 @@
-﻿using BitcoinNet.Protocol.Behaviors;
-using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Linq;
+﻿using System;
 using System.Net;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+using BitcoinNet.Protocol.Behaviors;
 
 namespace BitcoinNet.Protocol
 {
 	public class NodeConnectionParameters
 	{
-
 		public NodeConnectionParameters()
 		{
 			ReuseBuffer = true;
@@ -20,10 +14,10 @@ namespace BitcoinNet.Protocol
 			Version = null;
 			IsRelay = true;
 			Services = NodeServices.Nothing;
-			ConnectCancellation = default(CancellationToken);
+			ConnectCancellation = default;
 
 			// Use max supported by MAC OSX Yosemite/Mavericks/Sierra (https://fasterdata.es.net/host-tuning/osx/)
-			ReceiveBufferSize = 1048576; 
+			ReceiveBufferSize = 1048576;
 			SendBufferSize = 1048576;
 			////////////////////////
 
@@ -45,114 +39,63 @@ namespace BitcoinNet.Protocol
 			Advertize = other.Advertize;
 			ReuseBuffer = other.ReuseBuffer;
 			PreferredTransactionOptions = other.PreferredTransactionOptions;
-			foreach(var behavior in other.TemplateBehaviors)
+			foreach (var behavior in other.TemplateBehaviors)
 			{
 				TemplateBehaviors.Add(behavior.Clone());
 			}
 		}
 
 		/// <summary>
-		/// Send addr unsollicited message of the AddressFrom peer when passing to Handshaked state
+		///     Send addr unsollicited message of the AddressFrom peer when passing to Handshaked state
 		/// </summary>
-		public bool Advertize
-		{
-			get;
-			set;
-		}
+		public bool Advertize { get; set; }
 
-		public uint? Version
-		{
-			get;
-			set;
-		}
+		public uint? Version { get; set; }
 
 		/// <summary>
-		/// If true, the node will receive all incoming transactions if no bloomfilter are set
+		///     If true, the node will receive all incoming transactions if no bloomfilter are set
 		/// </summary>
-		public bool IsRelay
-		{
-			get;
-			set;
-		}
+		public bool IsRelay { get; set; }
 
-		public NodeServices Services
-		{
-			get;
-			set;
-		}
+		public NodeServices Services { get; set; }
 
-		public TransactionOptions PreferredTransactionOptions
-		{
-			get;
-			set;
-		}
+		public TransactionOptions PreferredTransactionOptions { get; set; }
 
-		public string UserAgent
-		{
-			get;
-			set;
-		}
-		public int ReceiveBufferSize
-		{
-			get;
-			set;
-		}
-		public int SendBufferSize
-		{
-			get;
-			set;
-		}
+		public string UserAgent { get; set; }
+
+		public int ReceiveBufferSize { get; set; }
+
+		public int SendBufferSize { get; set; }
 
 		/// <summary>
-		/// Whether we reuse a 1MB buffer for deserializing messages, for limiting GC activity (Default : true)
+		///     Whether we reuse a 1MB buffer for deserializing messages, for limiting GC activity (Default : true)
 		/// </summary>
-		public bool ReuseBuffer
-		{
-			get;
-			set;
-		}
-		public CancellationToken ConnectCancellation
-		{
-			get;
-			set;
-		}
+		public bool ReuseBuffer { get; set; }
 
-		private readonly NodeBehaviorsCollection _TemplateBehaviors = new NodeBehaviorsCollection(null);
-		public NodeBehaviorsCollection TemplateBehaviors
-		{
-			get
-			{
-				return _TemplateBehaviors;
-			}
-		}
+		public CancellationToken ConnectCancellation { get; set; }
+
+		public NodeBehaviorsCollection TemplateBehaviors { get; } = new NodeBehaviorsCollection(null);
+
+		public IPEndPoint AddressFrom { get; set; }
+
+		public ulong? Nonce { get; set; }
 
 		public NodeConnectionParameters Clone()
 		{
 			return new NodeConnectionParameters(this);
 		}
 
-		public IPEndPoint AddressFrom
-		{
-			get;
-			set;
-		}
-
-		public ulong? Nonce
-		{
-			get;
-			set;
-		}
-
 		public VersionPayload CreateVersion(IPEndPoint peer, Network network)
 		{
-			VersionPayload version = new VersionPayload()
+			var version = new VersionPayload
 			{
-				Nonce = Nonce == null ? RandomUtils.GetUInt64() : Nonce.Value,
+				Nonce = Nonce ?? RandomUtils.GetUInt64(),
 				UserAgent = UserAgent,
-				Version = Version == null ? network.MaxP2PVersion : Version.Value,
+				Version = Version ?? network.MaxP2PVersion,
 				Timestamp = DateTimeOffset.UtcNow,
 				AddressReceiver = peer,
-				AddressFrom = AddressFrom ?? new IPEndPoint(IPAddress.Parse("0.0.0.0").MapToIPv6Ex(), network.DefaultPort),
+				AddressFrom = AddressFrom ??
+				              new IPEndPoint(IPAddress.Parse("0.0.0.0").MapToIPv6Ex(), network.DefaultPort),
 				Relay = IsRelay,
 				Services = Services
 			};

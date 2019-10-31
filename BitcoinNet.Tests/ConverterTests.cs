@@ -1,9 +1,6 @@
-﻿using BitcoinNet.DataEncoders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Text;
-using System.Threading.Tasks;
+using BitcoinNet.DataEncoders;
 using Xunit;
 
 namespace BitcoinNet.Tests
@@ -15,14 +12,14 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanConvertText()
 		{
-			string testPhrase = "é ^ç hello \"12345\"  wooorld";
+			var testPhrase = "é ^ç hello \"12345\"  wooorld";
 			var tests = new[]
 			{
 				new
 				{
 					Encoder = Encoders.Hex,
 					Input = testPhrase,
-					Expected = "c3a9205ec3a72068656c6c6f20223132333435222020776f6f6f726c64",
+					Expected = "c3a9205ec3a72068656c6c6f20223132333435222020776f6f6f726c64"
 				},
 				new
 				{
@@ -42,7 +39,7 @@ namespace BitcoinNet.Tests
 					Encoder = Encoders.Base64,
 					Input = testPhrase,
 					Expected = "w6kgXsOnIGhlbGxvICIxMjM0NSIgIHdvb29ybGQ="
-				},
+				}
 				//Not yet implemented
 				//new 
 				//{
@@ -87,7 +84,7 @@ namespace BitcoinNet.Tests
 				//},
 			};
 
-			foreach(var test in tests)
+			foreach (var test in tests)
 			{
 				var input = Encoding.UTF8.GetBytes(test.Input);
 				var encoded = test.Encoder.EncodeData(input);
@@ -98,7 +95,7 @@ namespace BitcoinNet.Tests
 					var decoded = test.Encoder.DecodeData(encoded);
 					AssertEx.CollectionEquals(input, decoded);
 				}
-				catch(NotSupportedException)
+				catch (NotSupportedException)
 				{
 				}
 			}
@@ -109,9 +106,9 @@ namespace BitcoinNet.Tests
 			Assert.Equal(expectedText, encoded1);
 
 			var decoded1 = Encoders.Base58Check.DecodeData(encoded1);
-			byte[] arr = new byte[input1.Length - 6];
-			Array.Copy(input1,3, arr, 0, arr.Length);
-			AssertEx.CollectionEquals(input1.SafeSubarray(3, input1.Length - 6), decoded1);
+			var arr = new byte[input1.Length - 6];
+			Array.Copy(input1, 3, arr, 0, arr.Length);
+			AssertEx.CollectionEquals(input1.SafeSubArray(3, input1.Length - 6), decoded1);
 		}
 	}
 }

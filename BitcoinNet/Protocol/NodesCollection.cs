@@ -1,11 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.Protocol
 {
@@ -13,30 +12,17 @@ namespace BitcoinNet.Protocol
 	{
 		public NodeEventArgs(Node node, bool added)
 		{
-			_Added = added;
-			_Node = node;
+			Added = added;
+			Node = node;
 		}
 
-		private readonly bool _Added;
-		public bool Added
-		{
-			get
-			{
-				return _Added;
-			}
-		}
-		private readonly Node _Node;
-		public Node Node
-		{
-			get
-			{
-				return _Node;
-			}
-		}
+		public bool Added { get; }
+
+		public Node Node { get; }
 	}
 
 	public interface IReadOnlyNodesCollection : IEnumerable<Node>
-    {
+	{
 		event EventHandler<NodeEventArgs> Added;
 		event EventHandler<NodeEventArgs> Removed;
 
@@ -47,86 +33,34 @@ namespace BitcoinNet.Protocol
 
 	public class NodesCollection : IEnumerable<Node>, IReadOnlyNodesCollection
 	{
-		class Bridge : MessageListener<IncomingMessage>
-		{
-			MessageProducer<IncomingMessage> _Prod;
-			public Bridge(MessageProducer<IncomingMessage> prod)
-			{
-				_Prod = prod;
-			}
+		private readonly Bridge _bridge;
+		private readonly ConcurrentDictionary<Node, Node> _nodes = new ConcurrentDictionary<Node, Node>();
 
-			// MessageListener<IncomingMessage> Members
-
-			public void PushMessage(IncomingMessage message)
-			{
-				_Prod.PushMessage(message);
-			}
-		}
-		Bridge bridge;
 		public NodesCollection()
 		{
-			bridge = new Bridge(_MessageProducer);
+			_bridge = new Bridge(MessageProducer);
 		}
 
-		MessageProducer<IncomingMessage> _MessageProducer = new MessageProducer<IncomingMessage>();
-		public MessageProducer<IncomingMessage> MessageProducer
+		public MessageProducer<IncomingMessage> MessageProducer { get; } = new MessageProducer<IncomingMessage>();
+
+		public int Count => _nodes.Count;
+
+		// IEnumerable<Node> Members
+
+		public IEnumerator<Node> GetEnumerator()
 		{
-			get
-			{
-				return _MessageProducer;
-			}
+			return _nodes.Select(n => n.Key).AsEnumerable().GetEnumerator();
 		}
 
-		ConcurrentDictionary<Node, Node> _Nodes = new ConcurrentDictionary<Node, Node>();
+		// IEnumerable Members
 
-		public int Count
+		IEnumerator IEnumerable.GetEnumerator()
 		{
-			get
-			{
-				return _Nodes.Count;
-			}
-		}
-		public bool Add(Node node)
-		{
-			if(node == null)
-				throw new ArgumentNullException(nameof(node));
-			if(_Nodes.TryAdd(node, node))
-			{
-				node.MessageProducer.AddMessageListener(bridge);
-				OnNodeAdded(node);
-				return true;
-			}
-			return false;
-		}
-
-		public bool Remove(Node node)
-		{
-			Node old;
-			if(_Nodes.TryRemove(node, out old))
-			{
-				node.MessageProducer.RemoveMessageListener(bridge);
-				OnNodeRemoved(old);
-				return true;
-			}
-			return false;
+			return GetEnumerator();
 		}
 
 		public event EventHandler<NodeEventArgs> Added;
 		public event EventHandler<NodeEventArgs> Removed;
-
-		private void OnNodeAdded(Node node)
-		{
-			var added = Added;
-			if(added != null)
-				added(this, new NodeEventArgs(node, true));
-		}
-
-		private void OnNodeRemoved(Node node)
-		{
-			var removed = Removed;
-			if(removed != null)
-				removed(this, new NodeEventArgs(node, false));
-		}
 
 		public Node FindLocal()
 		{
@@ -136,55 +70,104 @@ namespace BitcoinNet.Protocol
 		public Node FindByIp(IPAddress ip)
 		{
 			ip = ip.EnsureIPv6();
-			return _Nodes.Where(n => Match(ip, null, n.Key)).Select(s => s.Key).FirstOrDefault();
+			return _nodes.Where(n => Match(ip, null, n.Key)).Select(s => s.Key).FirstOrDefault();
 		}
-
-
 
 		public Node FindByEndpoint(IPEndPoint endpoint)
 		{
 			var ip = endpoint.Address.EnsureIPv6();
-			int port = endpoint.Port;
-			return _Nodes.Select(n => n.Key).FirstOrDefault(n => Match(ip, port, n));
+			var port = endpoint.Port;
+			return _nodes.Select(n => n.Key).FirstOrDefault(n => Match(ip, port, n));
+		}
+
+		public bool Add(Node node)
+		{
+			if (node == null)
+			{
+				throw new ArgumentNullException(nameof(node));
+			}
+
+			if (_nodes.TryAdd(node, node))
+			{
+				node.MessageProducer.AddMessageListener(_bridge);
+				OnNodeAdded(node);
+				return true;
+			}
+
+			return false;
+		}
+
+		public bool Remove(Node node)
+		{
+			if (_nodes.TryRemove(node, out var old))
+			{
+				node.MessageProducer.RemoveMessageListener(_bridge);
+				OnNodeRemoved(old);
+				return true;
+			}
+
+			return false;
+		}
+
+		private void OnNodeAdded(Node node)
+		{
+			var added = Added;
+			if (added != null)
+			{
+				added(this, new NodeEventArgs(node, true));
+			}
+		}
+
+		private void OnNodeRemoved(Node node)
+		{
+			var removed = Removed;
+			if (removed != null)
+			{
+				removed(this, new NodeEventArgs(node, false));
+			}
 		}
 
 		private static bool Match(IPAddress ip, int? port, Node n)
 		{
-			if(port.HasValue)
+			if (port.HasValue)
 			{
-				return (n.State > NodeState.Disconnecting && n.RemoteSocketAddress.Equals(ip) && n.RemoteSocketPort == port.Value) ||
-						(n.PeerVersion.AddressFrom.Address.Equals(ip) && n.PeerVersion.AddressFrom.Port == port.Value);
+				return n.State > NodeState.Disconnecting && n.RemoteSocketAddress.Equals(ip) &&
+				       n.RemoteSocketPort == port.Value ||
+				       n.PeerVersion.AddressFrom.Address.Equals(ip) && n.PeerVersion.AddressFrom.Port == port.Value;
 			}
-			else
+
+			return n.State > NodeState.Disconnecting && n.RemoteSocketAddress.Equals(ip) ||
+			       n.PeerVersion.AddressFrom.Address.Equals(ip);
+		}
+
+		public void DisconnectAll(CancellationToken cancellation = default)
+		{
+			foreach (var node in _nodes)
 			{
-				return (n.State > NodeState.Disconnecting && n.RemoteSocketAddress.Equals(ip)) ||
-						n.PeerVersion.AddressFrom.Address.Equals(ip);
-			}
-		}
-
-		// IEnumerable<Node> Members
-
-		public IEnumerator<Node> GetEnumerator()
-		{
-			return _Nodes.Select(n => n.Key).AsEnumerable().GetEnumerator();
-		}
-
-		// IEnumerable Members
-
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return GetEnumerator();
-		}
-
-		public void DisconnectAll(CancellationToken cancellation = default(CancellationToken))
-		{
-			foreach(var node in _Nodes)
 				node.Key.DisconnectAsync();
+			}
 		}
 
 		public void Clear()
 		{
-			_Nodes.Clear();
+			_nodes.Clear();
+		}
+
+		private class Bridge : IMessageListener<IncomingMessage>
+		{
+			private readonly MessageProducer<IncomingMessage> _prod;
+
+			public Bridge(MessageProducer<IncomingMessage> prod)
+			{
+				_prod = prod;
+			}
+
+			// IMessageListener<IncomingMessage> Members
+
+			public void PushMessage(IncomingMessage message)
+			{
+				_prod.PushMessage(message);
+			}
 		}
 	}
 }

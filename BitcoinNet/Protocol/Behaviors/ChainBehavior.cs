@@ -1,269 +1,282 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.Protocol.Behaviors
 {
-
 	/// <summary>
-	/// The Chain Behavior is responsible for keeping a ConcurrentChain up to date with the peer, it also responds to getheaders messages.
+	///     The Chain Behavior is responsible for keeping a ConcurrentChain up to date with the peer, it also responds to
+	///     getheaders messages.
 	/// </summary>
 	public class ChainBehavior : NodeBehavior
 	{
-		State _State;
+		private ConcurrentChain _chain;
+
+		private ChainedBlock
+			_pendingTip; //Might be different than Chain.Tip, in the rare event of large fork > 2000 blocks
+
+		private Timer _refresh;
+		private int _synchingCount;
+
 		public ChainBehavior(ConcurrentChain chain)
 		{
-			if(chain == null)
+			if (chain == null)
+			{
 				throw new ArgumentNullException(nameof(chain));
-			_State = new ChainBehavior.State();
-			_Chain = chain;
+			}
+
+			SharedState = new State();
+			_chain = chain;
 			AutoSync = true;
 			CanSync = true;
 			CanRespondToGetHeaders = true;
 		}
 
 		/// <summary>
-		/// If true, the Chain maintained by the behavior with have its ChainedBlock with no Header (default: false)
+		///     If true, the Chain maintained by the behavior with have its ChainedBlock with no Header (default: false)
 		/// </summary>
-		public bool StripHeader
-		{
-			get; set;
-		}
+		public bool StripHeader { get; set; }
 
 		/// <summary>
-		/// If true, skip PoW checks (default: false)
+		///     If true, skip PoW checks (default: false)
 		/// </summary>
-		public bool SkipPoWCheck
-		{
-			get; set;
-		}
+		public bool SkipPoWCheck { get; set; }
 
-		public State SharedState
-		{
-			get
-			{
-				return _State;
-			}
-		}
-		/// <summary>
-		/// Keep the chain in Sync (Default : true)
-		/// </summary>
-		public bool CanSync
-		{
-			get;
-			set;
-		}
-		/// <summary>
-		/// Respond to getheaders messages (Default : true)
-		/// </summary>
-		public bool CanRespondToGetHeaders
-		{
-			get;
-			set;
-		}
+		public State SharedState { get; private set; }
 
-		ConcurrentChain _Chain;
+		/// <summary>
+		///     Keep the chain in Sync (Default : true)
+		/// </summary>
+		public bool CanSync { get; set; }
+
+		/// <summary>
+		///     Respond to getheaders messages (Default : true)
+		/// </summary>
+		public bool CanRespondToGetHeaders { get; set; }
+
 		public ConcurrentChain Chain
 		{
-			get
-			{
-				return _Chain;
-			}
+			get => _chain;
 			set
 			{
 				AssertNotAttached();
-				_Chain = value;
+				_chain = value;
 			}
 		}
 
-		int _SynchingCount;
 		/// <summary>
-		/// Using for test, this might not be reliable
+		///     Using for test, this might not be reliable
 		/// </summary>
-		internal bool Synching
+		internal bool Synching => _synchingCount != 0;
+
+		/// <summary>
+		///     Sync the chain as headers come from the network (Default : true)
+		/// </summary>
+		public bool AutoSync { get; set; }
+
+		public bool InvalidHeaderReceived { get; private set; }
+
+		public ChainedBlock PendingTip
 		{
 			get
 			{
-				return _SynchingCount != 0;
+				var tip = _pendingTip;
+				if (tip == null)
+				{
+					return null;
+				}
+
+				//Prevent memory leak by returning a block from the chain instead of real pending tip of possible
+				return Chain.GetBlock(tip.HashBlock) ?? tip;
 			}
 		}
 
-		Timer _Refresh;
 		protected override void AttachCore()
 		{
-			_Refresh = new Timer(o =>
+			_refresh = new Timer(o =>
 			{
-				if(AutoSync)
+				if (AutoSync)
+				{
 					TrySync();
-			}, null, 0, (int)TimeSpan.FromMinutes(10).TotalMilliseconds);
-			RegisterDisposable(_Refresh);
-			if(AttachedNode.State == NodeState.Connected)
+				}
+			}, null, 0, (int) TimeSpan.FromMinutes(10).TotalMilliseconds);
+			RegisterDisposable(_refresh);
+			if (AttachedNode.State == NodeState.Connected)
 			{
 				var highPoW = SharedState.HighestValidatedPoW;
 				AttachedNode.MyVersion.StartHeight = highPoW == null ? Chain.Height : highPoW.Height;
 			}
+
 			AttachedNode.StateChanged += AttachedNode_StateChanged;
 			RegisterDisposable(AttachedNode.Filters.Add(Intercept));
 		}
 
-		void Intercept(IncomingMessage message, Action act)
+		private void Intercept(IncomingMessage message, Action act)
 		{
 			var inv = message.Message.Payload as InvPayload;
-			if(inv != null)
+			if (inv != null)
 			{
-				if(inv.Inventory.Any(i => ((i.Type & InventoryType.MSG_BLOCK) != 0) && !Chain.Contains(i.Hash)))
+				if (inv.Inventory.Any(i => (i.Type & InventoryType.MSG_BLOCK) != 0 && !Chain.Contains(i.Hash)))
 				{
-					_Refresh.Dispose(); //No need of periodical refresh, the peer is notifying us
-					if(AutoSync)
+					_refresh.Dispose(); //No need of periodical refresh, the peer is notifying us
+					if (AutoSync)
+					{
 						TrySync();
+					}
 				}
 			}
 
 			var getheaders = message.Message.Payload as GetHeadersPayload;
-			if(getheaders != null && CanRespondToGetHeaders && !StripHeader)
+			if (getheaders != null && CanRespondToGetHeaders && !StripHeader)
 			{
-				HeadersPayload headers = new HeadersPayload();
+				var headers = new HeadersPayload();
 				var highestPow = SharedState.HighestValidatedPoW;
 				highestPow = highestPow == null ? null : Chain.GetBlock(highestPow.HashBlock);
 				var fork = Chain.FindFork(getheaders.BlockLocators);
-				if(fork != null)
+				if (fork != null)
 				{
-					if(highestPow != null && fork.Height > highestPow.Height)
+					if (highestPow != null && fork.Height > highestPow.Height)
 					{
 						fork = null; //fork not yet validated
 					}
-					if(fork != null)
+
+					if (fork != null)
 					{
-						foreach(var header in Chain.EnumerateToTip(fork).Skip(1))
+						foreach (var header in Chain.EnumerateToTip(fork).Skip(1))
 						{
-							if(highestPow != null && header.Height > highestPow.Height)
+							if (highestPow != null && header.Height > highestPow.Height)
+							{
 								break;
+							}
+
 							headers.Headers.Add(header.Header);
-							if(header.HashBlock == getheaders.HashStop || headers.Headers.Count == 2000)
+							if (header.HashBlock == getheaders.HashStop || headers.Headers.Count == 2000)
+							{
 								break;
+							}
 						}
 					}
 				}
+
 				AttachedNode.SendMessageAsync(headers);
 			}
 
-			var newheaders = message.Message.Payload as HeadersPayload;
+			var newHeaders = message.Message.Payload as HeadersPayload;
 			var pendingTipBefore = GetPendingTipOrChainTip();
-			if(newheaders != null && CanSync)
+			if (newHeaders != null && CanSync)
 			{
 				var tip = GetPendingTipOrChainTip();
-				foreach(var header in newheaders.Headers)
+				foreach (var header in newHeaders.Headers)
 				{
 					var prev = tip.FindAncestorOrSelf(header.HashPrevBlock);
-					if(prev == null)
-						break;
-					tip = new ChainedBlock(header, header.GetHash(), prev);
-					var validated = Chain.GetBlock(tip.HashBlock) != null || (SkipPoWCheck || tip.Validate(AttachedNode.Network));
-					validated &= !SharedState.IsMarkedInvalid(tip.HashBlock);
-					if(!validated)
+					if (prev == null)
 					{
-						invalidHeaderReceived = true;
 						break;
 					}
-					_PendingTip = tip;
+
+					tip = new ChainedBlock(header, header.GetHash(), prev);
+					var validated = Chain.GetBlock(tip.HashBlock) != null || SkipPoWCheck ||
+					                tip.Validate(AttachedNode.Network);
+					validated &= !SharedState.IsMarkedInvalid(tip.HashBlock);
+					if (!validated)
+					{
+						InvalidHeaderReceived = true;
+						break;
+					}
+
+					_pendingTip = tip;
 				}
 
-				bool isHigherBlock = false;
-				if(SkipPoWCheck)
-					isHigherBlock = _PendingTip.Height > Chain.Tip.Height;
+				var isHigherBlock = false;
+				if (SkipPoWCheck)
+				{
+					isHigherBlock = _pendingTip.Height > Chain.Tip.Height;
+				}
 				else
-					isHigherBlock = _PendingTip.GetChainWork(true) > Chain.Tip.GetChainWork(true);
-
-				if(isHigherBlock)
 				{
-					Chain.SetTip(_PendingTip);
-					if(StripHeader)
-						_PendingTip.StripHeader();
+					isHigherBlock = _pendingTip.GetChainWork(true) > Chain.Tip.GetChainWork(true);
 				}
 
-				var chainedPendingTip = Chain.GetBlock(_PendingTip.HashBlock);
-				if(chainedPendingTip != null)
+				if (isHigherBlock)
 				{
-					_PendingTip = chainedPendingTip; //This allows garbage collection to collect the duplicated pendingtip and ancestors
+					Chain.SetTip(_pendingTip);
+					if (StripHeader)
+					{
+						_pendingTip.StripHeader();
+					}
 				}
-				if(newheaders.Headers.Count != 0 && pendingTipBefore.HashBlock != GetPendingTipOrChainTip().HashBlock)
+
+				var chainedPendingTip = Chain.GetBlock(_pendingTip.HashBlock);
+				if (chainedPendingTip != null)
+				{
+					_pendingTip =
+						chainedPendingTip; //This allows garbage collection to collect the duplicated pendingtip and ancestors
+				}
+
+				if (newHeaders.Headers.Count != 0 && pendingTipBefore.HashBlock != GetPendingTipOrChainTip().HashBlock)
+				{
 					TrySync();
-				Interlocked.Decrement(ref _SynchingCount);
+				}
+
+				Interlocked.Decrement(ref _synchingCount);
 			}
 
 			act();
 		}
 
 		/// <summary>
-		/// Check if any past blocks announced by this peer is in the invalid blocks list, and set InvalidHeaderReceived flag accordingly
+		///     Check if any past blocks announced by this peer is in the invalid blocks list, and set InvalidHeaderReceived flag
+		///     accordingly
 		/// </summary>
 		/// <returns>True if no invalid block is received</returns>
 		public bool CheckAnnouncedBlocks()
 		{
-			var tip = _PendingTip;
-			if(tip != null && !invalidHeaderReceived)
+			var tip = _pendingTip;
+			if (tip != null && !InvalidHeaderReceived)
 			{
 				try
 				{
-					_State._InvalidBlocksLock.EnterReadLock();
-					if(_State._InvalidBlocks.Count != 0)
+					SharedState.InvalidBlocksLock.EnterReadLock();
+					if (SharedState.InvalidBlocks.Count != 0)
 					{
-						foreach(var header in tip.EnumerateToGenesis())
+						foreach (var header in tip.EnumerateToGenesis())
 						{
-							if(invalidHeaderReceived)
+							if (InvalidHeaderReceived)
+							{
 								break;
-							invalidHeaderReceived |= _State._InvalidBlocks.Contains(header.HashBlock);
+							}
+
+							InvalidHeaderReceived |= SharedState.InvalidBlocks.Contains(header.HashBlock);
 						}
 					}
 				}
 				finally
 				{
-					_State._InvalidBlocksLock.ExitReadLock();
+					SharedState.InvalidBlocksLock.ExitReadLock();
 				}
 			}
-			return !invalidHeaderReceived;
+
+			return !InvalidHeaderReceived;
 		}
 
-		/// <summary>
-		/// Sync the chain as headers come from the network (Default : true)
-		/// </summary>
-		public bool AutoSync
-		{
-			get;
-			set;
-		}
-
-		ChainedBlock _PendingTip; //Might be different than Chain.Tip, in the rare event of large fork > 2000 blocks
-
-		private bool invalidHeaderReceived;
-		public bool InvalidHeaderReceived
-		{
-			get
-			{
-				return invalidHeaderReceived;
-			}
-		}
-
-		void AttachedNode_StateChanged(Node node, NodeState oldState)
+		private void AttachedNode_StateChanged(Node node, NodeState oldState)
 		{
 			TrySync();
 		}
 
 		/// <summary>
-		/// Asynchronously try to sync the chain
+		///     Asynchronously try to sync the chain
 		/// </summary>
 		public void TrySync()
 		{
 			var node = AttachedNode;
-			if(node != null)
+			if (node != null)
 			{
-				if(node.State == NodeState.HandShaked && CanSync && !invalidHeaderReceived)
+				if (node.State == NodeState.HandShaked && CanSync && !InvalidHeaderReceived)
 				{
-					Interlocked.Increment(ref _SynchingCount);
-					node.SendMessageAsync(new GetHeadersPayload()
+					Interlocked.Increment(ref _synchingCount);
+					node.SendMessageAsync(new GetHeadersPayload
 					{
 						BlockLocators = GetPendingTipOrChainTip().GetLocator()
 					});
@@ -273,66 +286,13 @@ namespace BitcoinNet.Protocol.Behaviors
 
 		private ChainedBlock GetPendingTipOrChainTip()
 		{
-			_PendingTip = _PendingTip ?? Chain.Tip;
-			return _PendingTip;
-		}
-
-		public ChainedBlock PendingTip
-		{
-			get
-			{
-				var tip = _PendingTip;
-				if(tip == null)
-					return null;
-				//Prevent memory leak by returning a block from the chain instead of real pending tip of possible
-				return Chain.GetBlock(tip.HashBlock) ?? tip;
-			}
+			_pendingTip = _pendingTip ?? Chain.Tip;
+			return _pendingTip;
 		}
 
 		protected override void DetachCore()
 		{
 			AttachedNode.StateChanged -= AttachedNode_StateChanged;
-		}
-
-
-		public class State
-		{
-			internal ReaderWriterLockSlim _InvalidBlocksLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-			internal HashSet<uint256> _InvalidBlocks = new HashSet<uint256>();
-
-			public bool IsMarkedInvalid(uint256 hashBlock)
-			{
-				try
-				{
-					_InvalidBlocksLock.EnterReadLock();
-					return _InvalidBlocks.Contains(hashBlock);
-				}
-				finally
-				{
-					_InvalidBlocksLock.ExitReadLock();
-				}
-			}
-
-			public void MarkBlockInvalid(uint256 blockHash)
-			{
-				try
-				{
-					_InvalidBlocksLock.EnterWriteLock();
-					_InvalidBlocks.Add(blockHash);
-				}
-				finally
-				{
-					_InvalidBlocksLock.ExitWriteLock();
-				}
-			}
-
-			/// <summary>
-			/// ChainBehaviors sharing this state will not broadcast headers which are above HighestValidatedPoW
-			/// </summary>
-			public ChainedBlock HighestValidatedPoW
-			{
-				get; set;
-			}
 		}
 
 		// ICloneable Members
@@ -346,9 +306,48 @@ namespace BitcoinNet.Protocol.Behaviors
 				AutoSync = AutoSync,
 				SkipPoWCheck = SkipPoWCheck,
 				StripHeader = StripHeader,
-				_State = _State
+				SharedState = SharedState
 			};
 			return clone;
+		}
+
+		public class State
+		{
+			internal readonly HashSet<uint256> InvalidBlocks = new HashSet<uint256>();
+
+			internal readonly ReaderWriterLockSlim InvalidBlocksLock =
+				new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+
+			/// <summary>
+			///     ChainBehaviors sharing this state will not broadcast headers which are above HighestValidatedPoW
+			/// </summary>
+			public ChainedBlock HighestValidatedPoW { get; set; }
+
+			public bool IsMarkedInvalid(uint256 hashBlock)
+			{
+				try
+				{
+					InvalidBlocksLock.EnterReadLock();
+					return InvalidBlocks.Contains(hashBlock);
+				}
+				finally
+				{
+					InvalidBlocksLock.ExitReadLock();
+				}
+			}
+
+			public void MarkBlockInvalid(uint256 blockHash)
+			{
+				try
+				{
+					InvalidBlocksLock.EnterWriteLock();
+					InvalidBlocks.Add(blockHash);
+				}
+				finally
+				{
+					InvalidBlocksLock.ExitWriteLock();
+				}
+			}
 		}
 	}
 }

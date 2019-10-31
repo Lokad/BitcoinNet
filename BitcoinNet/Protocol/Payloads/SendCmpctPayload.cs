@@ -1,53 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Protocol
+﻿namespace BitcoinNet.Protocol
 {
 	[Payload("sendcmpct")]
 	public class SendCmpctPayload : Payload
 	{
+		private byte _preferHeaderAndIDs;
+		private ulong _version = 1;
+
 		public SendCmpctPayload()
 		{
-
 		}
+
 		public SendCmpctPayload(bool preferHeaderAndIDs)
 		{
 			PreferHeaderAndIDs = preferHeaderAndIDs;
 		}
-		byte _PreferHeaderAndIDs;
+
 		public bool PreferHeaderAndIDs
 		{
-			get
-			{
-				return _PreferHeaderAndIDs == 1;
-			}
-			set
-			{
-				_PreferHeaderAndIDs = value ? (byte)1 : (byte)0;
-			}
+			get => _preferHeaderAndIDs == 1;
+			set => _preferHeaderAndIDs = value ? (byte) 1 : (byte) 0;
 		}
 
-
-		ulong _Version = 1;
 		public ulong Version
 		{
-			get
-			{
-				return _Version;
-			}
-			set
-			{
-				_Version = value;
-			}
+			get => _version;
+			set => _version = value;
 		}
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			stream.ReadWrite(ref _PreferHeaderAndIDs);
-			stream.ReadWrite(ref _Version);
+			stream.ReadWrite(ref _preferHeaderAndIDs);
+			stream.ReadWrite(ref _version);
 		}
 	}
 }

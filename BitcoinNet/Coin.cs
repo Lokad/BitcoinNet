@@ -1,46 +1,33 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {
 	public interface ICoin
 	{
-		IMoney Amount
-		{
-			get;
-		}
-		OutPoint Outpoint
-		{
-			get;
-		}
-		TxOut TxOut
-		{
-			get;
-		}
+		IMoney Amount { get; }
+		OutPoint Outpoint { get; }
+		TxOut TxOut { get; }
+		bool CanGetScriptCode { get; }
 
 		/// <summary>
-		/// Returns the script actually signed and executed
+		///     Returns the script actually signed and executed
 		/// </summary>
 		/// <exception cref="System.InvalidOperationException">Additional information needed to get the ScriptCode</exception>
 		/// <returns>The executed script</returns>
 		Script GetScriptCode();
+
 		void OverrideScriptCode(Script scriptCode);
-		bool CanGetScriptCode
-		{
-			get;
-		}
 	}
 
 	public class Coin : ICoin
 	{
+		protected Script _overrideScriptCode;
+
 		public Coin()
 		{
-
 		}
+
 		public Coin(OutPoint fromOutpoint, TxOut fromTxOut)
 		{
 			Outpoint = fromOutpoint;
@@ -49,22 +36,32 @@ namespace BitcoinNet
 
 		public Coin(Transaction fromTx, uint fromOutputIndex)
 		{
-			if(fromTx == null)
+			if (fromTx == null)
+			{
 				throw new ArgumentNullException(nameof(fromTx));
+			}
+
 			Outpoint = new OutPoint(fromTx, fromOutputIndex);
 			TxOut = fromTx.Outputs[fromOutputIndex];
 		}
 
 		public Coin(Transaction fromTx, TxOut fromOutput)
 		{
-			if(fromTx == null)
+			if (fromTx == null)
+			{
 				throw new ArgumentNullException(nameof(fromTx));
-			if(fromOutput == null)
+			}
+
+			if (fromOutput == null)
+			{
 				throw new ArgumentNullException(nameof(fromOutput));
-			uint outputIndex = (uint)fromTx.Outputs.FindIndex(r => Object.ReferenceEquals(fromOutput, r));
+			}
+
+			var outputIndex = (uint) fromTx.Outputs.FindIndex(r => ReferenceEquals(fromOutput, r));
 			Outpoint = new OutPoint(fromTx, outputIndex);
 			TxOut = fromOutput;
 		}
+
 		public Coin(IndexedTxOut txOut)
 		{
 			Outpoint = new OutPoint(txOut.Transaction.GetHash(), txOut.N);
@@ -77,46 +74,9 @@ namespace BitcoinNet
 			TxOut = new TxOut(amount, scriptPubKey);
 		}
 
-		public virtual Script GetScriptCode()
-		{
-			if(!CanGetScriptCode)
-				throw new InvalidOperationException("You need to provide P2WSH or P2SH redeem script with Coin.ToScriptCoin()");
-			if(_OverrideScriptCode != null)
-				return _OverrideScriptCode;
-			var key = PayToPubkeyHashTemplate.Instance.ExtractScriptPubKeyParameters(ScriptPubKey);
-			if(key != null)
-				return key.ScriptPubKey;
-			return ScriptPubKey;
-		}
+		public OutPoint Outpoint { get; set; }
 
-		public virtual bool CanGetScriptCode
-		{
-			get
-			{
-				return _OverrideScriptCode != null || !ScriptPubKey.IsPayToScriptHash && !PayToScriptHashTemplate.Instance.CheckScriptPubKey(ScriptPubKey);
-			}
-		}
-
-		public ScriptCoin ToScriptCoin(Script redeemScript)
-		{
-			if(redeemScript == null)
-				throw new ArgumentNullException(nameof(redeemScript));
-			var scriptCoin = this as ScriptCoin;
-			if(scriptCoin != null)
-				return scriptCoin;
-			return new ScriptCoin(this, redeemScript);
-		}
-
-		public OutPoint Outpoint
-		{
-			get;
-			set;
-		}
-		public TxOut TxOut
-		{
-			get;
-			set;
-		}
+		public TxOut TxOut { get; set; }
 
 		// ICoin Members
 
@@ -124,8 +84,11 @@ namespace BitcoinNet
 		{
 			get
 			{
-				if(TxOut == null)
+				if (TxOut == null)
+				{
 					return Money.Zero;
+				}
+
 				return TxOut.Value;
 			}
 			set
@@ -135,24 +98,15 @@ namespace BitcoinNet
 			}
 		}
 
-		private void EnsureTxOut()
-		{
-			if(TxOut == null)
-				TxOut = new TxOut();
-		}
-
-		protected Script _OverrideScriptCode;
-		public void OverrideScriptCode(Script scriptCode)
-		{
-			_OverrideScriptCode = scriptCode;
-		}
-
 		public Script ScriptPubKey
 		{
 			get
 			{
-				if(TxOut == null)
+				if (TxOut == null)
+				{
 					return Script.Empty;
+				}
+
 				return TxOut.ScriptPubKey;
 			}
 			set
@@ -162,33 +116,68 @@ namespace BitcoinNet
 			}
 		}
 
+		public virtual Script GetScriptCode()
+		{
+			if (!CanGetScriptCode)
+			{
+				throw new InvalidOperationException(
+					"You need to provide P2WSH or P2SH redeem script with Coin.ToScriptCoin()");
+			}
+
+			if (_overrideScriptCode != null)
+			{
+				return _overrideScriptCode;
+			}
+
+			var key = PayToPubkeyHashTemplate.Instance.ExtractScriptPubKeyParameters(ScriptPubKey);
+			if (key != null)
+			{
+				return key.ScriptPubKey;
+			}
+
+			return ScriptPubKey;
+		}
+
+		public virtual bool CanGetScriptCode => _overrideScriptCode != null || !ScriptPubKey.IsPayToScriptHash &&
+		                                        !PayToScriptHashTemplate.Instance.CheckScriptPubKey(ScriptPubKey);
+
+		public void OverrideScriptCode(Script scriptCode)
+		{
+			_overrideScriptCode = scriptCode;
+		}
+
 		// ICoin Members
 
-		IMoney ICoin.Amount
+		IMoney ICoin.Amount => Amount;
+
+		OutPoint ICoin.Outpoint => Outpoint;
+
+		TxOut ICoin.TxOut => TxOut;
+
+		public ScriptCoin ToScriptCoin(Script redeemScript)
 		{
-			get
+			if (redeemScript == null)
 			{
-				return Amount;
+				throw new ArgumentNullException(nameof(redeemScript));
 			}
+
+			var scriptCoin = this as ScriptCoin;
+			if (scriptCoin != null)
+			{
+				return scriptCoin;
+			}
+
+			return new ScriptCoin(this, redeemScript);
 		}
 
-		OutPoint ICoin.Outpoint
+		private void EnsureTxOut()
 		{
-			get
+			if (TxOut == null)
 			{
-				return Outpoint;
-			}
-		}
-
-		TxOut ICoin.TxOut
-		{
-			get
-			{
-				return TxOut;
+				TxOut = new TxOut();
 			}
 		}
 	}
-
 
 	public enum RedeemType
 	{
@@ -196,15 +185,13 @@ namespace BitcoinNet
 		WitnessV0
 	}
 
-
 	/// <summary>
-	/// Represent a coin which need a redeem script to be spent (P2SH or P2WSH)
+	///     Represent a coin which need a redeem script to be spent (P2SH or P2WSH)
 	/// </summary>
 	public class ScriptCoin : Coin
 	{
 		public ScriptCoin()
 		{
-
 		}
 
 		public ScriptCoin(OutPoint fromOutpoint, TxOut fromTxOut, Script redeem)
@@ -227,68 +214,12 @@ namespace BitcoinNet
 			Redeem = redeem;
 			AssertCoherent();
 		}
+
 		public ScriptCoin(ICoin coin, Script redeem)
 			: base(coin.Outpoint, coin.TxOut)
 		{
 			Redeem = redeem;
 			AssertCoherent();
-		}
-
-		public bool IsP2SH
-		{
-			get
-			{
-				return ScriptPubKey.ToBytes(true)[0] == (byte)OpcodeType.OP_HASH160;
-			}
-		}
-
-
-		public Script GetP2SHRedeem()
-		{
-			if(!IsP2SH)
-				return null;
-			var p2shRedeem = RedeemType == RedeemType.P2SH ? Redeem : null;
-			if(p2shRedeem == null)
-				throw new NotSupportedException("RedeemType not supported for getting the P2SH script, contact the library author");
-			return p2shRedeem;
-		}
-
-		public RedeemType RedeemType
-		{
-			get
-			{
-				return
-					Redeem.Hash.ScriptPubKey == TxOut.ScriptPubKey ?
-					RedeemType.P2SH :
-					RedeemType.WitnessV0;
-			}
-		}
-
-		private void AssertCoherent()
-		{
-			if(Redeem == null)
-				throw new ArgumentException("redeem cannot be null", "redeem");
-
-			var expectedDestination = GetRedeemHash(TxOut.ScriptPubKey);
-			if(expectedDestination == null)
-			{
-				throw new ArgumentException("the provided scriptPubKey is not P2SH or P2WSH");
-			}
-			if(expectedDestination is ScriptId)
-			{
-				if(PayToScriptHashTemplate.Instance.CheckScriptPubKey(Redeem))
-				{
-					throw new ArgumentException("The redeem script provided must be the witness one, not the P2SH one");
-				}
-
-				if(expectedDestination.ScriptPubKey != Redeem.Hash.ScriptPubKey)
-				{
-					if(Redeem.Hash.ScriptPubKey.Hash.ScriptPubKey != expectedDestination.ScriptPubKey)
-						throw new ArgumentException("The redeem provided does not match the scriptPubKey of the coin");
-				}
-			}
-			else
-				throw new NotSupportedException("Not supported redeemed scriptPubkey");
 		}
 
 		public ScriptCoin(IndexedTxOut txOut, Script redeem)
@@ -305,42 +236,102 @@ namespace BitcoinNet
 			AssertCoherent();
 		}
 
-		public Script Redeem
+		public bool IsP2SH => ScriptPubKey.ToBytes(true)[0] == (byte) OpcodeType.OP_HASH160;
+
+		public RedeemType RedeemType =>
+			Redeem.Hash.ScriptPubKey == TxOut.ScriptPubKey ? RedeemType.P2SH : RedeemType.WitnessV0;
+
+		public Script Redeem { get; set; }
+
+		public override bool CanGetScriptCode => _overrideScriptCode != null || !IsP2SH ||
+		                                         !PayToScriptHashTemplate.Instance.CheckScriptPubKey(Redeem);
+
+		public Script GetP2SHRedeem()
 		{
-			get;
-			set;
+			if (!IsP2SH)
+			{
+				return null;
+			}
+
+			var p2shRedeem = RedeemType == RedeemType.P2SH ? Redeem : null;
+			if (p2shRedeem == null)
+			{
+				throw new NotSupportedException(
+					"RedeemType not supported for getting the P2SH script, contact the library author");
+			}
+
+			return p2shRedeem;
+		}
+
+		private void AssertCoherent()
+		{
+			if (Redeem == null)
+			{
+				throw new ArgumentException("redeem cannot be null", "redeem");
+			}
+
+			var expectedDestination = GetRedeemHash(TxOut.ScriptPubKey);
+			if (expectedDestination == null)
+			{
+				throw new ArgumentException("the provided scriptPubKey is not P2SH or P2WSH");
+			}
+
+			if (expectedDestination is ScriptId)
+			{
+				if (PayToScriptHashTemplate.Instance.CheckScriptPubKey(Redeem))
+				{
+					throw new ArgumentException("The redeem script provided must be the witness one, not the P2SH one");
+				}
+
+				if (expectedDestination.ScriptPubKey != Redeem.Hash.ScriptPubKey)
+				{
+					if (Redeem.Hash.ScriptPubKey.Hash.ScriptPubKey != expectedDestination.ScriptPubKey)
+					{
+						throw new ArgumentException("The redeem provided does not match the scriptPubKey of the coin");
+					}
+				}
+			}
+			else
+			{
+				throw new NotSupportedException("Not supported redeemed scriptPubkey");
+			}
 		}
 
 		public override Script GetScriptCode()
 		{
-			if(!CanGetScriptCode)
-				throw new InvalidOperationException("You need to provide the P2WSH redeem script with ScriptCoin.ToScriptCoin()");
-			if(_OverrideScriptCode != null)
-				return _OverrideScriptCode;
+			if (!CanGetScriptCode)
+			{
+				throw new InvalidOperationException(
+					"You need to provide the P2WSH redeem script with ScriptCoin.ToScriptCoin()");
+			}
+
+			if (_overrideScriptCode != null)
+			{
+				return _overrideScriptCode;
+			}
+
 			var key = PayToPubkeyHashTemplate.Instance.ExtractScriptPubKeyParameters(Redeem);
 			if (key != null)
+			{
 				return key.ScriptPubKey;
+			}
+
 			return Redeem;
 		}
 
-		public override bool CanGetScriptCode
-		{
-			get
-			{
-				return _OverrideScriptCode != null || !IsP2SH || !PayToScriptHashTemplate.Instance.CheckScriptPubKey(Redeem);
-			}
-		}
-
 		/// <summary>
-		/// Returns the hash contained in the scriptPubKey (P2SH or P2WSH)
+		///     Returns the hash contained in the scriptPubKey (P2SH or P2WSH)
 		/// </summary>
 		/// <param name="scriptPubKey">The scriptPubKey</param>
 		/// <returns>The hash of the scriptPubkey</returns>
 		public static TxDestination GetRedeemHash(Script scriptPubKey)
 		{
-			if(scriptPubKey == null)
+			if (scriptPubKey == null)
+			{
 				throw new ArgumentNullException(nameof(scriptPubKey));
-			return PayToScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey) as TxDestination;
+			}
+
+			return PayToScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey);
 		}
 	}
 }

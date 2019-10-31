@@ -1,7 +1,7 @@
 ﻿namespace BitcoinNet.Scripting
 {
 	/// <summary>
-	/// Script opcodes
+	///     Script opcodes
 	/// </summary>
 	public enum OpcodeType : byte
 	{
@@ -138,6 +138,6 @@
 		OP_NOP7 = 0xb6,
 		OP_NOP8 = 0xb7,
 		OP_NOP9 = 0xb8,
-		OP_NOP10 = 0xb9,
-	};
+		OP_NOP10 = 0xb9
+	}
 }

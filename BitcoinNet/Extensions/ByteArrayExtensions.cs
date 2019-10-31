@@ -22,7 +22,7 @@ namespace System
 			return true;
 		}
 
-		public static byte[] SafeSubarray(this byte[] array, int offset, int count)
+		public static byte[] SafeSubArray(this byte[] array, int offset, int count)
 		{
 			if (array == null)
 			{
@@ -49,7 +49,7 @@ namespace System
 			return data;
 		}
 
-		public static byte[] SafeSubarray(this byte[] array, int offset)
+		public static byte[] SafeSubArray(this byte[] array, int offset)
 		{
 			if (array == null)
 			{
@@ -67,13 +67,13 @@ namespace System
 			return data;
 		}
 
-		public static byte[] Concat(this byte[] arr, params byte[][] arrs)
+		public static byte[] Concat(this byte[] arr, params byte[][] arrays)
 		{
-			var len = arr.Length + arrs.Sum(a => a.Length);
+			var len = arr.Length + arrays.Sum(a => a.Length);
 			var ret = new byte[len];
 			Buffer.BlockCopy(arr, 0, ret, 0, arr.Length);
 			var pos = arr.Length;
-			foreach (var a in arrs)
+			foreach (var a in arrays)
 			{
 				Buffer.BlockCopy(a, 0, ret, pos, a.Length);
 				pos += a.Length;

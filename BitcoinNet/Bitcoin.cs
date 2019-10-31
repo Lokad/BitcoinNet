@@ -56,70 +56,8 @@ namespace BCashAddr
 			P2SH
 		}
 
-		public class BchAddrData
-		{
-			public CashFormat Format
-			{
-				get; set;
-			}
-			public Network Network
-			{
-				get; set;
-			}
-			public CashType Type
-			{
-				get; set;
-			}
-			public byte[] Hash
-			{
-				get; set;
-			}
-
-			public string GetHash()
-			{
-				if (Hash == null)
-					return null;
-				return Encoders.Hex.EncodeData(Hash);
-			}
-
-			public string Prefix
-			{
-				get;
-				internal set;
-			}
-
-			public static BchAddrData Create(CashFormat format, Network network, CashType type, byte[] hash)
-			{
-				return new BchAddrData
-				{
-					Format = format,
-					Network = network,
-					Type = type,
-					Hash = hash,
-					Prefix = network?.Prefix
-				};
-			}
-
-			public override string ToString()
-			{
-				switch (Format)
-				{
-					case CashFormat.Legacy:
-						var base58Type = Type == CashType.P2PKH ? Base58Type.PUBKEY_ADDRESS : Base58Type.SCRIPT_ADDRESS;
-						var data = Network.GetVersionBytes(base58Type, false).Concat(Hash).ToArray();
-						return Encoders.Base58Check.EncodeData(data);
-
-					case CashFormat.Cashaddr:
-						return BCashAddr.BchAddr.EncodeAsCashaddr(this);
-
-					default:
-						return GetHash();
-				}
-			}
-		}
-
 		/// <summary>
-		/// Detects a given address format without validating it.
+		///     Detects a given address format without validating it.
 		/// </summary>
 		/// <param name="str">The address to be detected</param>
 		/// <param name="format">Detected format</param>
@@ -161,7 +99,7 @@ namespace BCashAddr
 		/// <returns>Detected format</returns>
 		public static CashFormat DetectFormat(string str)
 		{
-			if (String.IsNullOrEmpty(str))
+			if (string.IsNullOrEmpty(str))
 			{
 				throw new ArgumentException(nameof(str));
 			}
@@ -175,7 +113,7 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Encodes the given decoded address into cashaddr format
+		///     Encodes the given decoded address into cashaddr format
 		/// </summary>
 		/// <param name="decoded"></param>
 		/// <returns></returns>
@@ -185,7 +123,7 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Encodes the given decoded address into cashaddr format without a prefix
+		///     Encodes the given decoded address into cashaddr format without a prefix
 		/// </summary>
 		/// <param name="decoded"></param>
 		/// <returns></returns>
@@ -196,11 +134,12 @@ namespace BCashAddr
 			{
 				return address.Split(':')[1];
 			}
-			throw new Validation.ValidationError($"Invalid BchAddrData");
+
+			throw new Validation.ValidationError("Invalid BchAddrData");
 		}
 
 		/// <summary>
-		/// Detects what is the given address' format
+		///     Detects what is the given address' format
 		/// </summary>
 		/// <param name="address"></param>
 		/// <returns></returns>
@@ -210,12 +149,15 @@ namespace BCashAddr
 			{
 				return DecodeCashAddress(address, prefix, network);
 			}
-			catch { }
+			catch
+			{
+			}
+
 			throw new Validation.ValidationError($"Invalid address {address}");
 		}
 
 		/// <summary>
-		/// Attempts to decode the given address assuming it is a cashaddr address
+		///     Attempts to decode the given address assuming it is a cashaddr address
 		/// </summary>
 		/// <param name="address">A valid Bitcoin Cash address in any format</param>
 		/// <returns></returns>
@@ -232,13 +174,16 @@ namespace BCashAddr
 				var result = DecodeCashAddressWithPrefix(address, network);
 				return result;
 			}
-			catch { }
+			catch
+			{
+			}
+
 			//}
 			throw new Validation.ValidationError($"Invalid address {address}");
 		}
 
 		/// <summary>
-		/// Attempts to decode the given address assuming it is a cashaddr address with explicit prefix
+		///     Attempts to decode the given address assuming it is a cashaddr address with explicit prefix
 		/// </summary>
 		/// <param name="address">A valid Bitcoin Cash address in any format</param>
 		/// <returns></returns>
@@ -247,29 +192,65 @@ namespace BCashAddr
 			var decoded = CashAddr.Decode(address);
 			return BchAddrData.Create(CashFormat.Cashaddr, network, decoded.Type, decoded.Hash);
 		}
+
+		public class BchAddrData
+		{
+			public CashFormat Format { get; set; }
+
+			public Network Network { get; set; }
+
+			public CashType Type { get; set; }
+
+			public byte[] Hash { get; set; }
+
+			public string Prefix { get; internal set; }
+
+			public string GetHash()
+			{
+				if (Hash == null)
+				{
+					return null;
+				}
+
+				return Encoders.Hex.EncodeData(Hash);
+			}
+
+			public static BchAddrData Create(CashFormat format, Network network, CashType type, byte[] hash)
+			{
+				return new BchAddrData
+				{
+					Format = format,
+					Network = network,
+					Type = type,
+					Hash = hash,
+					Prefix = network?.Prefix
+				};
+			}
+
+			public override string ToString()
+			{
+				switch (Format)
+				{
+					case CashFormat.Legacy:
+						var base58Type = Type == CashType.P2PKH ? Base58Type.PUBKEY_ADDRESS : Base58Type.SCRIPT_ADDRESS;
+						var data = Network.GetVersionBytes(base58Type, false).Concat(Hash).ToArray();
+						return Encoders.Base58Check.EncodeData(data);
+
+					case CashFormat.Cashaddr:
+						return EncodeAsCashaddr(this);
+
+					default:
+						return GetHash();
+				}
+			}
+		}
 	}
 
 	// https://github.com/bitcoincashjs/cashaddrjs
 	internal static class CashAddr
 	{
-		public class CashAddrData
-		{
-			public string Prefix
-			{
-				get; set;
-			}
-			public BchAddr.CashType Type
-			{
-				get; set;
-			}
-			public byte[] Hash
-			{
-				get; set;
-			}
-		}
-
 		/// <summary>
-		/// Encodes a hash from a given type into a Bitcoin Cash address with the given prefix
+		///     Encodes a hash from a given type into a Bitcoin Cash address with the given prefix
 		/// </summary>
 		/// <param name="prefix">Network prefix. E.g.: 'bitcoincash'</param>
 		/// <param name="type">Type of address to generate.</param>
@@ -279,14 +260,14 @@ namespace BCashAddr
 		{
 			var prefixData = Concat(PrefixToByte5Array(prefix), new byte[1]);
 			var versionByte = GetTypeBits(type) + GetHashSizeBits(hash);
-			var payloadData = ToByte5Array(Concat(new byte[1] { (byte)versionByte }, hash));
+			var payloadData = ToByte5Array(Concat(new byte[1] {(byte) versionByte}, hash));
 			var checksumData = Concat(Concat(prefixData, payloadData), new byte[8]);
 			var payload = Concat(payloadData, ChecksumToByte5Array(Polymod(checksumData)));
 			return prefix + ':' + Base32.Encode(payload);
 		}
 
 		/// <summary>
-		/// Decodes the given address into its constituting prefix, type and hash
+		///     Decodes the given address into its constituting prefix, type and hash
 		/// </summary>
 		/// <param name="address">Address to decode. E.g.: 'bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a'</param>
 		/// <returns>DecodeData</returns>
@@ -301,8 +282,8 @@ namespace BCashAddr
 			var payloadData = FromByte5Array(data);
 			var versionByte = payloadData[0];
 			var hash = payloadData.Skip(1).ToArray();
-			Validation.Validate(GetHashSize((byte)versionByte) == hash.Length * 8, $"Invalid hash size: {address}");
-			var type = GetType((byte)versionByte);
+			Validation.Validate(GetHashSize(versionByte) == hash.Length * 8, $"Invalid hash size: {address}");
+			var type = GetType(versionByte);
 			return new CashAddrData
 			{
 				Prefix = prefix,
@@ -312,7 +293,7 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Retrieves the address type from its bit representation within the version byte
+		///     Retrieves the address type from its bit representation within the version byte
 		/// </summary>
 		/// <param name="versionByte"></param>
 		/// <returns></returns>
@@ -330,7 +311,7 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Verify that the payload has not been corrupted by checking that the checksum is valid
+		///     Verify that the payload has not been corrupted by checking that the checksum is valid
 		/// </summary>
 		/// <param name="prefix"></param>
 		/// <param name="payload"></param>
@@ -344,7 +325,7 @@ namespace BCashAddr
 
 
 		/// <summary>
-		/// Returns the concatenation a and b
+		///     Returns the concatenation a and b
 		/// </summary>
 		public static byte[] Concat(byte[] a, byte[] b)
 		{
@@ -352,7 +333,7 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Returns an array representation of the given checksum to be encoded within the address' payload
+		///     Returns an array representation of the given checksum to be encoded within the address' payload
 		/// </summary>
 		/// <param name="checksum"></param>
 		/// <returns></returns>
@@ -361,55 +342,58 @@ namespace BCashAddr
 			var result = new byte[8];
 			for (var i = 0; i < 8; ++i)
 			{
-				result[7 - i] = (byte)(checksum & 31);
+				result[7 - i] = (byte) (checksum & 31);
 				checksum = checksum >> 5;
 			}
+
 			return result;
 		}
 
 		/// <summary>
-		/// Computes a checksum from the given input data as specified for the CashAddr
+		///     Computes a checksum from the given input data as specified for the CashAddr
 		/// </summary>
 		/// <param name="data"></param>
 		/// <returns></returns>
 		public static long Polymod(byte[] data)
 		{
-			var GENERATOR = new long[] { 0x98f2bc8e61, 0x79b76d99e2, 0xf33e5fb3c4, 0xae2eabe2a8, 0x1e4f43e470 };
+			var generator = new[] {0x98f2bc8e61, 0x79b76d99e2, 0xf33e5fb3c4, 0xae2eabe2a8, 0x1e4f43e470};
 			long checksum = 1;
 			for (var i = 0; i < data.Length; ++i)
 			{
 				var value = data[i];
 				var topBits = checksum >> 35;
 				checksum = ((checksum & 0x07ffffffff) << 5) ^ value;
-				for (var j = 0; j < GENERATOR.Length; ++j)
+				for (var j = 0; j < generator.Length; ++j)
 				{
 					if (((topBits >> j) & 1).Equals(1))
 					{
-						checksum = checksum ^ GENERATOR[j];
+						checksum = checksum ^ generator[j];
 					}
 				}
 			}
+
 			return checksum ^ 1;
 		}
 
 		/// <summary>
-		/// Derives an array from the given prefix to be used in the computation of the address checksum
+		///     Derives an array from the given prefix to be used in the computation of the address checksum
 		/// </summary>
 		/// <param name="prefix">Network prefix. E.g.: 'bitcoincash'</param>
 		/// <returns></returns>
 		public static byte[] PrefixToByte5Array(string prefix)
 		{
 			var result = new byte[prefix.Length];
-			int i = 0;
-			foreach (char c in prefix.ToCharArray())
+			var i = 0;
+			foreach (var c in prefix)
 			{
-				result[i++] = (byte)(c & 31);
+				result[i++] = (byte) (c & 31);
 			}
+
 			return result;
 		}
 
 		/// <summary>
-		/// Returns true if, and only if, the given string contains either uppercase or lowercase letters, but not both
+		///     Returns true if, and only if, the given string contains either uppercase or lowercase letters, but not both
 		/// </summary>
 		/// <param name="str"></param>
 		/// <returns></returns>
@@ -419,7 +403,7 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Returns the bit representation of the length in bits of the given hash within the version byte
+		///     Returns the bit representation of the length in bits of the given hash within the version byte
 		/// </summary>
 		/// <param name="hash">Hash to encode represented as an array of 8-bit integers</param>
 		/// <returns></returns>
@@ -449,7 +433,7 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Retrieves the the length in bits of the encoded hash from its bit representation within the version byte
+		///     Retrieves the the length in bits of the encoded hash from its bit representation within the version byte
 		/// </summary>
 		/// <param name="versionByte"></param>
 		/// <returns></returns>
@@ -479,7 +463,7 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Returns the bit representation of the given type within the version byte
+		///     Returns the bit representation of the given type within the version byte
 		/// </summary>
 		/// <param name="type">Address type. Either 'P2PKH' or 'P2SH'</param>
 		/// <returns></returns>
@@ -497,7 +481,7 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Converts an array of 8-bit integers into an array of 5-bit integers, right-padding with zeroes if necessary
+		///     Converts an array of 8-bit integers into an array of 5-bit integers, right-padding with zeroes if necessary
 		/// </summary>
 		/// <param name="data"></param>
 		/// <returns></returns>
@@ -507,9 +491,9 @@ namespace BCashAddr
 		}
 
 		/// <summary>
-		/// Converts an array of 5-bit integers back into an array of 8-bit integers
-		/// removing extra zeroes left from padding if necessary.
-		/// Throws a ValidationError if input is not a zero-padded array of 8-bit integers
+		///     Converts an array of 5-bit integers back into an array of 8-bit integers
+		///     removing extra zeroes left from padding if necessary.
+		///     Throws a ValidationError if input is not a zero-padded array of 8-bit integers
 		/// </summary>
 		/// <param name="data"></param>
 		/// <returns></returns>
@@ -518,14 +502,22 @@ namespace BCashAddr
 			return ConvertBits.Convert(data, 5, 8, true);
 		}
 
+		public class CashAddrData
+		{
+			public string Prefix { get; set; }
+
+			public BchAddr.CashType Type { get; set; }
+
+			public byte[] Hash { get; set; }
+		}
 	}
 
 	internal static class ConvertBits
 	{
 		/// <summary>
-		/// Converts an array of integers made up of 'from' bits into an
-		/// array of integers made up of 'to' bits.The output array is
-		/// zero-padded if necessary, unless strict mode is true.
+		///     Converts an array of integers made up of 'from' bits into an
+		///     array of integers made up of 'to' bits.The output array is
+		///     zero-padded if necessary, unless strict mode is true.
 		/// </summary>
 		/// <param name="data">data Array of integers made up of 'from' bits</param>
 		/// <param name="from">from Length in bits of elements in the input array</param>
@@ -537,8 +529,8 @@ namespace BCashAddr
 			Validation.Validate(from > 0, "Invald 'from' parameter");
 			Validation.Validate(to > 0, "Invald 'to' parameter");
 			Validation.Validate(data.Length > 0, "Invald data");
-			var d = data.Length * from / (double)to;
-			var length = strictMode ? (int)Math.Floor(d) : (int)Math.Ceiling(d);
+			var d = data.Length * from / (double) to;
+			var length = strictMode ? (int) Math.Floor(d) : (int) Math.Ceiling(d);
 			var mask = (1 << to) - 1;
 			var result = new byte[length];
 			var index = 0;
@@ -547,49 +539,53 @@ namespace BCashAddr
 			for (var i = 0; i < data.Length; ++i)
 			{
 				var value = data[i];
-				Validation.Validate(0 <= value && (value >> from) == 0, $"Invalid value: {value}");
+				Validation.Validate(0 <= value && value >> from == 0, $"Invalid value: {value}");
 				accumulator = (accumulator << from) | value;
 				bits += from;
 				while (bits >= to)
 				{
 					bits -= to;
-					result[index] = (byte)((accumulator >> bits) & mask);
+					result[index] = (byte) ((accumulator >> bits) & mask);
 					++index;
 				}
 			}
+
 			if (!strictMode)
 			{
 				if (bits > 0)
 				{
-					result[index] = (byte)((accumulator << (to - bits)) & mask);
+					result[index] = (byte) ((accumulator << (to - bits)) & mask);
 					++index;
 				}
 			}
 			else
 			{
 				Validation.Validate(
-				  bits < from && ((accumulator << (to - bits)) & mask) == 0,
-				  $"Input cannot be converted to {to} bits without padding, but strict mode was used"
+					bits < from && ((accumulator << (to - bits)) & mask) == 0,
+					$"Input cannot be converted to {to} bits without padding, but strict mode was used"
 				);
 			}
+
 			return result;
 		}
 	}
 
 	internal static class Base32
 	{
-		private static readonly char[] DIGITS;
-		private static Dictionary<char, int> CHAR_MAP = new Dictionary<char, int>();
+		private static readonly char[] Digits;
+		private static readonly Dictionary<char, int> CharMap = new Dictionary<char, int>();
 
 		static Base32()
 		{
-			DIGITS = "qpzry9x8gf2tvdw0s3jn54khce6mua7l".ToCharArray();
-			for (int i = 0; i < DIGITS.Length; i++)
-				CHAR_MAP[DIGITS[i]] = i;
+			Digits = "qpzry9x8gf2tvdw0s3jn54khce6mua7l".ToCharArray();
+			for (var i = 0; i < Digits.Length; i++)
+			{
+				CharMap[Digits[i]] = i;
+			}
 		}
 
 		/// <summary>
-		/// Decodes the given base32-encoded string into an array of 5-bit integers
+		///     Decodes the given base32-encoded string into an array of 5-bit integers
 		/// </summary>
 		/// <param name="encoded"></param>
 		/// <returns></returns>
@@ -599,21 +595,24 @@ namespace BCashAddr
 			{
 				throw new CashaddrBase32EncoderException("Invalid encoded string");
 			}
+
 			var result = new byte[encoded.Length];
-			int next = 0;
-			foreach (char c in encoded.ToCharArray())
+			var next = 0;
+			foreach (var c in encoded)
 			{
-				if (!CHAR_MAP.ContainsKey(c))
+				if (!CharMap.ContainsKey(c))
 				{
 					throw new CashaddrBase32EncoderException($"Invalid character: {c}");
 				}
-				result[next++] = (byte)CHAR_MAP[c];
+
+				result[next++] = (byte) CharMap[c];
 			}
+
 			return result;
 		}
 
 		/// <summary>
-		/// Encodes the given array of 5-bit integers as a base32-encoded string
+		///     Encodes the given array of 5-bit integers as a base32-encoded string
 		/// </summary>
 		/// <param name="data">data Array of integers between 0 and 31 inclusive</param>
 		/// <returns></returns>
@@ -623,23 +622,22 @@ namespace BCashAddr
 			{
 				throw new CashaddrBase32EncoderException("Invalid data");
 			}
-			string base32 = String.Empty;
+
+			var base32 = string.Empty;
 			for (var i = 0; i < data.Length; ++i)
 			{
 				var value = data[i];
 				if (0 <= value && value < 32)
-					base32 += DIGITS[value];
+				{
+					base32 += Digits[value];
+				}
 				else
+				{
 					throw new CashaddrBase32EncoderException($"Invalid value: {value}");
+				}
 			}
-			return base32;
-		}
 
-		private class CashaddrBase32EncoderException : Exception
-		{
-			public CashaddrBase32EncoderException(string message) : base(message)
-			{
-			}
+			return base32;
 		}
 
 		public static bool ContainsInvalidCharacter(string s, int offset, int count)
@@ -649,7 +647,7 @@ namespace BCashAddr
 				for (var i = 0; i < count; ++i)
 				{
 					var c = s[offset + i];
-					if (!DIGITS.Contains(c))
+					if (!Digits.Contains(c))
 					{
 						return true;
 					}
@@ -677,6 +675,13 @@ namespace BCashAddr
 			}
 
 			return ContainsInvalidCharacter(s, 0, s.Length);
+		}
+
+		private class CashaddrBase32EncoderException : Exception
+		{
+			public CashaddrBase32EncoderException(string message) : base(message)
+			{
+			}
 		}
 	}
 

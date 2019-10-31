@@ -1,14 +1,16 @@
-﻿using System;
-
-namespace BitcoinNet.DataEncoders
+﻿namespace BitcoinNet.DataEncoders
 {
 	public abstract class DataEncoder
 	{
+		internal DataEncoder()
+		{
+		}
+
 		// char.IsWhiteSpace fits well but it match other whitespaces 
 		// characters too and also works for unicode characters.
 		public static bool IsSpace(char c)
 		{
-			switch(c)
+			switch (c)
 			{
 				case ' ':
 				case '\t':
@@ -18,11 +20,8 @@ namespace BitcoinNet.DataEncoders
 				case '\r':
 					return true;
 			}
-			return false;
-		}
 
-		internal DataEncoder()
-		{
+			return false;
 		}
 
 		public string EncodeData(byte[] data)
@@ -37,49 +36,19 @@ namespace BitcoinNet.DataEncoders
 
 	public static class Encoders
 	{
-		static readonly ASCIIEncoder _ASCII = new ASCIIEncoder();
-		public static DataEncoder ASCII
+		static Encoders()
 		{
-			get
-			{
-				return _ASCII;
-			}
+			ASCII = new ASCIIEncoder();
+			Hex = new HexEncoder();
+			Base58 = new Base58Encoder();
+			Base58Check = new Base58CheckEncoder();
+			Base64 = new Base64Encoder();
 		}
 
-		static readonly HexEncoder _Hex = new HexEncoder();
-		public static DataEncoder Hex
-		{
-			get
-			{
-				return _Hex;
-			}
-		}
-
-		static readonly Base58Encoder _Base58 = new Base58Encoder();
-		public static DataEncoder Base58
-		{
-			get
-			{
-				return _Base58;
-			}
-		}
-
-		private static readonly Base58CheckEncoder _Base58Check = new Base58CheckEncoder();
-		public static DataEncoder Base58Check
-		{
-			get
-			{
-				return _Base58Check;
-			}
-		}
-
-		static readonly Base64Encoder _Base64 = new Base64Encoder();
-		public static DataEncoder Base64
-		{
-			get
-			{
-				return _Base64;
-			}
-		}
+		public static DataEncoder ASCII { get; }
+		public static DataEncoder Hex { get; }
+		public static DataEncoder Base58 { get; }
+		public static DataEncoder Base58Check { get; }
+		public static DataEncoder Base64 { get; }
 	}
 }

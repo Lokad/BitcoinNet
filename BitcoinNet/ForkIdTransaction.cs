@@ -1,78 +1,80 @@
 ﻿using System;
 using System.Linq;
-using System.Collections.Generic;
-using System.Text;
 using BitcoinNet.Crypto;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {
-    public class ForkIdTransaction : Transaction, IHasForkId
+	public class ForkIdTransaction : Transaction, IHasForkId
 	{
+		private readonly ConsensusFactory _factory;
+
 #pragma warning disable CS0618 // Type or member is obsolete
 		public ForkIdTransaction(uint forkId, bool supportSegwit, ConsensusFactory consensusFactory)
 		{
-			_ForkId = forkId;
-			_Factory = consensusFactory;
+			ForkId = forkId;
+			_factory = consensusFactory;
 		}
 #pragma warning restore CS0618 // Type or member is obsolete
+		public uint ForkId { get; }
 
-		ConsensusFactory _Factory;
 		public override ConsensusFactory GetConsensusFactory()
 		{
-			return _Factory;
+			return _factory;
 		}
 
-		private readonly uint _ForkId;
-		public uint ForkId
+		public override uint256 GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, Money amount,
+			PrecomputedTransactionData precomputedTransactionData)
 		{
-			get
+			var nForkHashType = (uint) nHashType;
+			if (UsesForkId(nHashType))
 			{
-				return _ForkId;
-			}
-		}
-
-		public override uint256 GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, Money amount, PrecomputedTransactionData precomputedTransactionData)
-		{
-			uint nForkHashType = (uint)nHashType;
-			if(UsesForkId(nHashType))
 				nForkHashType |= ForkId << 8;
+			}
 
-			if(UsesForkId(nHashType))
+			if (UsesForkId(nHashType))
 			{
-				if(amount == null)
+				if (amount == null)
+				{
 					throw new ArgumentException("The amount of the output being signed must be provided", "amount");
-				uint256 hashPrevouts = uint256.Zero;
-				uint256 hashSequence = uint256.Zero;
-				uint256 hashOutputs = uint256.Zero;
-
-				if((nHashType & SigHash.AnyoneCanPay) == 0)
-				{
-					hashPrevouts = precomputedTransactionData == null ?
-								   GetHashPrevouts() : precomputedTransactionData.HashPrevouts;
 				}
 
-				if((nHashType & SigHash.AnyoneCanPay) == 0 && ((uint)nHashType & 0x1f) != (uint)SigHash.Single && ((uint)nHashType & 0x1f) != (uint)SigHash.None)
+				var hashPrevouts = uint256.Zero;
+				var hashSequence = uint256.Zero;
+				var hashOutputs = uint256.Zero;
+
+				if ((nHashType & SigHash.AnyoneCanPay) == 0)
 				{
-					hashSequence = precomputedTransactionData == null ?
-								   GetHashSequence() : precomputedTransactionData.HashSequence;
+					hashPrevouts = precomputedTransactionData == null
+						? GetHashPrevouts()
+						: precomputedTransactionData.HashPrevouts;
 				}
 
-				if(((uint)nHashType & 0x1f) != (uint)SigHash.Single && ((uint)nHashType & 0x1f) != (uint)SigHash.None)
+				if ((nHashType & SigHash.AnyoneCanPay) == 0 && ((uint) nHashType & 0x1f) != (uint) SigHash.Single &&
+				    ((uint) nHashType & 0x1f) != (uint) SigHash.None)
 				{
-					hashOutputs = precomputedTransactionData == null ?
-									GetHashOutputs() : precomputedTransactionData.HashOutputs;
+					hashSequence = precomputedTransactionData == null
+						? GetHashSequence()
+						: precomputedTransactionData.HashSequence;
 				}
-				else if(((uint)nHashType & 0x1f) == (uint)SigHash.Single && nIn < this.Outputs.Count)
+
+				if (((uint) nHashType & 0x1f) != (uint) SigHash.Single &&
+				    ((uint) nHashType & 0x1f) != (uint) SigHash.None)
 				{
-					BitcoinStream ss = CreateHashWriter();
-					ss.ReadWrite(this.Outputs[nIn]);
+					hashOutputs = precomputedTransactionData == null
+						? GetHashOutputs()
+						: precomputedTransactionData.HashOutputs;
+				}
+				else if (((uint) nHashType & 0x1f) == (uint) SigHash.Single && nIn < Outputs.Count)
+				{
+					var ss = CreateHashWriter();
+					ss.ReadWrite(Outputs[nIn]);
 					hashOutputs = GetHash(ss);
 				}
 
-				BitcoinStream sss = CreateHashWriter();
+				var sss = CreateHashWriter();
 				// Version
-				sss.ReadWrite(this.Version);
+				sss.ReadWrite(Version);
 				// Input prevouts/nSequence (none/all, depending on flags)
 				sss.ReadWrite(hashPrevouts);
 				sss.ReadWrite(hashSequence);
@@ -82,31 +84,28 @@ namespace BitcoinNet
 				sss.ReadWrite(Inputs[nIn].PrevOut);
 				sss.ReadWrite(scriptCode);
 				sss.ReadWrite(amount.Satoshi);
-				sss.ReadWrite((uint)Inputs[nIn].Sequence);
+				sss.ReadWrite((uint) Inputs[nIn].Sequence);
 				// Outputs (none/one/all, depending on flags)
 				sss.ReadWrite(hashOutputs);
 				// Locktime
 				sss.ReadWriteStruct(LockTime);
 				// Sighash type
-				sss.ReadWrite((uint)nForkHashType);
+				sss.ReadWrite(nForkHashType);
 
 				return GetHash(sss);
 			}
 
-
-
-
-			if(nIn >= Inputs.Count)
+			if (nIn >= Inputs.Count)
 			{
 				return uint256.One;
 			}
 
-			var hashType = nHashType & (SigHash)31;
+			var hashType = nHashType & (SigHash) 31;
 
 			// Check for invalid use of SIGHASH_SINGLE
-			if(hashType == SigHash.Single)
+			if (hashType == SigHash.Single)
 			{
-				if(nIn >= Outputs.Count)
+				if (nIn >= Outputs.Count)
 				{
 					return uint256.One;
 				}
@@ -118,40 +117,48 @@ namespace BitcoinNet
 			var txCopy = GetConsensusFactory().CreateTransaction();
 			txCopy.FromBytes(this.ToBytes());
 			//Set all TxIn script to empty string
-			foreach(var txin in txCopy.Inputs)
+			foreach (var txin in txCopy.Inputs)
 			{
 				txin.ScriptSig = new Script();
 			}
+
 			//Copy subscript into the txin script you are checking
 			txCopy.Inputs[nIn].ScriptSig = scriptCopy;
 
-			if(hashType == SigHash.None)
+			if (hashType == SigHash.None)
 			{
 				//The output of txCopy is set to a vector of zero size.
 				txCopy.Outputs.Clear();
 
 				//All other inputs aside from the current input in txCopy have their nSequence index set to zero
-				foreach(var input in txCopy.Inputs.Where((x, i) => i != nIn))
+				foreach (var input in txCopy.Inputs.Where((x, i) => i != nIn))
+				{
 					input.Sequence = 0;
+				}
 			}
-			else if(hashType == SigHash.Single)
+			else if (hashType == SigHash.Single)
 			{
 				//The output of txCopy is resized to the size of the current input index+1.
 				txCopy.Outputs.RemoveRange(nIn + 1, txCopy.Outputs.Count - (nIn + 1));
 				//All other txCopy outputs aside from the output that is the same as the current input index are set to a blank script and a value of (long) -1.
-				for(var i = 0; i < txCopy.Outputs.Count; i++)
+				for (var i = 0; i < txCopy.Outputs.Count; i++)
 				{
-					if(i == nIn)
+					if (i == nIn)
+					{
 						continue;
+					}
+
 					txCopy.Outputs[i] = new TxOut();
 				}
+
 				//All other txCopy inputs aside from the current input are set to have an nSequence index of zero.
-				foreach(var input in txCopy.Inputs.Where((x, i) => i != nIn))
+				foreach (var input in txCopy.Inputs.Where((x, i) => i != nIn))
+				{
 					input.Sequence = 0;
+				}
 			}
 
-
-			if((nHashType & SigHash.AnyoneCanPay) != 0)
+			if ((nHashType & SigHash.AnyoneCanPay) != 0)
 			{
 				//The txCopy input vector is resized to a length of one.
 				var script = txCopy.Inputs[nIn];
@@ -161,59 +168,58 @@ namespace BitcoinNet
 				txCopy.Inputs[0].ScriptSig = scriptCopy;
 			}
 
-
 			//Serialize TxCopy, append 4 byte hashtypecode
 			var stream = CreateHashWriter();
 			txCopy.ReadWrite(stream);
-			stream.ReadWrite((uint)nForkHashType);
+			stream.ReadWrite(nForkHashType);
 			return GetHash(stream);
 		}
 
 		private bool UsesForkId(SigHash nHashType)
 		{
-			return ((uint)nHashType & 0x40u) != 0;
+			return ((uint) nHashType & 0x40u) != 0;
 		}
 
 		private static uint256 GetHash(BitcoinStream stream)
 		{
-			var preimage = ((HashStream)stream.Inner).GetHash();
+			var preimage = ((HashStream) stream.Inner).GetHash();
 			stream.Inner.Dispose();
 			return preimage;
 		}
 
 		internal override uint256 GetHashOutputs()
 		{
-			uint256 hashOutputs;
-			BitcoinStream ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
+			var ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
 			foreach (var txout in Outputs)
 			{
 				ss.ReadWrite(txout);
 			}
-			hashOutputs = GetHash(ss);
+
+			var hashOutputs = GetHash(ss);
 			return hashOutputs;
 		}
 
 		internal override uint256 GetHashSequence()
 		{
-			uint256 hashSequence;
-			BitcoinStream ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
-			foreach(var input in Inputs)
+			var ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
+			foreach (var input in Inputs)
 			{
-				ss.ReadWrite((uint)input.Sequence);
+				ss.ReadWrite((uint) input.Sequence);
 			}
-			hashSequence = GetHash(ss);
+
+			var hashSequence = GetHash(ss);
 			return hashSequence;
 		}
 
 		internal override uint256 GetHashPrevouts()
 		{
-			uint256 hashPrevouts;
-			BitcoinStream ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
+			var ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
 			foreach (var input in Inputs)
 			{
 				ss.ReadWrite(input.PrevOut);
 			}
-			hashPrevouts = GetHash(ss);
+
+			var hashPrevouts = GetHash(ss);
 			return hashPrevouts;
 		}
 	}

@@ -1,42 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace BitcoinNet.Protocol
 {
 	/// <summary>
-	/// Ask for transaction, block or merkle block
+	///     Ask for transaction, block or merkle block
 	/// </summary>
 	[Payload("getdata")]
 	public class GetDataPayload : Payload
 	{
+		private List<InventoryVector> _inventory = new List<InventoryVector>();
+
 		public GetDataPayload()
 		{
 		}
+
 		public GetDataPayload(params InventoryVector[] vectors)
 		{
-			inventory.AddRange(vectors);
+			_inventory.AddRange(vectors);
 		}
-		List<InventoryVector> inventory = new List<InventoryVector>();
 
 		public List<InventoryVector> Inventory
 		{
-			set
-			{
-				inventory = value;
-			}
-			get
-			{
-				return inventory;
-			}
+			set => _inventory = value;
+			get => _inventory;
 		}
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			stream.ReadWrite(ref inventory);
+			stream.ReadWrite(ref _inventory);
 		}
 	}
 }
-

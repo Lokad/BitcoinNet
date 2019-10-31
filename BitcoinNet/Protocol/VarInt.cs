@@ -1,74 +1,81 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.Protocol
 {
 	public class CompactVarInt : IBitcoinSerializable
 	{
-		private ulong _Value = 0;
-		private int _Size;
+		private readonly int _size;
+		private ulong _value;
+
 		public CompactVarInt(int size)
 		{
-			_Size = size;
+			_size = size;
 		}
+
 		public CompactVarInt(ulong value, int size)
 		{
-			_Value = value;
-			_Size = size;
+			_value = value;
+			_size = size;
 		}
 
 		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
-			if(stream.Serializing)
+			if (stream.Serializing)
 			{
-				ulong n = _Value;
-				Span<byte> tmp = stackalloc byte[(_Size * 8 + 6) / 7];
+				var n = _value;
+				Span<byte> tmp = stackalloc byte[(_size * 8 + 6) / 7];
 
-				int len = 0;
-				while(true)
+				var len = 0;
+				while (true)
 				{
-					byte a = (byte)(n & 0x7F);
-					byte b = (byte)(len != 0 ? 0x80 : 0x00);
-					tmp[len] = (byte)(a | b);
-					if(n <= 0x7F)
+					var a = (byte) (n & 0x7F);
+					var b = (byte) (len != 0 ? 0x80 : 0x00);
+					tmp[len] = (byte) (a | b);
+					if (n <= 0x7F)
+					{
 						break;
+					}
+
 					n = (n >> 7) - 1;
 					len++;
 				}
+
 				do
 				{
-					byte b = tmp[len];
+					var b = tmp[len];
 					stream.ReadWrite(ref b);
-				} while(len-- != 0);
+				} while (len-- != 0);
 			}
 			else
 			{
 				ulong n = 0;
-				while(true)
+				while (true)
 				{
 					byte chData = 0;
 					stream.ReadWrite(ref chData);
-					ulong a = (n << 7);
-					byte b = (byte)(chData & 0x7F);
-					n = (a | b);
-					if((chData & 0x80) != 0)
+					var a = n << 7;
+					var b = (byte) (chData & 0x7F);
+					n = a | b;
+					if ((chData & 0x80) != 0)
+					{
 						n++;
+					}
 					else
+					{
 						break;
+					}
 				}
-				_Value = n;
+
+				_value = n;
 			}
 		}
 
 		public ulong ToLong()
 		{
-			return _Value;
+			return _value;
 		}
 	}
 
@@ -76,78 +83,105 @@ namespace BitcoinNet.Protocol
 	//https://en.bitcoin.it/wiki/Protocol_specification#Variable_length_integer
 	public class VarInt : IBitcoinSerializable
 	{
-		private ulong _Value = 0;
+		private ulong _value;
 
 		public VarInt()
 			: this(0)
 		{
-
 		}
+
 		public VarInt(ulong value)
 		{
 			SetValue(value);
 		}
 
+		// IBitcoinSerializable Members
+
+		public void ReadWrite(BitcoinStream stream)
+		{
+			if (stream.Serializing)
+			{
+				StaticWrite(stream, _value);
+			}
+			else
+			{
+				_value = StaticRead(stream);
+			}
+		}
+
 		internal void SetValue(ulong value)
 		{
-			this._Value = value;
+			_value = value;
 		}
 
 		public static void StaticWrite(BitcoinStream bs, ulong length)
 		{
-			if(!bs.Serializing)
+			if (!bs.Serializing)
+			{
 				throw new InvalidOperationException("Stream should be serializing");
+			}
+
 			var stream = bs.Inner;
-			bs.Counter.AddWritten(1);
-			if(length < 0xFD)
+			bs.Counter.AddBytesWritten(1);
+			if (length < 0xFD)
 			{
-				stream.WriteByte((byte)length);
+				stream.WriteByte((byte) length);
 			}
-			else if(length <= 0xffff)
+			else if (length <= 0xffff)
 			{
-				var value = (ushort)length;
-				stream.WriteByte((byte)0xFD);
+				var value = (ushort) length;
+				stream.WriteByte(0xFD);
 				bs.ReadWrite(ref value);
 			}
-			else if(length <= 0xffff)
+			else if (length <= 0xffff)
 			{
-				var value = (uint)length;
-				stream.WriteByte((byte)0xFE);
+				var value = (uint) length;
+				stream.WriteByte(0xFE);
 				bs.ReadWrite(ref value);
 			}
-			else if(length <= 0xffffffff)
+			else if (length <= 0xffffffff)
 			{
 				var value = length;
-				stream.WriteByte((byte)0xFF);
+				stream.WriteByte(0xFF);
 				bs.ReadWrite(ref value);
 			}
 		}
 
 		public static ulong StaticRead(BitcoinStream bs)
 		{
-			if(bs.Serializing)
-				throw new InvalidOperationException("Stream should not be serializing");
-			var prefix= bs.Inner.ReadByte();
-			bs.Counter.AddReaden(1);
-			if(prefix == -1)
-				throw new EndOfStreamException("No more byte to read");
-			if(prefix < 0xFD)
-				return (byte)prefix;
-			else if(prefix == 0xFD)
+			if (bs.Serializing)
 			{
-				var value = (ushort)0;
+				throw new InvalidOperationException("Stream should not be serializing");
+			}
+
+			var prefix = bs.Inner.ReadByte();
+			bs.Counter.AddBytesRead(1);
+			if (prefix == -1)
+			{
+				throw new EndOfStreamException("No more byte to read");
+			}
+
+			if (prefix < 0xFD)
+			{
+				return (byte) prefix;
+			}
+
+			if (prefix == 0xFD)
+			{
+				var value = (ushort) 0;
 				bs.ReadWrite(ref value);
 				return value;
 			}
-			else if(prefix == 0xFE)
+
+			if (prefix == 0xFE)
 			{
-				var value = (uint)0;
+				var value = (uint) 0;
 				bs.ReadWrite(ref value);
 				return value;
 			}
 			else
 			{
-				var value = (ulong)0;
+				var value = (ulong) 0;
 				bs.ReadWrite(ref value);
 				return value;
 			}
@@ -155,17 +189,7 @@ namespace BitcoinNet.Protocol
 
 		public ulong ToLong()
 		{
-			return _Value;
-		}
-
-		// IBitcoinSerializable Members
-
-		public void ReadWrite(BitcoinStream stream)
-		{
-			if(stream.Serializing)
-				StaticWrite(stream, _Value);
-			else
-				_Value = StaticRead(stream);			
+			return _value;
 		}
 	}
 }

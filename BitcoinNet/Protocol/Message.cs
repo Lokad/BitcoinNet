@@ -1,138 +1,149 @@
-﻿using BitcoinNet.Crypto;
-using BitcoinNet.DataEncoders;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+using BitcoinNet.Crypto;
+using BitcoinNet.DataEncoders;
 
 namespace BitcoinNet.Protocol
 {
 	public class Message : IBitcoinSerializable
 	{
-		uint magic;
+		private byte[] _buffer;
+		private byte[] _command = new byte[12];
+		private uint _magic;
+		private Payload _payloadObject;
+
+		/// <summary>
+		///     When parsing, maybe Magic is already parsed
+		/// </summary>
+		private bool _skipMagic;
 
 		public uint Magic
 		{
-			get
-			{
-				return magic;
-			}
-			set
-			{
-				magic = value;
-			}
+			get => _magic;
+			set => _magic = value;
 		}
-		byte[] command = new byte[12];
 
 		public string Command
 		{
-			get
-			{
-				return Encoders.ASCII.EncodeData(command);
-			}
-			private set
-			{
-				command = Encoders.ASCII.DecodeData(value.Trim().PadRight(12, '\0'));
-			}
+			get => Encoders.ASCII.EncodeData(_command);
+			private set => _command = Encoders.ASCII.DecodeData(value.Trim().PadRight(12, '\0'));
 		}
 
-		internal byte[] _Buffer;
-		Payload _PayloadObject;
 		public Payload Payload
 		{
-			get
-			{
-				return _PayloadObject;
-			}
+			get => _payloadObject;
 			set
 			{
-				_PayloadObject = value;
-				Command = _PayloadObject.Command;
+				_payloadObject = value;
+				Command = _payloadObject.Command;
 			}
-		}
-
-		public bool IfPayloadIs<TPayload>(Action<TPayload> action) where TPayload : Payload
-		{
-			var payload = Payload as TPayload;
-			if(payload != null)
-				action(payload);
-			return payload != null;
 		}
 
 		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
-			if(Payload == null && stream.Serializing)
+			if (Payload == null && stream.Serializing)
+			{
 				throw new InvalidOperationException("Payload not affected");
-			if(stream.Serializing || (!stream.Serializing && !_SkipMagic))
-				stream.ReadWrite(ref magic);
-			stream.ReadWrite(ref command);
-			int length = 0;
+			}
+
+			if (stream.Serializing || !stream.Serializing && !_skipMagic)
+			{
+				stream.ReadWrite(ref _magic);
+			}
+
+			stream.ReadWrite(ref _command);
+			var length = 0;
 			uint checksum = 0;
-			bool hasChecksum = false;
-			byte[] payloadBytes = stream.Serializing ? GetPayloadBytes(stream, out length) : null;
+			var hasChecksum = false;
+			var payloadBytes = stream.Serializing ? GetPayloadBytes(stream, out length) : null;
 			length = payloadBytes == null ? 0 : length;
 			stream.ReadWrite(ref length);
 
-			if(stream.ProtocolCapabilities.SupportCheckSum)
+			if (stream.ProtocolCapabilities.SupportCheckSum)
 			{
-				if(stream.Serializing)
+				if (stream.Serializing)
+				{
 					checksum = Hashes.Hash256(payloadBytes, 0, length).GetLow32();
+				}
+
 				stream.ReadWrite(ref checksum);
 				hasChecksum = true;
 			}
-			if(stream.Serializing)
+
+			if (stream.Serializing)
 			{
 				stream.ReadWrite(ref payloadBytes, 0, length);
 			}
 			else
 			{
-				if(length > 0x02000000) //MAX_SIZE 0x02000000 Serialize.h
+				if (length > 0x02000000) //MAX_SIZE 0x02000000 Serialize.h
 				{
 					throw new FormatException("Message payload too big ( > 0x02000000 bytes)");
 				}
 
-				payloadBytes = _Buffer == null || _Buffer.Length < length ? new byte[length] : _Buffer;
+				payloadBytes = _buffer == null || _buffer.Length < length ? new byte[length] : _buffer;
 				stream.ReadWrite(ref payloadBytes, 0, length);
 
-				if(hasChecksum)
+				if (hasChecksum)
 				{
-					if(!VerifyChecksum(checksum, payloadBytes, length))
+					if (!VerifyChecksum(checksum, payloadBytes, length))
 					{
-						if(NodeServerTrace.Trace.Switch.ShouldTrace(TraceEventType.Verbose))
-							NodeServerTrace.Trace.TraceEvent(TraceEventType.Verbose, 0, "Invalid message checksum bytes");
+						if (NodeServerTrace.Trace.Switch.ShouldTrace(TraceEventType.Verbose))
+						{
+							NodeServerTrace.Trace.TraceEvent(TraceEventType.Verbose, 0,
+								"Invalid message checksum bytes");
+						}
+
 						throw new FormatException("Message checksum invalid");
 					}
 				}
-				BitcoinStream payloadStream = new BitcoinStream(payloadBytes);
+
+				var payloadStream = new BitcoinStream(payloadBytes);
 				payloadStream.CopyParameters(stream);
 
 				var payloadType = PayloadAttribute.GetCommandType(Command);
 				var unknown = payloadType == typeof(UnknowPayload);
-				if(unknown)
-					NodeServerTrace.Trace.TraceEvent(TraceEventType.Warning, 0, "Unknown command received : " + Command);
-				object payload = _PayloadObject;
+				if (unknown)
+				{
+					NodeServerTrace.Trace.TraceEvent(TraceEventType.Warning, 0,
+						"Unknown command received : " + Command);
+				}
+
+				object payload = _payloadObject;
 				payloadStream.ReadWrite(payloadType, ref payload);
-				if(unknown)
-					((UnknowPayload)payload)._Command = Command;
-				Payload = (Payload)payload;
+				if (unknown)
+				{
+					((UnknowPayload) payload)._command = Command;
+				}
+
+				Payload = (Payload) payload;
 			}
+		}
+
+		public bool IfPayloadIs<TPayload>(Action<TPayload> action) where TPayload : Payload
+		{
+			var payload = Payload as TPayload;
+			if (payload != null)
+			{
+				action(payload);
+			}
+
+			return payload != null;
 		}
 
 		private byte[] GetPayloadBytes(BitcoinStream stream, out int length)
 		{
-			MemoryStream ms = _Buffer == null ? new MemoryStream() : new MemoryStream(_Buffer);
+			var ms = _buffer == null ? new MemoryStream() : new MemoryStream(_buffer);
 			var stream2 = new BitcoinStream(ms, true);
 			stream2.CopyParameters(stream);
 			Payload.ReadWrite(stream2);
-			length = (int)ms.Position;
-			return _Buffer ?? GetBuffer(ms);
+			length = (int) ms.Position;
+			return _buffer ?? GetBuffer(ms);
 		}
 
 		private static byte[] GetBuffer(MemoryStream ms)
@@ -146,72 +157,72 @@ namespace BitcoinNet.Protocol
 			return checksum == Hashes.Hash256(payload, 0, length).GetLow32();
 		}
 
-
-
-		/// <summary>
-		/// When parsing, maybe Magic is already parsed
-		/// </summary>
-		bool _SkipMagic;
-
 		public override string ToString()
 		{
-			return String.Format("{0} : {1}", Command, Payload);
+			return $"{Command} : {Payload}";
 		}
 
-		public static Message ReadNext(Socket socket, Network network, uint version, CancellationToken cancellationToken)
+		public static Message ReadNext(Socket socket, Network network, uint version,
+			CancellationToken cancellationToken)
 		{
-			PerformanceCounter counter;
-			return ReadNext(socket, network, version, cancellationToken, out counter);
+			return ReadNext(socket, network, version, cancellationToken, out _);
 		}
 
-		public static Message ReadNext(Socket socket, Network network, uint version, CancellationToken cancellationToken, out PerformanceCounter counter)
+		public static Message ReadNext(Socket socket, Network network, uint version,
+			CancellationToken cancellationToken, out PerformanceCounter counter)
 		{
 			return ReadNext(socket, network, version, cancellationToken, null, out counter);
 		}
-		public static Message ReadNext(Socket socket, Network network, uint version, CancellationToken cancellationToken, byte[] buffer, out PerformanceCounter counter)
+
+		public static Message ReadNext(Socket socket, Network network, uint version,
+			CancellationToken cancellationToken, byte[] buffer, out PerformanceCounter counter)
 		{
 			var stream = new NetworkStream(socket, false);
 			return ReadNext(stream, network, version, cancellationToken, buffer, out counter);
 		}
 
-		public static Message ReadNext(Stream stream, Network network, uint version, CancellationToken cancellationToken)
+		public static Message ReadNext(Stream stream, Network network, uint version,
+			CancellationToken cancellationToken)
 		{
-			PerformanceCounter counter;
-			return ReadNext(stream, network, version, cancellationToken, out counter);
+			return ReadNext(stream, network, version, cancellationToken, out _);
 		}
 
-		public static Message ReadNext(Stream stream, Network network, uint version, CancellationToken cancellationToken, out PerformanceCounter counter)
+		public static Message ReadNext(Stream stream, Network network, uint version,
+			CancellationToken cancellationToken, out PerformanceCounter counter)
 		{
 			return ReadNext(stream, network, version, cancellationToken, null, out counter);
 		}
-		public static Message ReadNext(Stream stream, Network network, uint version, CancellationToken cancellationToken, byte[] buffer, out PerformanceCounter counter)
+
+		public static Message ReadNext(Stream stream, Network network, uint version,
+			CancellationToken cancellationToken, byte[] buffer, out PerformanceCounter counter)
 		{
-			BitcoinStream bitStream = new BitcoinStream(stream, false)
+			var bitStream = new BitcoinStream(stream, false)
 			{
 				ProtocolVersion = version,
 				ReadCancellationToken = cancellationToken,
 				ConsensusFactory = network.Consensus.ConsensusFactory
 			};
 
-			if(!network.ReadMagic(stream, cancellationToken, true))
+			if (!network.ReadMagic(stream, cancellationToken, true))
+			{
 				throw new FormatException("Magic incorrect, the message comes from another network");
+			}
 
-			Message message = new Message();
-			message._Buffer = buffer;
-			using(message.SkipMagicScope(true))
+			var message = new Message {_buffer = buffer};
+			using (message.SkipMagicScope(true))
 			{
 				message.Magic = network.Magic;
 				message.ReadWrite(bitStream);
 			}
+
 			counter = bitStream.Counter;
 			return message;
 		}
 
 		private IDisposable SkipMagicScope(bool value)
 		{
-			var old = _SkipMagic;
-			return new Scope(() => _SkipMagic = value, () => _SkipMagic = old);
+			var old = _skipMagic;
+			return new Scope(() => _skipMagic = value, () => _skipMagic = old);
 		}
-
 	}
 }

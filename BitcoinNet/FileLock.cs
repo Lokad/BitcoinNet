@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitcoinNet
 {
@@ -13,14 +9,20 @@ namespace BitcoinNet
 		Read,
 		ReadWrite
 	}
+
 	public class FileLock : IDisposable
 	{
-		FileStream _Fs = null;
+		private readonly FileStream _fs;
+
 		public FileLock(string filePath, FileLockType lockType)
 		{
-			if(filePath == null)
+			if (filePath == null)
+			{
 				throw new ArgumentNullException(nameof(filePath));
-			if(!File.Exists(filePath))
+			}
+
+			if (!File.Exists(filePath))
+			{
 				try
 				{
 					File.Create(filePath).Dispose();
@@ -28,19 +30,27 @@ namespace BitcoinNet
 				catch
 				{
 				}
-			CancellationTokenSource source = new CancellationTokenSource();
+			}
+
+			var source = new CancellationTokenSource();
 			source.CancelAfter(20000);
-			while(true)
+			while (true)
 			{
 				try
 				{
-					if(lockType == FileLockType.Read)
-						_Fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-					if(lockType == FileLockType.ReadWrite)
-						_Fs = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+					if (lockType == FileLockType.Read)
+					{
+						_fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+					}
+
+					if (lockType == FileLockType.ReadWrite)
+					{
+						_fs = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+					}
+
 					break;
 				}
-				catch(IOException)
+				catch (IOException)
 				{
 					Thread.Sleep(50);
 					source.Token.ThrowIfCancellationRequested();
@@ -48,12 +58,10 @@ namespace BitcoinNet
 			}
 		}
 
-
 		public void Dispose()
 		{
-			_Fs.Dispose();
+			_fs.Dispose();
 		}
-
 
 		//public void SetString(string str)
 		//{

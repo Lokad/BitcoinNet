@@ -1,14 +1,8 @@
-﻿using BitcoinNet.BouncyCastle.Math;
-using BitcoinNet.Protocol;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+using BitcoinNet.BouncyCastle.Math;
 using BitcoinNet.Scripting;
 using Xunit;
 
@@ -16,83 +10,122 @@ namespace BitcoinNet.Tests
 {
 	public class ChainTests
 	{
+		private ChainedBlock AddBlock(ConcurrentChain chain)
+		{
+			var header = Consensus.Main.ConsensusFactory.CreateBlockHeader();
+			header.Nonce = RandomUtils.GetUInt32();
+			header.HashPrevBlock = chain.Tip.HashBlock;
+			chain.SetTip(header);
+			return chain.GetBlock(header.GetHash());
+		}
+
+		private void AssertFork(ConcurrentChain chain, ConcurrentChain chain2, ChainedBlock expectedFork)
+		{
+			var fork = chain.FindFork(chain2);
+			Assert.Equal(expectedFork, fork);
+			fork = chain.Tip.FindFork(chain2.Tip);
+			Assert.Equal(expectedFork, fork);
+
+			var temp = chain;
+			chain = chain2;
+			chain2 = temp;
+
+			fork = chain.FindFork(chain2);
+			Assert.Equal(expectedFork, fork);
+			fork = chain.Tip.FindFork(chain2.Tip);
+			Assert.Equal(expectedFork, fork);
+		}
+
+		private byte[] LoadMainChain()
+		{
+			if (!File.Exists("MainChain1.dat"))
+			{
+				var client = new HttpClient();
+				var bytes = client.GetByteArrayAsync("https://aois.blob.core.windows.net/public/MainChain1.dat")
+					.GetAwaiter().GetResult();
+				File.WriteAllBytes("MainChain1.dat", bytes);
+			}
+
+			return File.ReadAllBytes("MainChain1.dat");
+		}
+
+		private ConcurrentChain CreateChain(int height)
+		{
+			return CreateChain(TestUtils.CreateFakeBlock().Header, height);
+		}
+
+		private ConcurrentChain CreateChain(BlockHeader genesis, int height)
+		{
+			var chain = new ConcurrentChain(genesis);
+			for (var i = 0; i < height; i++)
+			{
+				var b = TestUtils.CreateFakeBlock();
+				b.Header.HashPrevBlock = chain.Tip.HashBlock;
+				chain.SetTip(b.Header);
+			}
+
+			return chain;
+		}
+
+
+		public ChainedBlock AppendBlock(ChainedBlock previous, params ConcurrentChain[] chains)
+		{
+			ChainedBlock last = null;
+			var nonce = RandomUtils.GetUInt32();
+			foreach (var chain in chains)
+			{
+				var block = TestUtils.CreateFakeBlock(new Transaction());
+				block.Header.HashPrevBlock = previous == null ? chain.Tip.HashBlock : previous.HashBlock;
+				block.Header.Nonce = nonce;
+				if (!chain.TrySetTip(block.Header, out last))
+				{
+					throw new InvalidOperationException("Previous not existing");
+				}
+			}
+
+			return last;
+		}
+
+		private ChainedBlock AppendBlock(params ConcurrentChain[] chains)
+		{
+			ChainedBlock index = null;
+			return AppendBlock(index, chains);
+		}
+
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
-		public void CanCloneConcurrentChain()
+		public void CanBuildChain()
 		{
 			var chain = new ConcurrentChain(Network.Main);
-			var common = AppendBlock(chain);
-			var fork = AppendBlock(chain);
-			var fork2 = AppendBlock(chain);
-
-			Assert.True(chain.Tip == fork2);
-			var clone = chain.Clone();
-			Assert.True(clone.Tip == fork2);
-		}
-
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanSaveChain()
-		{
-			ConcurrentChain chain = new ConcurrentChain(Network.Main);
 			AppendBlock(chain);
 			AppendBlock(chain);
-			var fork = AppendBlock(chain);
 			AppendBlock(chain);
-
-
-
-			var chain2 = new ConcurrentChain(chain.ToBytes(), Consensus.Main.ConsensusFactory);
-			Assert.True(chain.SameTip(chain2));
+			var b = AppendBlock(chain);
+			Assert.Equal(4, chain.Height);
+			Assert.Equal(4, b.Height);
+			Assert.Equal(b.HashBlock, chain.Tip.HashBlock);
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
-		public void IncompleteScriptDoesNotHang()
+		public void CanBuildChain2()
 		{
-			new Script(new byte[] { 0x4d }).ToString();
-		}
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanParseRandomScripts()
-		{
-			for(int i = 0; i < 600; i++)
-			{
-				var bytes = RandomUtils.GetBytes(120);
-				new Script(bytes).ToString();
-			}
+			var chain = CreateChain(10);
+			AppendBlock(chain);
+			AppendBlock(chain);
+			AppendBlock(chain);
+			var b = AppendBlock(chain);
+			Assert.Equal(14, chain.Height);
+			Assert.Equal(14, b.Height);
+			Assert.Equal(b.HashBlock, chain.Tip.HashBlock);
 		}
 
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanLoadAndSaveConcurrentChain()
-		{
-			ConcurrentChain cchain = new ConcurrentChain();
-			ConcurrentChain chain = new ConcurrentChain(Network.Main);
-			AddBlock(chain);
-			AddBlock(chain);
-			AddBlock(chain);
-
-			cchain.SetTip(chain);
-
-			var bytes = cchain.ToBytes();
-			cchain = new ConcurrentChain();
-			cchain.Load(bytes, Consensus.Main.ConsensusFactory);
-
-			Assert.Equal(cchain.Tip, chain.Tip);
-			Assert.NotNull(cchain.GetBlock(0));
-
-			cchain = new ConcurrentChain(Network.TestNet);
-			cchain.Load(cchain.ToBytes(), Consensus.Main.ConsensusFactory);
-			Assert.NotNull(cchain.GetBlock(0));
-		}
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanBuildConcurrentChain()
 		{
-			ConcurrentChain cchain = new ConcurrentChain();
-			ConcurrentChain chain = new ConcurrentChain(Network.Main);
+			var cchain = new ConcurrentChain();
+			var chain = new ConcurrentChain(Network.Main);
 			Assert.Null(cchain.SetTip(chain.Tip));
 			var b0 = cchain.Tip;
 			Assert.Equal(cchain.Tip, chain.Tip);
@@ -130,96 +163,18 @@ namespace BitcoinNet.Tests
 			Assert.Equal(cchain.GetBlock(5), b5b);
 		}
 
-		private ChainedBlock AddBlock(ConcurrentChain chain)
-		{
-			BlockHeader header = Consensus.Main.ConsensusFactory.CreateBlockHeader();
-			header.Nonce = RandomUtils.GetUInt32();
-			header.HashPrevBlock = chain.Tip.HashBlock;
-			chain.SetTip(header);
-			return chain.GetBlock(header.GetHash());
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanIterateConcurrentChain()
-		{
-			ConcurrentChain chain = new ConcurrentChain(Network.Main);
-			AppendBlock(chain);
-			AppendBlock(chain);
-			AppendBlock(chain);
-			foreach(var b in chain.EnumerateAfter(chain.Genesis))
-			{
-				chain.GetBlock(0);
-			}
-
-			foreach(var b in chain.ToEnumerable(false))
-			{
-				chain.GetBlock(0);
-			}
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanBuildChain()
-		{
-			ConcurrentChain chain = new ConcurrentChain(Network.Main);
-			AppendBlock(chain);
-			AppendBlock(chain);
-			AppendBlock(chain);
-			var b = AppendBlock(chain);
-			Assert.Equal(4, chain.Height);
-			Assert.Equal(4, b.Height);
-			Assert.Equal(b.HashBlock, chain.Tip.HashBlock);
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanFindFork()
-		{
-			ConcurrentChain chain = new ConcurrentChain(Network.Main);
-			ConcurrentChain chain2 = new ConcurrentChain(Network.Main);
-			AppendBlock(chain);
-			var fork = AppendBlock(chain);
-			var tip = AppendBlock(chain);
-
-			AssertFork(chain, chain2, chain.Genesis);
-			chain2 = new ConcurrentChain(Network.TestNet);
-			AssertFork(chain, chain2, null);
-			chain2 = new ConcurrentChain(Network.Main);
-			chain2.SetTip(fork);
-			AssertFork(chain, chain2, fork);
-			chain2.SetTip(tip);
-			AssertFork(chain, chain2, tip);
-		}
-
-		private void AssertFork(ConcurrentChain chain, ConcurrentChain chain2, ChainedBlock expectedFork)
-		{
-			var fork = chain.FindFork(chain2);
-			Assert.Equal(expectedFork, fork);
-			fork = chain.Tip.FindFork(chain2.Tip);
-			Assert.Equal(expectedFork, fork);
-
-			var temp = chain;
-			chain = chain2;
-			chain2 = temp;
-
-			fork = chain.FindFork(chain2);
-			Assert.Equal(expectedFork, fork);
-			fork = chain.Tip.FindFork(chain2.Tip);
-			Assert.Equal(expectedFork, fork);
-		}
-
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanCalculateDifficulty()
 		{
 			var main = new ConcurrentChain(LoadMainChain(), Consensus.Main.ConsensusFactory);
-			var histories = File.ReadAllText("data/targethistory.csv").Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+			var histories = File.ReadAllText("data/targethistory.csv")
+				.Split(new[] {"\r\n"}, StringSplitOptions.RemoveEmptyEntries);
 
-			foreach(var history in histories)
+			foreach (var history in histories)
 			{
 				var height = int.Parse(history.Split(',')[0]);
-				var expectedTarget = new Target(new BouncyCastle.Math.BigInteger(history.Split(',')[1], 10));
+				var expectedTarget = new Target(new BigInteger(history.Split(',')[1], 10));
 
 				var block = main.GetBlock(height).Header;
 
@@ -231,99 +186,29 @@ namespace BitcoinNet.Tests
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
-		public void CanValidateChain()
+		public void CanCloneConcurrentChain()
 		{
-			var main = new ConcurrentChain(LoadMainChain(), Consensus.Main.ConsensusFactory);
-			foreach(var h in main.ToEnumerable(false))
-			{
-				Assert.True(h.Validate(Network.Main));
-			}
-		}
+			var chain = new ConcurrentChain(Network.Main);
+			var common = AppendBlock(chain);
+			var fork = AppendBlock(chain);
+			var fork2 = AppendBlock(chain);
 
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanPersistMainchain()
-		{
-			var main = new ConcurrentChain(LoadMainChain(), Consensus.Main.ConsensusFactory);
-			MemoryStream ms = new MemoryStream();
-			main.WriteTo(ms);	
-			ms.Position = 0;
-			main.SetTip(main.Genesis);
-			main.Load(ms);
-			Assert.True(main.Tip.HasHeader);
-
-			var original = main;
-
-			foreach(var options in new[]{
-				new ConcurrentChain.ChainSerializationFormat()
-				{
-					SerializeBlockHeader = true,
-					SerializePrecomputedBlockHash = true,
-				},
-				new ConcurrentChain.ChainSerializationFormat()
-				{
-					SerializeBlockHeader = true,
-					SerializePrecomputedBlockHash = false,
-				},
-				new ConcurrentChain.ChainSerializationFormat()
-				{
-					SerializeBlockHeader = false,
-					SerializePrecomputedBlockHash = true,
-				}
-			})
-			{
-				main = new ConcurrentChain();
-				main.SetTip(original.Tip);
-				ms = new MemoryStream();
-				main.WriteTo(ms, options);
-				ms.Position = 0;
-				main.SetTip(main.Genesis);
-				main.Load(ms, Consensus.Main.ConsensusFactory, options);
-				Assert.Equal(options.SerializeBlockHeader, main.Tip.HasHeader);
-				if(main.Tip.HasHeader)
-				{
-					Assert.True(main.Tip.TryGetHeader(out var unused));
-				}
-				else
-				{
-					Assert.False(main.Tip.TryGetHeader(out var unused));
-					Assert.Throws<InvalidOperationException>(() => main.Tip.Header);
-				}
-				Assert.Equal(original.Tip.HashBlock, main.Tip.HashBlock);
-			}
-
-			Assert.Throws<InvalidOperationException>(() =>
-			{
-				main.WriteTo(new MemoryStream(), new ConcurrentChain.ChainSerializationFormat()
-				{
-					SerializeBlockHeader = false,
-					SerializePrecomputedBlockHash = false,
-				});
-			});
-		}
-
-		private byte[] LoadMainChain()
-		{
-			if(!File.Exists("MainChain1.dat"))
-			{
-				HttpClient client = new HttpClient();
-				var bytes = client.GetByteArrayAsync("https://aois.blob.core.windows.net/public/MainChain1.dat").GetAwaiter().GetResult();
-				File.WriteAllBytes("MainChain1.dat", bytes);
-			}
-			return File.ReadAllBytes("MainChain1.dat");
+			Assert.True(chain.Tip == fork2);
+			var clone = chain.Clone();
+			Assert.True(clone.Tip == fork2);
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanEnumerateAfterChainedBlock()
 		{
-			ConcurrentChain chain = new ConcurrentChain(Network.Main);
+			var chain = new ConcurrentChain(Network.Main);
 			AppendBlock(chain);
 			var a = AppendBlock(chain);
 			var b = AppendBlock(chain);
 			var c = AppendBlock(chain);
 
-			Assert.True(chain.EnumerateAfter(a).SequenceEqual(new[] { b, c }));
+			Assert.True(chain.EnumerateAfter(a).SequenceEqual(new[] {b, c}));
 
 			var d = AppendBlock(chain);
 
@@ -340,23 +225,29 @@ namespace BitcoinNet.Tests
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
-		public void CanBuildChain2()
+		public void CanFindFork()
 		{
-			ConcurrentChain chain = CreateChain(10);
+			var chain = new ConcurrentChain(Network.Main);
+			var chain2 = new ConcurrentChain(Network.Main);
 			AppendBlock(chain);
-			AppendBlock(chain);
-			AppendBlock(chain);
-			var b = AppendBlock(chain);
-			Assert.Equal(14, chain.Height);
-			Assert.Equal(14, b.Height);
-			Assert.Equal(b.HashBlock, chain.Tip.HashBlock);
+			var fork = AppendBlock(chain);
+			var tip = AppendBlock(chain);
+
+			AssertFork(chain, chain2, chain.Genesis);
+			chain2 = new ConcurrentChain(Network.TestNet);
+			AssertFork(chain, chain2, null);
+			chain2 = new ConcurrentChain(Network.Main);
+			chain2.SetTip(fork);
+			AssertFork(chain, chain2, fork);
+			chain2.SetTip(tip);
+			AssertFork(chain, chain2, tip);
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanForkBackward()
 		{
-			ConcurrentChain chain = new ConcurrentChain(Network.Main);
+			var chain = new ConcurrentChain(Network.Main);
 			AppendBlock(chain);
 			AppendBlock(chain);
 			var fork = AppendBlock(chain);
@@ -399,7 +290,7 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanForkBackwardPartialChain()
 		{
-			ConcurrentChain chain = CreateChain(10);
+			var chain = CreateChain(10);
 			AppendBlock(chain);
 			AppendBlock(chain);
 			var fork = AppendBlock(chain);
@@ -442,8 +333,8 @@ namespace BitcoinNet.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanForkSide()
 		{
-			ConcurrentChain side = new ConcurrentChain(Network.Main);
-			ConcurrentChain main = new ConcurrentChain(Network.Main);
+			var side = new ConcurrentChain(Network.Main);
+			var main = new ConcurrentChain(Network.Main);
 			AppendBlock(side, main);
 			AppendBlock(side, main);
 			var common = AppendBlock(side, main);
@@ -464,13 +355,14 @@ namespace BitcoinNet.Tests
 			Assert.Null(side.GetBlock(mainb3.HashBlock));
 			Assert.NotNull(side.GetBlock(sideb.HashBlock));
 		}
+
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanForkSidePartialChain()
 		{
 			var genesis = TestUtils.CreateFakeBlock();
-			ConcurrentChain side = new ConcurrentChain(genesis.Header);
-			ConcurrentChain main = new ConcurrentChain(genesis.Header);
+			var side = new ConcurrentChain(genesis.Header);
+			var main = new ConcurrentChain(genesis.Header);
 			AppendBlock(side, main);
 			AppendBlock(side, main);
 			var common = AppendBlock(side, main);
@@ -492,42 +384,156 @@ namespace BitcoinNet.Tests
 			Assert.NotNull(side.GetBlock(sideb.HashBlock));
 		}
 
-		private ConcurrentChain CreateChain(int height)
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanIterateConcurrentChain()
 		{
-			return CreateChain(TestUtils.CreateFakeBlock().Header, height);
-		}
-
-		private ConcurrentChain CreateChain(BlockHeader genesis, int height)
-		{
-			var chain = new ConcurrentChain(genesis);
-			for(int i = 0; i < height; i++)
+			var chain = new ConcurrentChain(Network.Main);
+			AppendBlock(chain);
+			AppendBlock(chain);
+			AppendBlock(chain);
+			foreach (var b in chain.EnumerateAfter(chain.Genesis))
 			{
-				var b = TestUtils.CreateFakeBlock();
-				b.Header.HashPrevBlock = chain.Tip.HashBlock;
-				chain.SetTip(b.Header);
+				chain.GetBlock(0);
 			}
-			return chain;
-		}
 
-
-		public ChainedBlock AppendBlock(ChainedBlock previous, params ConcurrentChain[] chains)
-		{
-			ChainedBlock last = null;
-			var nonce = RandomUtils.GetUInt32();
-			foreach(var chain in chains)
+			foreach (var b in chain.ToEnumerable(false))
 			{
-				var block = TestUtils.CreateFakeBlock(new Transaction());
-				block.Header.HashPrevBlock = previous == null ? chain.Tip.HashBlock : previous.HashBlock;
-				block.Header.Nonce = nonce;
-				if(!chain.TrySetTip(block.Header, out last))
-					throw new InvalidOperationException("Previous not existing");
+				chain.GetBlock(0);
 			}
-			return last;
 		}
-		private ChainedBlock AppendBlock(params ConcurrentChain[] chains)
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanLoadAndSaveConcurrentChain()
 		{
-			ChainedBlock index = null;
-			return AppendBlock(index, chains);
+			var cchain = new ConcurrentChain();
+			var chain = new ConcurrentChain(Network.Main);
+			AddBlock(chain);
+			AddBlock(chain);
+			AddBlock(chain);
+
+			cchain.SetTip(chain);
+
+			var bytes = cchain.ToBytes();
+			cchain = new ConcurrentChain();
+			cchain.Load(bytes, Consensus.Main.ConsensusFactory);
+
+			Assert.Equal(cchain.Tip, chain.Tip);
+			Assert.NotNull(cchain.GetBlock(0));
+
+			cchain = new ConcurrentChain(Network.TestNet);
+			cchain.Load(cchain.ToBytes(), Consensus.Main.ConsensusFactory);
+			Assert.NotNull(cchain.GetBlock(0));
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanParseRandomScripts()
+		{
+			for (var i = 0; i < 600; i++)
+			{
+				var bytes = RandomUtils.GetBytes(120);
+				new Script(bytes).ToString();
+			}
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanPersistMainchain()
+		{
+			var main = new ConcurrentChain(LoadMainChain(), Consensus.Main.ConsensusFactory);
+			var ms = new MemoryStream();
+			main.WriteTo(ms);
+			ms.Position = 0;
+			main.SetTip(main.Genesis);
+			main.Load(ms);
+			Assert.True(main.Tip.HasHeader);
+
+			var original = main;
+
+			foreach (var options in new[]
+			{
+				new ConcurrentChain.ChainSerializationFormat
+				{
+					SerializeBlockHeader = true,
+					SerializePrecomputedBlockHash = true
+				},
+				new ConcurrentChain.ChainSerializationFormat
+				{
+					SerializeBlockHeader = true,
+					SerializePrecomputedBlockHash = false
+				},
+				new ConcurrentChain.ChainSerializationFormat
+				{
+					SerializeBlockHeader = false,
+					SerializePrecomputedBlockHash = true
+				}
+			})
+			{
+				main = new ConcurrentChain();
+				main.SetTip(original.Tip);
+				ms = new MemoryStream();
+				main.WriteTo(ms, options);
+				ms.Position = 0;
+				main.SetTip(main.Genesis);
+				main.Load(ms, Consensus.Main.ConsensusFactory, options);
+				Assert.Equal(options.SerializeBlockHeader, main.Tip.HasHeader);
+				if (main.Tip.HasHeader)
+				{
+					Assert.True(main.Tip.TryGetHeader(out var unused));
+				}
+				else
+				{
+					Assert.False(main.Tip.TryGetHeader(out var unused));
+					Assert.Throws<InvalidOperationException>(() => main.Tip.Header);
+				}
+
+				Assert.Equal(original.Tip.HashBlock, main.Tip.HashBlock);
+			}
+
+			Assert.Throws<InvalidOperationException>(() =>
+			{
+				main.WriteTo(new MemoryStream(), new ConcurrentChain.ChainSerializationFormat
+				{
+					SerializeBlockHeader = false,
+					SerializePrecomputedBlockHash = false
+				});
+			});
+		}
+
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanSaveChain()
+		{
+			var chain = new ConcurrentChain(Network.Main);
+			AppendBlock(chain);
+			AppendBlock(chain);
+			var fork = AppendBlock(chain);
+			AppendBlock(chain);
+
+
+			var chain2 = new ConcurrentChain(chain.ToBytes(), Consensus.Main.ConsensusFactory);
+			Assert.True(chain.SameTip(chain2));
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanValidateChain()
+		{
+			var main = new ConcurrentChain(LoadMainChain(), Consensus.Main.ConsensusFactory);
+			foreach (var h in main.ToEnumerable(false))
+			{
+				Assert.True(h.Validate(Network.Main));
+			}
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void IncompleteScriptDoesNotHang()
+		{
+			new Script(new byte[] {0x4d}).ToString();
 		}
 	}
 }

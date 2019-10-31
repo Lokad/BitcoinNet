@@ -1,135 +1,127 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace BitcoinNet.Protocol
 {
-
-	public interface MessageListener<in T>
+	public interface IMessageListener<in T>
 	{
 		void PushMessage(T message);
 	}
 
-	public class NullMessageListener<T> : MessageListener<T>
+	public class NullMessageListener<T> : IMessageListener<T>
 	{
-		// MessageListener<T> Members
+		// IMessageListener<T> Members
 
 		public void PushMessage(T message)
 		{
 		}
 	}
 
-	public class NewThreadMessageListener<T> : MessageListener<T>
+	public class NewThreadMessageListener<T> : IMessageListener<T>
 	{
-		readonly Action<T> _Process;
+		private readonly Action<T> _process;
+
 		public NewThreadMessageListener(Action<T> process)
 		{
-			if(process == null)
+			if (process == null)
+			{
 				throw new ArgumentNullException(nameof(process));
-			_Process = process;
+			}
+
+			_process = process;
 		}
 
-		// MessageListener<T> Members
+		// IMessageListener<T> Members
 
 		public void PushMessage(T message)
 		{
-			if(message != null)
+			if (message != null)
+			{
 				Task.Factory.StartNew(() =>
 				{
 					try
 					{
-						_Process(message);
+						_process(message);
 					}
-					catch(Exception ex)
+					catch (Exception ex)
 					{
 						NodeServerTrace.Error("Unexpected expected during message loop", ex);
 					}
 				});
+			}
 		}
 	}
 
-	public class EventLoopMessageListener<T> : MessageListener<T>, IDisposable
+	public class EventLoopMessageListener<T> : IMessageListener<T>, IDisposable
 	{
+		// IDisposable Members
+
+		private readonly CancellationTokenSource _cancellationSource = new CancellationTokenSource();
+
 		public EventLoopMessageListener(Action<T> processMessage)
 		{
-			new Thread(new ThreadStart(() =>
+			new Thread(() =>
 			{
 				try
 				{
-					while(!cancellationSource.IsCancellationRequested)
+					while (!_cancellationSource.IsCancellationRequested)
 					{
-						var message = _MessageQueue.Take(cancellationSource.Token);
-						if(message != null)
+						var message = MessageQueue.Take(_cancellationSource.Token);
+						if (message != null)
 						{
 							try
 							{
 								processMessage(message);
 							}
-							catch(Exception ex)
+							catch (Exception ex)
 							{
 								NodeServerTrace.Error("Unexpected expected during message loop", ex);
 							}
 						}
 					}
 				}
-				catch(OperationCanceledException)
+				catch (OperationCanceledException)
 				{
 				}
-			})).Start();
-		}
-		BlockingCollection<T> _MessageQueue = new BlockingCollection<T>(new ConcurrentQueue<T>());
-		public BlockingCollection<T> MessageQueue
-		{
-			get
-			{
-				return _MessageQueue;
-			}
+			}).Start();
 		}
 
-		// MessageListener Members
+		public BlockingCollection<T> MessageQueue { get; } = new BlockingCollection<T>(new ConcurrentQueue<T>());
+
+		public void Dispose()
+		{
+			if (_cancellationSource.IsCancellationRequested)
+			{
+				return;
+			}
+
+			_cancellationSource.Cancel();
+		}
+
+		// IMessageListener Members
 
 		public void PushMessage(T message)
 		{
-			_MessageQueue.Add(message);
-		}
-
-		// IDisposable Members
-
-		CancellationTokenSource cancellationSource = new CancellationTokenSource();
-		public void Dispose()
-		{
-			if(cancellationSource.IsCancellationRequested)
-				return;
-			cancellationSource.Cancel();
+			MessageQueue.Add(message);
 		}
 	}
 
-	public class PollMessageListener<T> : MessageListener<T>
+	public class PollMessageListener<T> : IMessageListener<T>
 	{
+		public BlockingCollection<T> MessageQueue { get; } = new BlockingCollection<T>(new ConcurrentQueue<T>());
 
-		BlockingCollection<T> _MessageQueue = new BlockingCollection<T>(new ConcurrentQueue<T>());
-		public BlockingCollection<T> MessageQueue
-		{
-			get
-			{
-				return _MessageQueue;
-			}
-		}
-
-		public virtual T ReceiveMessage(CancellationToken cancellationToken = default(CancellationToken))
-		{
-			return MessageQueue.Take(cancellationToken);
-		}
-
-		// MessageListener Members
+		// IMessageListener Members
 
 		public virtual void PushMessage(T message)
 		{
-			_MessageQueue.Add(message);
+			MessageQueue.Add(message);
+		}
+
+		public virtual T ReceiveMessage(CancellationToken cancellationToken = default)
+		{
+			return MessageQueue.Take(cancellationToken);
 		}
 	}
 }

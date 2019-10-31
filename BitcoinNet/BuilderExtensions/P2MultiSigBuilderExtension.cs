@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet.BuilderExtensions
@@ -34,28 +32,41 @@ namespace BitcoinNet.BuilderExtensions
 			var para = PayToMultiSigTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey);
 			// Combine all the signatures we've got:
 			var aSigs = PayToMultiSigTemplate.Instance.ExtractScriptSigParameters(a);
-			if(aSigs == null)
+			if (aSigs == null)
+			{
 				return b;
+			}
+
 			var bSigs = PayToMultiSigTemplate.Instance.ExtractScriptSigParameters(b);
-			if(bSigs == null)
+			if (bSigs == null)
+			{
 				return a;
-			int sigCount = 0;
-			TransactionSignature[] sigs = new TransactionSignature[para.PubKeys.Length];
-			for(int i = 0; i < para.PubKeys.Length; i++)
+			}
+
+			var sigCount = 0;
+			var sigs = new TransactionSignature[para.PubKeys.Length];
+			for (var i = 0; i < para.PubKeys.Length; i++)
 			{
 				var aSig = i < aSigs.Length ? aSigs[i] : null;
 				var bSig = i < bSigs.Length ? bSigs[i] : null;
 				var sig = aSig ?? bSig;
-				if(sig != null)
+				if (sig != null)
 				{
 					sigs[i] = sig;
 					sigCount++;
 				}
-				if(sigCount == para.SignatureCount)
+
+				if (sigCount == para.SignatureCount)
+				{
 					break;
+				}
 			}
-			if(sigCount == para.SignatureCount)
+
+			if (sigCount == para.SignatureCount)
+			{
 				sigs = sigs.Where(s => s != null && s != TransactionSignature.Empty).ToArray();
+			}
+
 			return PayToMultiSigTemplate.Instance.GenerateScriptSig(sigs);
 		}
 
@@ -67,25 +78,30 @@ namespace BitcoinNet.BuilderExtensions
 		public override int EstimateScriptSigSize(Script scriptPubKey)
 		{
 			var p2mk = PayToMultiSigTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey);
-			return PayToMultiSigTemplate.Instance.GenerateScriptSig(Enumerable.Range(0, p2mk.SignatureCount).Select(o => DummySignature).ToArray()).Length;
+			return PayToMultiSigTemplate.Instance
+				.GenerateScriptSig(Enumerable.Range(0, p2mk.SignatureCount).Select(o => DummySignature).ToArray())
+				.Length;
 		}
 
 		public override Script GenerateScriptSig(Script scriptPubKey, IKeyRepository keyRepo, ISigner signer)
 		{
 			var multiSigParams = PayToMultiSigTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey);
-			TransactionSignature[] signatures = new TransactionSignature[multiSigParams.PubKeys.Length];
+			var signatures = new TransactionSignature[multiSigParams.PubKeys.Length];
 			var keys =
 				multiSigParams
-				.PubKeys
-				.Select(p => keyRepo.FindKey(p.ScriptPubKey))
-				.ToArray();
+					.PubKeys
+					.Select(p => keyRepo.FindKey(p.ScriptPubKey))
+					.ToArray();
 
-			int sigCount = 0;
-			for(int i = 0; i < keys.Length; i++)
+			var sigCount = 0;
+			for (var i = 0; i < keys.Length; i++)
 			{
-				if(sigCount == multiSigParams.SignatureCount)
+				if (sigCount == multiSigParams.SignatureCount)
+				{
 					break;
-				if(keys[i] != null)
+				}
+
+				if (keys[i] != null)
 				{
 					var sig = signer.Sign(keys[i]);
 					signatures[i] = sig;
@@ -94,10 +110,11 @@ namespace BitcoinNet.BuilderExtensions
 			}
 
 			IEnumerable<TransactionSignature> sigs = signatures;
-			if(sigCount == multiSigParams.SignatureCount)
+			if (sigCount == multiSigParams.SignatureCount)
 			{
 				sigs = sigs.Where(s => s != TransactionSignature.Empty && s != null);
 			}
+
 			return PayToMultiSigTemplate.Instance.GenerateScriptSig(sigs);
 		}
 	}

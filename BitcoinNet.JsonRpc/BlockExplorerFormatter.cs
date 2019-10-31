@@ -1,63 +1,58 @@
 ﻿using BitcoinNet.DataEncoders;
+using BitcoinNet.Scripting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BitcoinNet.Scripting;
 
 namespace BitcoinNet.JsonRpc
 {
-	class BlockExplorerFormatter : RawFormatter
+	internal class BlockExplorerFormatter : RawFormatter
 	{
 		protected override void BuildTransaction(JObject json, Transaction tx)
 		{
-			tx.Version = (uint)json.GetValue("ver");
-			tx.LockTime = (uint)json.GetValue("lock_time");
+			tx.Version = (uint) json.GetValue("ver");
+			tx.LockTime = (uint) json.GetValue("lock_time");
 
-			var vin = (JArray)json.GetValue("in");
-			int vinCount = (int)json.GetValue("vin_sz");
-			for(int i = 0; i < vinCount; i++)
+			var vin = (JArray) json.GetValue("in");
+			var vinCount = (int) json.GetValue("vin_sz");
+			for (var i = 0; i < vinCount; i++)
 			{
-				var jsonIn = (JObject)vin[i];
+				var jsonIn = (JObject) vin[i];
 				var txin = new TxIn();
 				tx.Inputs.Add(txin);
-				var prevout = (JObject)jsonIn.GetValue("prev_out");
+				var prevout = (JObject) jsonIn.GetValue("prev_out");
 
-				txin.PrevOut.Hash = uint256.Parse((string)prevout.GetValue("hash"));
-				txin.PrevOut.N = (uint)prevout.GetValue("n");
+				txin.PrevOut.Hash = uint256.Parse((string) prevout.GetValue("hash"));
+				txin.PrevOut.N = (uint) prevout.GetValue("n");
 
 
-				var script = (string)jsonIn.GetValue("scriptSig");
-				if(script != null)
+				var script = (string) jsonIn.GetValue("scriptSig");
+				if (script != null)
 				{
 					txin.ScriptSig = new Script(script);
 				}
 				else
 				{
-					var coinbase = (string)jsonIn.GetValue("coinbase");
+					var coinbase = (string) jsonIn.GetValue("coinbase");
 					txin.ScriptSig = new Script(Encoders.Hex.DecodeData(coinbase));
 				}
 
 				var seq = jsonIn.GetValue("sequence");
-				if(seq != null)
+				if (seq != null)
 				{
-					txin.Sequence = (uint)seq;
+					txin.Sequence = (uint) seq;
 				}
 			}
 
-			var vout = (JArray)json.GetValue("out");
-			int voutCount = (int)json.GetValue("vout_sz");
-			for(int i = 0; i < voutCount; i++)
+			var vout = (JArray) json.GetValue("out");
+			var voutCount = (int) json.GetValue("vout_sz");
+			for (var i = 0; i < voutCount; i++)
 			{
-				var jsonOut = (JObject)vout[i];
-				var txout = new BitcoinNet.TxOut();
+				var jsonOut = (JObject) vout[i];
+				var txout = new TxOut();
 				tx.Outputs.Add(txout);
 
-				txout.Value = Money.Parse((string)jsonOut.GetValue("value"));
-				txout.ScriptPubKey = new Script((string)jsonOut.GetValue("scriptPubKey"));
+				txout.Value = Money.Parse((string) jsonOut.GetValue("value"));
+				txout.ScriptPubKey = new Script((string) jsonOut.GetValue("scriptPubKey"));
 			}
 		}
 
@@ -75,7 +70,7 @@ namespace BitcoinNet.JsonRpc
 
 			writer.WritePropertyName("in");
 			writer.WriteStartArray();
-			foreach(var input in tx.Inputs.AsIndexedInputs())
+			foreach (var input in tx.Inputs.AsIndexedInputs())
 			{
 				var txin = input.TxIn;
 				writer.WriteStartObject();
@@ -85,7 +80,7 @@ namespace BitcoinNet.JsonRpc
 				WritePropertyValue(writer, "n", txin.PrevOut.N);
 				writer.WriteEndObject();
 
-				if(txin.PrevOut.Hash == uint256.Zero)
+				if (txin.PrevOut.Hash == uint256.Zero)
 				{
 					WritePropertyValue(writer, "coinbase", Encoders.Hex.EncodeData(txin.ScriptSig.ToBytes()));
 				}
@@ -93,26 +88,28 @@ namespace BitcoinNet.JsonRpc
 				{
 					WritePropertyValue(writer, "scriptSig", txin.ScriptSig.ToString());
 				}
-				if(txin.Sequence != uint.MaxValue)
+
+				if (txin.Sequence != uint.MaxValue)
 				{
-					WritePropertyValue(writer, "sequence", (uint)txin.Sequence);
+					WritePropertyValue(writer, "sequence", (uint) txin.Sequence);
 				}
+
 				writer.WriteEndObject();
 			}
+
 			writer.WriteEndArray();
 			writer.WritePropertyName("out");
 			writer.WriteStartArray();
 
-			foreach(var txout in tx.Outputs)
+			foreach (var txout in tx.Outputs)
 			{
 				writer.WriteStartObject();
 				WritePropertyValue(writer, "value", txout.Value.ToString(false, false));
 				WritePropertyValue(writer, "scriptPubKey", txout.ScriptPubKey.ToString());
 				writer.WriteEndObject();
 			}
+
 			writer.WriteEndArray();
 		}
-
-
 	}
 }

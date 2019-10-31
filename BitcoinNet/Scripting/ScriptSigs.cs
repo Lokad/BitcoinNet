@@ -3,14 +3,6 @@
 	// TODO (Osman): It looks like we don't need it in BitcoinCash.
 	public class ScriptSigs
 	{
-		public ScriptSigs()
-		{
-		}
-
-		public Script ScriptSig
-		{
-			get;
-			set;
-		}		
+		public Script ScriptSig { get; set; }
 	}
 }

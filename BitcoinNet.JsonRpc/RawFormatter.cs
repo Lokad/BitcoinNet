@@ -1,7 +1,6 @@
-﻿using System;
+﻿using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.IO;
 
 namespace BitcoinNet.JsonRpc
 {
@@ -11,23 +10,22 @@ namespace BitcoinNet.JsonRpc
 		{
 			Network = Network.Main;
 		}
-		public Network Network
-		{
-			get;
-			set;
-		}
+
+		public Network Network { get; set; }
+
 		public Transaction ParseJson(string str)
 		{
-			JObject obj = JObject.Parse(str);
+			var obj = JObject.Parse(str);
 			return Parse(obj);
 		}
 
 		public Transaction Parse(JObject obj)
 		{
-			Transaction tx = new Transaction();
+			var tx = new Transaction();
 			BuildTransaction(obj, tx);
 			return tx;
 		}
+
 		protected void WritePropertyValue<TValue>(JsonWriter writer, string name, TValue value)
 		{
 			writer.WritePropertyName(name);
@@ -36,11 +34,11 @@ namespace BitcoinNet.JsonRpc
 
 
 		protected abstract void BuildTransaction(JObject json, Transaction tx);
+
 		public string ToString(Transaction transaction)
 		{
 			var strWriter = new StringWriter();
-			var jsonWriter = new JsonTextWriter(strWriter);
-			jsonWriter.Formatting = Formatting.Indented;
+			var jsonWriter = new JsonTextWriter(strWriter) {Formatting = Formatting.Indented};
 			jsonWriter.WriteStartObject();
 			WriteTransaction(jsonWriter, transaction);
 			jsonWriter.WriteEndObject();

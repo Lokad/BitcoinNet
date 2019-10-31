@@ -1,70 +1,47 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Protocol
+﻿namespace BitcoinNet.Protocol
 {
 	/// <summary>
-	/// Ask block headers that happened since BlockLocators
+	///     Ask block headers that happened since BlockLocators
 	/// </summary>
 	[Payload("getheaders")]
 	public class GetHeadersPayload : Payload
 	{
+		private BlockLocator _blockLocators;
+		private uint256 _hashStop = uint256.Zero;
+		private uint _version = Network.Main.MaxP2PVersion;
+
 		public GetHeadersPayload()
 		{
-
 		}
+
 		public GetHeadersPayload(BlockLocator locator)
 		{
 			BlockLocators = locator;
 		}
-		uint version = (uint)Network.Main.MaxP2PVersion;
+
 		public uint Version
 		{
-			get
-			{
-				return version;
-			}
-			set
-			{
-				version = value;
-			}
+			get => _version;
+			set => _version = value;
 		}
-
-		BlockLocator blockLocators;
 
 		public BlockLocator BlockLocators
 		{
-			get
-			{
-				return blockLocators;
-			}
-			set
-			{
-				blockLocators = value;
-			}
+			get => _blockLocators;
+			set => _blockLocators = value;
 		}
 
-		uint256 hashStop = uint256.Zero;
 		public uint256 HashStop
 		{
-			get
-			{
-				return hashStop;
-			}
-			set
-			{
-				hashStop = value;
-			}
+			get => _hashStop;
+			set => _hashStop = value;
 		}
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			stream.ReadWrite(ref version);
-			stream.ReadWrite(ref blockLocators);
-			stream.ReadWrite(ref hashStop);
+			stream.ReadWrite(ref _version);
+			stream.ReadWrite(ref _blockLocators);
+			stream.ReadWrite(ref _hashStop);
 		}
 	}
 }

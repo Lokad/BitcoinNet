@@ -1,17 +1,17 @@
-﻿using BitcoinNet.DataEncoders;
-using System;
+﻿using System;
 using System.Linq;
 using BCashAddr;
+using BitcoinNet.DataEncoders;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {
 	/// <summary>
-	/// Base58 representaiton of a script hash
+	///     Base58 representaiton of a script hash
 	/// </summary>
 	public class BitcoinScriptAddress : BitcoinAddress, IBase58Data
 	{
-		private readonly BCashAddr.BchAddr.BchAddrData _addr;
+		private readonly BchAddr.BchAddrData _addr;
 
 		public BitcoinScriptAddress(string str, Network expectedNetwork = null)
 			: base(Validate(str, ref expectedNetwork), expectedNetwork)
@@ -26,9 +26,9 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Creates a new script key instance.
-		/// Since, CashAddr allows lower-case or upper-case addresses,
-		/// str argument is expected to store user supplied value instead of addr.ToString().
+		///     Creates a new script key instance.
+		///     Since, CashAddr allows lower-case or upper-case addresses,
+		///     str argument is expected to store user supplied value instead of addr.ToString().
 		/// </summary>
 		/// <param name="str"></param>
 		/// <param name="addr"></param>
@@ -39,10 +39,15 @@ namespace BitcoinNet
 			Hash = new ScriptId(_addr.Hash);
 		}
 
+		public CashFormat Format => _addr.Format;
+		public ScriptId Hash { get; }
+		public Base58Type Type => Base58Type.SCRIPT_ADDRESS;
+
 		private static string EncodeAddress(ScriptId scriptId, Network expectedNetwork)
 		{
 			//var data = expectedNetwork.GetVersionBytes(Base58Type.PUBKEY_ADDRESS, false).Concat(scriptId.ToBytes());
-			var addr = BchAddr.BchAddrData.Create(CashFormat.Cashaddr, expectedNetwork, BchAddr.CashType.P2SH, scriptId.ToBytes());
+			var addr = BchAddr.BchAddrData.Create(CashFormat.Cashaddr, expectedNetwork, BchAddr.CashType.P2SH,
+				scriptId.ToBytes());
 			return addr.ToString();
 		}
 
@@ -60,6 +65,7 @@ namespace BitcoinNet
 							return data.Skip(versionBytes.Length).ToArray();
 						}
 					}
+
 					break;
 
 				case CashFormat.Cashaddr:
@@ -88,7 +94,7 @@ namespace BitcoinNet
 		private static string ValidateLegacyAddress(string str, ref Network expectedNetwork)
 		{
 			var data = Encoders.Base58Check.DecodeData(str);
-			var networks = expectedNetwork == null ? Network.GetNetworks() : new[] { expectedNetwork };
+			var networks = expectedNetwork == null ? Network.GetNetworks() : new[] {expectedNetwork};
 			foreach (var network in networks)
 			{
 				var versionBytes = network.GetVersionBytes(Base58Type.SCRIPT_ADDRESS, false);
@@ -110,7 +116,7 @@ namespace BitcoinNet
 			var data = CashAddr.Decode(str);
 			if (data.Type == BchAddr.CashType.P2SH)
 			{
-				var networks = expectedNetwork == null ? Network.GetNetworks() : new[] { expectedNetwork };
+				var networks = expectedNetwork == null ? Network.GetNetworks() : new[] {expectedNetwork};
 				foreach (var network in networks)
 				{
 					if (data.Prefix == network.Prefix)
@@ -139,14 +145,10 @@ namespace BitcoinNet
 					throw new ArgumentOutOfRangeException();
 			}
 		}
-		
-		public CashFormat Format => _addr.Format;
-		public ScriptId Hash { get; }
-		public Base58Type Type => Base58Type.SCRIPT_ADDRESS;
-		
+
 		protected override Script GeneratePaymentScript()
 		{
-			return PayToScriptHashTemplate.Instance.GenerateScriptPubKey((ScriptId)Hash);
+			return PayToScriptHashTemplate.Instance.GenerateScriptPubKey(Hash);
 		}
 
 		public BitcoinScriptAddress ToLegacy()
@@ -161,7 +163,7 @@ namespace BitcoinNet
 	}
 
 	/// <summary>
-	/// Base58 representation of a bitcoin address
+	///     Base58 representation of a bitcoin address
 	/// </summary>
 	public abstract class BitcoinAddress : IDestination, IBitcoinString
 	{
@@ -173,8 +175,43 @@ namespace BitcoinNet
 			CreateFromLegacy
 		};
 
+		private readonly string _str;
+
+		private Script _scriptPubKey;
+
+		protected internal BitcoinAddress(string str, Network network)
+		{
+			if (network == null)
+			{
+				throw new ArgumentNullException(nameof(network));
+			}
+
+			if (str == null)
+			{
+				throw new ArgumentNullException(nameof(str));
+			}
+
+			_str = str;
+			Network = network;
+		}
+
+		public Network Network { get; }
+
+		public Script ScriptPubKey
+		{
+			get
+			{
+				if (_scriptPubKey == null)
+				{
+					_scriptPubKey = GeneratePaymentScript();
+				}
+
+				return _scriptPubKey;
+			}
+		}
+
 		/// <summary>
-		/// Detect whether the input base58 is a pubkey hash or a script hash
+		///     Detect whether the input base58 is a pubkey hash or a script hash
 		/// </summary>
 		/// <param name="str">The string to parse</param>
 		/// <param name="expectedNetwork">The expected network to which it belongs</param>
@@ -191,7 +228,7 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Creates a Bitcoin Cash address from legacy Bitcoin address.
+		///     Creates a Bitcoin Cash address from legacy Bitcoin address.
 		/// </summary>
 		/// <param name="str">Legacy Bitcoin address</param>
 		/// <param name="expectedNetwork">The expected network to which address belongs</param>
@@ -204,11 +241,11 @@ namespace BitcoinNet
 				throw new ArgumentNullException(nameof(str));
 			}
 
-			return BitcoinNet.Network.Parse<BitcoinAddress>(str, expectedNetwork);
+			return Network.Parse<BitcoinAddress>(str, expectedNetwork);
 		}
 
 		/// <summary>
-		/// Creates a Bitcoin Cash address from either Cash Addr or legacy Bitcoin address.
+		///     Creates a Bitcoin Cash address from either Cash Addr or legacy Bitcoin address.
 		/// </summary>
 		/// <param name="str">Cash Addr or legacy Bitcoin address</param>
 		/// <param name="expectedNetwork">The expected network to which address belongs</param>
@@ -236,71 +273,48 @@ namespace BitcoinNet
 			throw new FormatException("Invalid format");
 		}
 
-		internal protected BitcoinAddress(string str, Network network)
-		{
-			if(network == null)
-				throw new ArgumentNullException(nameof(network));
-			if(str == null)
-				throw new ArgumentNullException(nameof(str));
-			_Str = str;
-			_Network = network;
-		}
-
-		string _Str;		
-
-		Script _ScriptPubKey;
-		public Script ScriptPubKey
-		{
-			get
-			{
-				if(_ScriptPubKey == null)
-				{
-					_ScriptPubKey = GeneratePaymentScript();
-				}
-				return _ScriptPubKey;
-			}
-		}
-
 		protected abstract Script GeneratePaymentScript();
 
 		public BitcoinScriptAddress GetScriptAddress()
 		{
 			var bitcoinScriptAddress = this as BitcoinScriptAddress;
-			if(bitcoinScriptAddress != null)
-				return bitcoinScriptAddress;
-
-			return new BitcoinScriptAddress(this.ScriptPubKey.Hash, Network);
-		}
-
-		private readonly Network _Network;
-		public Network Network
-		{
-			get
+			if (bitcoinScriptAddress != null)
 			{
-				return _Network;
+				return bitcoinScriptAddress;
 			}
+
+			return new BitcoinScriptAddress(ScriptPubKey.Hash, Network);
 		}
 
 		public override string ToString()
 		{
-			return _Str;
+			return _str;
 		}
-
 
 		public override bool Equals(object obj)
 		{
-			BitcoinAddress item = obj as BitcoinAddress;
-			if(item == null)
+			var item = obj as BitcoinAddress;
+			if (item == null)
+			{
 				return false;
-			return _Str.Equals(item._Str);
+			}
+
+			return _str.Equals(item._str);
 		}
+
 		public static bool operator ==(BitcoinAddress a, BitcoinAddress b)
 		{
-			if(System.Object.ReferenceEquals(a, b))
+			if (ReferenceEquals(a, b))
+			{
 				return true;
-			if(((object)a == null) || ((object)b == null))
+			}
+
+			if ((object) a == null || (object) b == null)
+			{
 				return false;
-			return a._Str == b._Str;
+			}
+
+			return a._str == b._str;
 		}
 
 		public static bool operator !=(BitcoinAddress a, BitcoinAddress b)
@@ -310,7 +324,7 @@ namespace BitcoinNet
 
 		public override int GetHashCode()
 		{
-			return _Str.GetHashCode();
+			return _str.GetHashCode();
 		}
 	}
 }

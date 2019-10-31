@@ -6,7 +6,7 @@ namespace BitcoinNet
 	public enum RawFormat
 	{
 		Satoshi,
-		BlockExplorer,
+		BlockExplorer
 	}
 
 	public static class NetworkExtensions

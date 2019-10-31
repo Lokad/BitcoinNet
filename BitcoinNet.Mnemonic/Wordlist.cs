@@ -2,104 +2,152 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BitcoinNet.Mnemonic
 {
-	public class Wordlist
+	public class WordList
 	{
-		static Wordlist()
+		private static WordList _japanese;
+		private static WordList _chineseSimplified;
+		private static WordList _chineseTraditional;
+		private static WordList _spanish;
+		private static WordList _english;
+		private static WordList _french;
+		private static WordList _portugueseBrazil;
+		private static readonly Dictionary<string, WordList> LoadedLists = new Dictionary<string, WordList>();
+		private readonly string[] _words;
+
+		static WordList()
 		{
-			WordlistSource = new HardcodedWordlistSource();
+			WordListSource = new HardcodedWordListSource();
 		}
-		private static Wordlist _Japanese;
-		public static Wordlist Japanese
+
+		/// <summary>
+		///     Constructor used by inheritence only
+		/// </summary>
+		/// <param name="words">The words to be used in the wordlist</param>
+		public WordList(string[] words, char space, string name)
+		{
+			_words = words
+				.Select(w => MnemonicSequence.NormalizeString(w))
+				.ToArray();
+			Space = space;
+			Name = name;
+		}
+
+		public static WordList Japanese
 		{
 			get
 			{
-				if(_Japanese == null)
-					_Japanese = LoadWordList(Language.Japanese).Result;
-				return _Japanese;
+				if (_japanese == null)
+				{
+					_japanese = LoadWordList(Language.Japanese).Result;
+				}
+
+				return _japanese;
 			}
 		}
 
-		private static Wordlist _ChineseSimplified;
-		public static Wordlist ChineseSimplified
+		public static WordList ChineseSimplified
 		{
 			get
 			{
-				if(_ChineseSimplified == null)
-					_ChineseSimplified = LoadWordList(Language.ChineseSimplified).Result;
-				return _ChineseSimplified;
+				if (_chineseSimplified == null)
+				{
+					_chineseSimplified = LoadWordList(Language.ChineseSimplified).Result;
+				}
+
+				return _chineseSimplified;
 			}
 		}
 
-		private static Wordlist _ChineseTraditional;
-		public static Wordlist ChineseTraditional
+		public static WordList ChineseTraditional
 		{
 			get
 			{
-				if(_ChineseTraditional == null)
-					_ChineseTraditional = LoadWordList(Language.ChineseTraditional).Result;
-				return _ChineseTraditional;
+				if (_chineseTraditional == null)
+				{
+					_chineseTraditional = LoadWordList(Language.ChineseTraditional).Result;
+				}
+
+				return _chineseTraditional;
 			}
 		}
 
-		private static Wordlist _Spanish;
-		public static Wordlist Spanish
+		public static WordList Spanish
 		{
 			get
 			{
-				if(_Spanish == null)
-					_Spanish = LoadWordList(Language.Spanish).Result;
-				return _Spanish;
+				if (_spanish == null)
+				{
+					_spanish = LoadWordList(Language.Spanish).Result;
+				}
+
+				return _spanish;
 			}
 		}
 
-		private static Wordlist _English;
-		public static Wordlist English
+		public static WordList English
 		{
 			get
 			{
-				if(_English == null)
-					_English = LoadWordList(Language.English).Result;
-				return _English;
+				if (_english == null)
+				{
+					_english = LoadWordList(Language.English).Result;
+				}
+
+				return _english;
 			}
 		}
 
-		private static Wordlist _French;
-		public static Wordlist French
+		public static WordList French
 		{
 			get
 			{
-				if(_French == null)
-					_French = LoadWordList(Language.French).Result;
-				return _French;
+				if (_french == null)
+				{
+					_french = LoadWordList(Language.French).Result;
+				}
+
+				return _french;
 			}
 		}
 
-		private static Wordlist _PortugueseBrazil;
-		public static Wordlist PortugueseBrazil
+		public static WordList PortugueseBrazil
 		{
 			get
 			{
-				if (_PortugueseBrazil == null)
-					_PortugueseBrazil = LoadWordList(Language.PortugueseBrazil).Result;
-				return _PortugueseBrazil;
+				if (_portugueseBrazil == null)
+				{
+					_portugueseBrazil = LoadWordList(Language.PortugueseBrazil).Result;
+				}
+
+				return _portugueseBrazil;
 			}
 		}
 
-		public static Task<Wordlist> LoadWordList(Language language)
+		public static IWordListSource WordListSource { get; set; }
+
+		public string Name { get; }
+
+		public char Space { get; }
+
+		/// <summary>
+		///     The number of all the words in the wordlist
+		/// </summary>
+		public int WordCount => _words.Length;
+
+		public static Task<WordList> LoadWordList(Language language)
 		{
-			string name = GetLanguageFileName(language);
+			var name = GetLanguageFileName(language);
 			return LoadWordList(name);
 		}
 
 		public static string GetLanguageFileName(Language language)
 		{
 			string name = null;
-			switch(language)
+			switch (language)
 			{
 				case Language.ChineseTraditional:
 					name = "chinese_traditional";
@@ -125,81 +173,56 @@ namespace BitcoinNet.Mnemonic
 				default:
 					throw new NotSupportedException(language.ToString());
 			}
+
 			return name;
 		}
 
-		static Dictionary<string, Wordlist> _LoadedLists = new Dictionary<string, Wordlist>();
-		public static async Task<Wordlist> LoadWordList(string name)
+		public static async Task<WordList> LoadWordList(string name)
 		{
-			if(name == null)
-				throw new ArgumentNullException(nameof(name));
-			Wordlist result = null;
-			lock(_LoadedLists)
+			if (name == null)
 			{
-				_LoadedLists.TryGetValue(name, out result);
+				throw new ArgumentNullException(nameof(name));
 			}
-			if(result != null)
-				return await Task.FromResult<Wordlist>(result).ConfigureAwait(false);
+
+			WordList result = null;
+			lock (LoadedLists)
+			{
+				LoadedLists.TryGetValue(name, out result);
+			}
+
+			if (result != null)
+			{
+				return await Task.FromResult(result).ConfigureAwait(false);
+			}
 
 
-			if(WordlistSource == null)
-				throw new InvalidOperationException("Wordlist.WordlistSource is not set, impossible to fetch word list.");
-			result = await WordlistSource.Load(name).ConfigureAwait(false);
-			if(result != null)
-				lock(_LoadedLists)
+			if (WordListSource == null)
+			{
+				throw new InvalidOperationException(
+					"Wordlist.WordlistSource is not set, impossible to fetch word list.");
+			}
+
+			result = await WordListSource.Load(name).ConfigureAwait(false);
+			if (result != null)
+			{
+				lock (LoadedLists)
 				{
-					_LoadedLists.AddOrReplace(name, result);
+					LoadedLists.AddOrReplace(name, result);
 				}
+			}
+
 			return result;
 		}
 
-		public static IWordlistSource WordlistSource
-		{
-			get;
-			set;
-		}
-
-		private String[] _words;
-
 		/// <summary>
-		/// Constructor used by inheritence only
-		/// </summary>
-		/// <param name="words">The words to be used in the wordlist</param>
-		public Wordlist(String[] words, char space, string name)
-		{
-			_words = words
-						.Select(w => MnemonicSequence.NormalizeString(w))
-						.ToArray();
-			_Space = space;
-			_Name = name;
-		}
-
-		private readonly string _Name;
-		public string Name
-		{
-			get
-			{
-				return _Name;
-			}
-		}
-		private readonly char _Space;
-		public char Space
-		{
-			get
-			{
-				return _Space;
-			}
-		}
-
-		/// <summary>
-		/// Method to determine if word exists in word list, great for auto language detection
+		///     Method to determine if word exists in word list, great for auto language detection
 		/// </summary>
 		/// <param name="word">The word to check for existence</param>
 		/// <returns>Exists (true/false)</returns>
 		public bool WordExists(string word, out int index)
 		{
 			word = MnemonicSequence.NormalizeString(word);
-			if(_words.Contains(word))
+			if (_words.Contains(word))
 			{
 				index = Array.IndexOf(_words, word);
 				return true;
@@ -211,7 +234,7 @@ namespace BitcoinNet.Mnemonic
 		}
 
 		/// <summary>
-		/// Returns a string containing the word at the specified index of the wordlist
+		///     Returns a string containing the word at the specified index of the wordlist
 		/// </summary>
 		/// <param name="index">Index of word to return</param>
 		/// <returns>Word</returns>
@@ -220,68 +243,60 @@ namespace BitcoinNet.Mnemonic
 			return _words[index];
 		}
 
-		/// <summary>
-		/// The number of all the words in the wordlist
-		/// </summary>
-		public int WordCount
-		{
-			get
-			{
-				return _words.Length;
-			}
-		}
 
-
-		public static Task<Wordlist> AutoDetectAsync(string sentence)
+		public static Task<WordList> AutoDetectAsync(string sentence)
 		{
 			return LoadWordList(AutoDetectLanguage(sentence));
 		}
-		public static Wordlist AutoDetect(string sentence)
+
+		public static WordList AutoDetect(string sentence)
 		{
 			return LoadWordList(AutoDetectLanguage(sentence)).Result;
 		}
+
 		public static Language AutoDetectLanguage(string[] words)
 		{
-			List<int> languageCount = new List<int>(new int[] { 0, 0, 0, 0, 0, 0, 0 });
+			var languageCount = new List<int>(new[] {0, 0, 0, 0, 0, 0, 0});
 			int index;
 
-			foreach(string s in words)
+			foreach (var s in words)
 			{
-				if(Wordlist.English.WordExists(s, out index))
+				if (English.WordExists(s, out index))
 				{
 					//english is at 0
 					languageCount[0]++;
 				}
 
-				if(Wordlist.Japanese.WordExists(s, out index))
+				if (Japanese.WordExists(s, out index))
 				{
 					//japanese is at 1
 					languageCount[1]++;
 				}
 
-				if(Wordlist.Spanish.WordExists(s, out index))
+				if (Spanish.WordExists(s, out index))
 				{
 					//spanish is at 2
 					languageCount[2]++;
 				}
 
-				if(Wordlist.ChineseSimplified.WordExists(s, out index))
+				if (ChineseSimplified.WordExists(s, out index))
 				{
 					//chinese simplified is at 3
 					languageCount[3]++;
 				}
 
-				if(Wordlist.ChineseTraditional.WordExists(s, out index) && !Wordlist.ChineseSimplified.WordExists(s, out index))
+				if (ChineseTraditional.WordExists(s, out index) && !ChineseSimplified.WordExists(s, out index))
 				{
 					//chinese traditional is at 4
 					languageCount[4]++;
 				}
-				if(Wordlist.French.WordExists(s, out index))
+
+				if (French.WordExists(s, out index))
 				{
 					languageCount[5]++;
 				}
 
-				if (Wordlist.PortugueseBrazil.WordExists(s, out index))
+				if (PortugueseBrazil.WordExists(s, out index))
 				{
 					//portuguese_brazil is at 6
 					languageCount[6]++;
@@ -289,26 +304,29 @@ namespace BitcoinNet.Mnemonic
 			}
 
 			//no hits found for any language unknown
-			if(languageCount.Max() == 0)
+			if (languageCount.Max() == 0)
 			{
 				return Language.Unknown;
 			}
 
-			if(languageCount.IndexOf(languageCount.Max()) == 0)
+			if (languageCount.IndexOf(languageCount.Max()) == 0)
 			{
 				return Language.English;
 			}
-			else if(languageCount.IndexOf(languageCount.Max()) == 1)
+
+			if (languageCount.IndexOf(languageCount.Max()) == 1)
 			{
 				return Language.Japanese;
 			}
-			else if(languageCount.IndexOf(languageCount.Max()) == 2)
+
+			if (languageCount.IndexOf(languageCount.Max()) == 2)
 			{
 				return Language.Spanish;
 			}
-			else if(languageCount.IndexOf(languageCount.Max()) == 3)
+
+			if (languageCount.IndexOf(languageCount.Max()) == 3)
 			{
-				if(languageCount[4] > 0)
+				if (languageCount[4] > 0)
 				{
 					//has traditional characters so not simplified but instead traditional
 					return Language.ChineseTraditional;
@@ -316,64 +334,71 @@ namespace BitcoinNet.Mnemonic
 
 				return Language.ChineseSimplified;
 			}
-			else if(languageCount.IndexOf(languageCount.Max()) == 4)
+
+			if (languageCount.IndexOf(languageCount.Max()) == 4)
 			{
 				return Language.ChineseTraditional;
 			}
-			else if(languageCount.IndexOf(languageCount.Max()) == 5)
+
+			if (languageCount.IndexOf(languageCount.Max()) == 5)
 			{
 				return Language.French;
 			}
-			else if (languageCount.IndexOf(languageCount.Max()) == 6)
+
+			if (languageCount.IndexOf(languageCount.Max()) == 6)
 			{
 				return Language.PortugueseBrazil;
 			}
+
 			return Language.Unknown;
 		}
+
 		public static Language AutoDetectLanguage(string sentence)
 		{
-			string[] words = sentence.Split(new char[] { ' ', '　' }); //normal space and JP space
+			var words = sentence.Split(' ', '　'); //normal space and JP space
 
 			return AutoDetectLanguage(words);
 		}
 
 		public string[] Split(string mnemonic)
 		{
-			return mnemonic.Split(new char[] { Space }, StringSplitOptions.RemoveEmptyEntries);
+			return mnemonic.Split(new[] {Space}, StringSplitOptions.RemoveEmptyEntries);
 		}
 
 		public override string ToString()
 		{
-			return _Name;
+			return Name;
 		}
 
 		public string[] GetWords(int[] indices)
 		{
 			return
 				indices
-				.Select(i => GetWordAtIndex(i))
-				.ToArray();
+					.Select(i => GetWordAtIndex(i))
+					.ToArray();
 		}
 
 		public string GetSentence(int[] indices)
 		{
-			return String.Join(Space.ToString(), GetWords(indices));
-
+			return string.Join(Space.ToString(), GetWords(indices));
 		}
 
 		public int[] ToIndices(string[] words)
 		{
 			var indices = new int[words.Length];
-			for(int i = 0; i < words.Length; i++)
+			for (var i = 0; i < words.Length; i++)
 			{
-				int idx = -1;
+				var idx = -1;
 
-				if(!WordExists(words[i], out idx))
+				if (!WordExists(words[i], out idx))
 				{
-					throw new FormatException("Word " + words[i] + " is not in the wordlist for this language, cannot continue to rebuild entropy from wordlist");
+					throw new FormatException("Word " + words[i] +
+					                          " is not in the wordlist for this language, cannot continue to rebuild entropy from wordlist");
 				}
+
 				indices[i] = idx;
 			}
+
 			return indices;
 		}
 
@@ -384,34 +409,39 @@ namespace BitcoinNet.Mnemonic
 
 		public static BitArray ToBits(int[] values)
 		{
-			if(values.Any(v => v >= 2048))
-				throw new ArgumentException("values should be between 0 and 2048", "values");
-			BitArray result = new BitArray(values.Length * 11);
-			int i = 0;
-			foreach(var val in values)
+			if (values.Any(v => v >= 2048))
 			{
-				for(int p = 0; p < 11; p++)
+				throw new ArgumentException("values should be between 0 and 2048", "values");
+			}
+
+			var result = new BitArray(values.Length * 11);
+			var i = 0;
+			foreach (var val in values)
+			{
+				for (var p = 0; p < 11; p++)
 				{
 					var v = (val & (1 << (10 - p))) != 0;
 					result.Set(i, v);
 					i++;
 				}
 			}
+
 			return result;
 		}
+
 		public static int[] ToIntegers(BitArray bits)
 		{
 			return
 				bits
-				.OfType<bool>()
-				.Select((v, i) => new
-				{
-					Group = i / 11,
-					Value = v ? 1 << (10 - (i % 11)) : 0
-				})
-				.GroupBy(_ => _.Group, _ => _.Value)
-				.Select(g => g.Sum())
-				.ToArray();
+					.OfType<bool>()
+					.Select((v, i) => new
+					{
+						Group = i / 11,
+						Value = v ? 1 << (10 - i % 11) : 0
+					})
+					.GroupBy(_ => _.Group, _ => _.Value)
+					.Select(g => g.Sum())
+					.ToArray();
 		}
 
 		public BitArray ToBits(string sentence)

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Security.Cryptography;
-using System.Text;
-using BitcoinNet.Crypto;
 
 namespace BitcoinNet
 {
@@ -13,21 +11,21 @@ namespace BitcoinNet
 			Random = RandomNumberGenerator.Create();
 		}
 
-		public static RandomNumberGenerator Random
-		{
-			get;
-			set;
-		}
+		public static RandomNumberGenerator Random { get; set; }
 
 		public static byte[] GetBytes(int length)
 		{
-			byte[] data = new byte[length];
-			if(Random == null)
-				throw new InvalidOperationException("You must set the RNG (RandomUtils.Random) before generating random numbers");
+			var data = new byte[length];
+			if (Random == null)
+			{
+				throw new InvalidOperationException(
+					"You must set the RNG (RandomUtils.Random) before generating random numbers");
+			}
+
 			Random.GetBytes(data);
 			return data;
 		}
-		
+
 		public static uint GetUInt32()
 		{
 			return BitConverter.ToUInt32(GetBytes(sizeof(uint)), 0);
@@ -37,6 +35,7 @@ namespace BitcoinNet
 		{
 			return BitConverter.ToInt32(GetBytes(sizeof(int)), 0);
 		}
+
 		public static ulong GetUInt64()
 		{
 			return BitConverter.ToUInt64(GetBytes(sizeof(ulong)), 0);
@@ -49,8 +48,12 @@ namespace BitcoinNet
 
 		public static void GetBytes(byte[] output)
 		{
-			if(Random == null)
-				throw new InvalidOperationException("You must set the RNG (RandomUtils.Random) before generating random numbers");
+			if (Random == null)
+			{
+				throw new InvalidOperationException(
+					"You must set the RNG (RandomUtils.Random) before generating random numbers");
+			}
+
 			Random.GetBytes(output);
 		}
 	}

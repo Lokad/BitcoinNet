@@ -1,10 +1,5 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.JsonRpc.JsonConverters
 {
@@ -26,7 +21,7 @@ namespace BitcoinNet.JsonRpc.JsonConverters
 			settings.Converters.Add(new DateTimeToUnixTimeConverter());
 			settings.Converters.Add(new TxDestinationJsonConverter());
 			settings.Converters.Add(new LockTimeJsonConverter());
-			settings.Converters.Add(new BitcoinStringJsonConverter()
+			settings.Converters.Add(new BitcoinStringJsonConverter
 			{
 				Network = network
 			});
@@ -37,9 +32,10 @@ namespace BitcoinNet.JsonRpc.JsonConverters
 		{
 			return ToObject<T>(data, null);
 		}
+
 		public static T ToObject<T>(string data, Network network)
 		{
-			JsonSerializerSettings settings = new JsonSerializerSettings
+			var settings = new JsonSerializerSettings
 			{
 				Formatting = Formatting.Indented
 			};
@@ -49,16 +45,17 @@ namespace BitcoinNet.JsonRpc.JsonConverters
 
 		public static string ToString<T>(T response, Network network)
 		{
-			JsonSerializerSettings settings = new JsonSerializerSettings
+			var settings = new JsonSerializerSettings
 			{
 				Formatting = Formatting.Indented
 			};
 			RegisterFrontConverters(settings, network);
 			return JsonConvert.SerializeObject(response, settings);
 		}
+
 		public static string ToString<T>(T response)
 		{
-			return ToString<T>(response, null);
+			return ToString(response, null);
 		}
 	}
 }

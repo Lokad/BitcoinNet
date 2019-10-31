@@ -1,9 +1,6 @@
-﻿using BitcoinNet.DataEncoders;
+﻿using System;
+using BitcoinNet.DataEncoders;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.JsonRpc.JsonConverters
 {
@@ -14,11 +11,12 @@ namespace BitcoinNet.JsonRpc.JsonConverters
 			return objectType == typeof(byte[]);
 		}
 
-		public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+		public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
+			JsonSerializer serializer)
 		{
 			try
 			{
-				return reader.TokenType == JsonToken.Null ? null : Encoders.Hex.DecodeData((string)reader.Value);
+				return reader.TokenType == JsonToken.Null ? null : Encoders.Hex.DecodeData((string) reader.Value);
 			}
 			catch
 			{
@@ -28,9 +26,9 @@ namespace BitcoinNet.JsonRpc.JsonConverters
 
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			if(value != null)
+			if (value != null)
 			{
-				writer.WriteValue(Encoders.Hex.EncodeData((byte[])value));
+				writer.WriteValue(Encoders.Hex.EncodeData((byte[]) value));
 			}
 		}
 	}

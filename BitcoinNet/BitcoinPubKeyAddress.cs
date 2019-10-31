@@ -36,9 +36,9 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Creates a new public key instance.
-		/// Since, CashAddr allows lower-case or upper-case addresses,
-		/// str argument is expected to store user supplied value instead of addr.ToString().
+		///     Creates a new public key instance.
+		///     Since, CashAddr allows lower-case or upper-case addresses,
+		///     str argument is expected to store user supplied value instead of addr.ToString().
 		/// </summary>
 		/// <param name="str"></param>
 		/// <param name="addr"></param>
@@ -66,7 +66,7 @@ namespace BitcoinNet
 			var key = PubKey.RecoverFromMessage(message, signature);
 			return key.Hash == Hash;
 		}
-		
+
 		private static string EncodeAddress(KeyId keyId, Network expectedNetwork)
 		{
 			var addr = BchAddr.BchAddrData.Create(CashFormat.Cashaddr, expectedNetwork, BchAddr.CashType.P2PKH,
@@ -117,7 +117,7 @@ namespace BitcoinNet
 		private static string ValidateLegacyAddress(string str, ref Network expectedNetwork)
 		{
 			var data = Encoders.Base58Check.DecodeData(str);
-			var networks = expectedNetwork == null ? Network.GetNetworks() : new[] { expectedNetwork };
+			var networks = expectedNetwork == null ? Network.GetNetworks() : new[] {expectedNetwork};
 			foreach (var network in networks)
 			{
 				var versionBytes = network.GetVersionBytes(Base58Type.PUBKEY_ADDRESS, false);

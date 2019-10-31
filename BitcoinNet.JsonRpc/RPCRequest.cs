@@ -1,11 +1,7 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BitcoinNet.JsonRpc
 {
@@ -14,39 +10,28 @@ namespace BitcoinNet.JsonRpc
 		public RPCRequest(RPCOperations method, object[] parameters)
 			: this(method.ToString(), parameters)
 		{
-
 		}
+
 		public RPCRequest(string method, object[] parameters)
 			: this()
 		{
 			Method = method;
 			Params = parameters;
 		}
+
 		public RPCRequest()
 		{
 			JsonRpc = "1.0";
 			Id = 1;
 		}
-		public string JsonRpc
-		{
-			get;
-			set;
-		}
-		public int Id
-		{
-			get;
-			set;
-		}
-		public string Method
-		{
-			get;
-			set;
-		}
-		public object[] Params
-		{
-			get;
-			set;
-		}
+
+		public string JsonRpc { get; set; }
+
+		public int Id { get; set; }
+
+		public string Method { get; set; }
+
+		public object[] Params { get; set; }
 
 		public void WriteJSON(TextWriter writer)
 		{
@@ -65,24 +50,25 @@ namespace BitcoinNet.JsonRpc
 			writer.WritePropertyName("params");
 			writer.WriteStartArray();
 
-			if(Params != null)
+			if (Params != null)
 			{
-				for(int i = 0; i < Params.Length; i++)
+				for (var i = 0; i < Params.Length; i++)
 				{
-					if(Params[i] is JToken)
+					if (Params[i] is JToken)
 					{
-						((JToken)Params[i]).WriteTo(writer);
+						((JToken) Params[i]).WriteTo(writer);
 					}
-					else if(Params[i] is Array)
+					else if (Params[i] is Array)
 					{
 						writer.WriteStartArray();
-						foreach(var x in (Array)Params[i])
+						foreach (var x in (Array) Params[i])
 						{
 							writer.WriteValue(x);
 						}
+
 						writer.WriteEndArray();
 					}
-					else if(Params[i] is uint256)
+					else if (Params[i] is uint256)
 					{
 						writer.WriteValue(Params[i].ToString());
 					}

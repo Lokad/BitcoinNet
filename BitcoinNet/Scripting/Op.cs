@@ -9,12 +9,101 @@ namespace BitcoinNet.Scripting
 {
 	public class Op
 	{
+		private const int MaxScriptElementSize = 520;
+		private const string Unknown = "OP_UNKNOWN(0x";
+
+		internal static readonly Dictionary<string, OpcodeType> OpcodeByName;
+		private static readonly bool[] ValidOpCode;
+
+		private OpcodeType _code;
+		private string _name;
+
+		static Op()
+		{
+			ValidOpCode = GetValidOpCode();
+			OpcodeByName = new Dictionary<string, OpcodeType>();
+			foreach (var code in Enum.GetValues(typeof(OpcodeType)).Cast<OpcodeType>().Distinct())
+			{
+				var name = GetOpName(code);
+				if (name != "OP_UNKNOWN")
+				{
+					OpcodeByName.AddOrReplace(name, code);
+				}
+			}
+
+			OpcodeByName.AddOrReplace("OP_TRUE", OpcodeType.OP_1);
+			OpcodeByName.AddOrReplace("OP_FALSE", OpcodeType.OP_0);
+			OpcodeByName.AddOrReplace("OP_CHECKLOCKTIMEVERIFY", OpcodeType.OP_CHECKLOCKTIMEVERIFY);
+			OpcodeByName.AddOrReplace("OP_HODL", OpcodeType.OP_CHECKLOCKTIMEVERIFY);
+			OpcodeByName.AddOrReplace("OP_NOP2", OpcodeType.OP_CHECKLOCKTIMEVERIFY);
+			OpcodeByName.AddOrReplace("OP_CHECKSEQUENCEVERIFY", OpcodeType.OP_CHECKSEQUENCEVERIFY);
+			OpcodeByName.AddOrReplace("OP_NOP3", OpcodeType.OP_CHECKSEQUENCEVERIFY);
+
+			foreach (var op in new[]
+			{
+				new object[] {"OP_0", OpcodeType.OP_0},
+				new object[] {"OP_1", OpcodeType.OP_1},
+				new object[] {"OP_2", OpcodeType.OP_2},
+				new object[] {"OP_3", OpcodeType.OP_3},
+				new object[] {"OP_4", OpcodeType.OP_4},
+				new object[] {"OP_5", OpcodeType.OP_5},
+				new object[] {"OP_6", OpcodeType.OP_6},
+				new object[] {"OP_7", OpcodeType.OP_7},
+				new object[] {"OP_8", OpcodeType.OP_8},
+				new object[] {"OP_9", OpcodeType.OP_9}
+			})
+			{
+				OpcodeByName.AddOrReplace((string) op[0], (OpcodeType) op[1]);
+			}
+		}
+
+		internal Op()
+		{
+		}
+
+		public string Name
+		{
+			get
+			{
+				if (_name == null)
+				{
+					_name = GetOpName(Code);
+				}
+
+				return _name;
+			}
+		}
+
+		public OpcodeType Code
+		{
+			get => _code;
+			set
+			{
+				_code = value;
+				IsInvalid = !ValidOpCode[(byte) value];
+			}
+		}
+
+		public byte[] PushData { get; set; }
+
+
+		public bool IsInvalid { get; private set; }
+
+		public bool IsSmallUInt =>
+			Code == OpcodeType.OP_0 ||
+			OpcodeType.OP_1 <= Code && Code <= OpcodeType.OP_16;
+
+		public bool IsSmallInt => IsSmallUInt || Code == OpcodeType.OP_1NEGATE;
+
 		//Copied from satoshi's code
 		public static string GetOpName(OpcodeType opcode)
 		{
-			if(!_ValidOpCode[(byte)opcode])
+			if (!ValidOpCode[(byte) opcode])
+			{
 				return "OP_UNKNOWN";
-			switch(opcode)
+			}
+
+			switch (opcode)
 			{
 				// push value
 				case OpcodeType.OP_0:
@@ -257,51 +346,16 @@ namespace BitcoinNet.Scripting
 				default:
 					return Enum.GetName(typeof(OpcodeType), opcode);
 			}
-		}		
+		}
+
 		internal static bool IsPushCode(OpcodeType opcode)
 		{
 			return 0 <= opcode && opcode <= OpcodeType.OP_16 && opcode != OpcodeType.OP_RESERVED;
 		}
 
-		internal static Dictionary<string, OpcodeType> _OpcodeByName;
-		static Op()
-		{
-			_ValidOpCode = GetValidOpCode();
-			_OpcodeByName = new Dictionary<string, OpcodeType>();
-			foreach(var code in Enum.GetValues(typeof(OpcodeType)).Cast<OpcodeType>().Distinct())
-			{
-				var name = GetOpName(code);
-				if(name != "OP_UNKNOWN")
-					_OpcodeByName.AddOrReplace(name, code);
-			}
-			_OpcodeByName.AddOrReplace("OP_TRUE", OpcodeType.OP_1);
-			_OpcodeByName.AddOrReplace("OP_FALSE", OpcodeType.OP_0);
-			_OpcodeByName.AddOrReplace("OP_CHECKLOCKTIMEVERIFY", OpcodeType.OP_CHECKLOCKTIMEVERIFY);
-			_OpcodeByName.AddOrReplace("OP_HODL", OpcodeType.OP_CHECKLOCKTIMEVERIFY);
-			_OpcodeByName.AddOrReplace("OP_NOP2", OpcodeType.OP_CHECKLOCKTIMEVERIFY);
-			_OpcodeByName.AddOrReplace("OP_CHECKSEQUENCEVERIFY", OpcodeType.OP_CHECKSEQUENCEVERIFY);
-			_OpcodeByName.AddOrReplace("OP_NOP3", OpcodeType.OP_CHECKSEQUENCEVERIFY);
-
-			foreach(var op in new[]
-			{
-				new object[]{"OP_0", OpcodeType.OP_0},
-				new object[]{"OP_1", OpcodeType.OP_1},
-				new object[]{"OP_2", OpcodeType.OP_2},
-				new object[]{"OP_3", OpcodeType.OP_3},
-				new object[]{"OP_4", OpcodeType.OP_4},
-				new object[]{"OP_5", OpcodeType.OP_5},
-				new object[]{"OP_6", OpcodeType.OP_6},
-				new object[]{"OP_7", OpcodeType.OP_7},
-				new object[]{"OP_8", OpcodeType.OP_8},
-				new object[]{"OP_9", OpcodeType.OP_9}
-			})
-			{
-				_OpcodeByName.AddOrReplace((string)op[0], (OpcodeType)op[1]);
-			}
-		}
 		public static bool GetOpCode(string name, out OpcodeType result)
 		{
-			return _OpcodeByName.TryGetValue(name, out result);
+			return OpcodeByName.TryGetValue(name, out result);
 		}
 
 		public static Op GetPushOp(long value)
@@ -344,146 +398,147 @@ namespace BitcoinNet.Scripting
 
 		public static Op GetPushOp(byte[] data)
 		{
-			Op op = new Op();
+			var op = new Op();
 			op.PushData = data;
-			if(data.Length == 0)
+			if (data.Length == 0)
+			{
 				op.Code = OpcodeType.OP_0;
-			else if(data.Length == 1 && (byte)1 <= data[0] && data[0] <= (byte)16)
-				op.Code = (OpcodeType)(data[0] + (byte)OpcodeType.OP_1 - 1);
-			else if(data.Length == 1 && (byte)0x81 == data[0])
+			}
+			else if (data.Length == 1 && 1 <= data[0] && data[0] <= 16)
+			{
+				op.Code = (OpcodeType) (data[0] + (byte) OpcodeType.OP_1 - 1);
+			}
+			else if (data.Length == 1 && 0x81 == data[0])
+			{
 				op.Code = OpcodeType.OP_1NEGATE;
-			else if(0x01 <= data.Length && data.Length <= 0x4b)
-				op.Code = (OpcodeType)(byte)data.Length;
-			else if(data.Length <= 0xFF)
+			}
+			else if (0x01 <= data.Length && data.Length <= 0x4b)
+			{
+				op.Code = (OpcodeType) (byte) data.Length;
+			}
+			else if (data.Length <= 0xFF)
+			{
 				op.Code = OpcodeType.OP_PUSHDATA1;
-			else if(data.Length <= 0xFFFF)
+			}
+			else if (data.Length <= 0xFFFF)
+			{
 				op.Code = OpcodeType.OP_PUSHDATA2;
+			}
 			else
+			{
 				throw new NotSupportedException("Data length should not be bigger than 0xFFFFFFFF");
+			}
+
 			return op;
 		}
-
-		internal Op()
-		{
-
-		}
-		string _Name;
-		public string Name
-		{
-			get
-			{
-				if(_Name == null)
-					_Name = GetOpName(Code);
-				return _Name;
-			}
-		}
-
-		OpcodeType _Code;
-		static readonly bool[] _ValidOpCode;
 
 		private static bool[] GetValidOpCode()
 		{
 			var valid = new bool[256];
-			foreach(var val in Enum.GetValues(typeof(OpcodeType)))
+			foreach (var val in Enum.GetValues(typeof(OpcodeType)))
 			{
-				valid[(byte)val] = true;
+				valid[(byte) val] = true;
 			}
-			for(byte i = 0; ; i++)
-			{
-				if(IsPushCode((OpcodeType)i))
-					valid[i] = true;
-				if(i == 255)
-					break;
-			}
-			return valid;
-		}
 
-		public OpcodeType Code
-		{
-			get
+			for (byte i = 0;; i++)
 			{
-				return _Code;
+				if (IsPushCode((OpcodeType) i))
+				{
+					valid[i] = true;
+				}
+
+				if (i == 255)
+				{
+					break;
+				}
 			}
-			set
-			{
-				_Code = value;
-				IsInvalid = !_ValidOpCode[(byte)value];
-			}
-		}
-		public byte[] PushData
-		{
-			get;
-			set;
+
+			return valid;
 		}
 
 		private void PushDataToStream(byte[] data, Stream result)
 		{
 			var bitStream = new BitcoinStream(result, true);
 
-			if(Code == OpcodeType.OP_0)
+			if (Code == OpcodeType.OP_0)
 			{
 				//OP_0 already pushed
 				return;
 			}
 
-			if(OpcodeType.OP_1 <= Code && Code <= OpcodeType.OP_16)
+			if (OpcodeType.OP_1 <= Code && Code <= OpcodeType.OP_16)
 			{
 				//OP_1 to OP_16 already pushed
 				return;
 			}
-			if(Code == OpcodeType.OP_1NEGATE)
+
+			if (Code == OpcodeType.OP_1NEGATE)
 			{
 				//OP_1Negate already pushed
 				return;
 			}
 
-			if(0x01 <= (byte)Code && (byte)Code <= 0x4b)
+			if (0x01 <= (byte) Code && (byte) Code <= 0x4b)
 			{
 				//Data length already pushed
 			}
-			else if(Code == OpcodeType.OP_PUSHDATA1)
+			else if (Code == OpcodeType.OP_PUSHDATA1)
 			{
-				bitStream.ReadWrite((byte)data.Length);
+				bitStream.ReadWrite((byte) data.Length);
 			}
-			else if(Code == OpcodeType.OP_PUSHDATA2)
+			else if (Code == OpcodeType.OP_PUSHDATA2)
 			{
-				bitStream.ReadWrite((ushort)data.Length);
+				bitStream.ReadWrite((ushort) data.Length);
 			}
-			else if(Code == OpcodeType.OP_PUSHDATA4)
+			else if (Code == OpcodeType.OP_PUSHDATA4)
 			{
-				bitStream.ReadWrite((uint)data.Length);
+				bitStream.ReadWrite((uint) data.Length);
 			}
 			else
+			{
 				throw new NotSupportedException("Data length should not be bigger than 0xFFFFFFFF");
+			}
+
 			result.Write(data, 0, data.Length);
 		}
+
 		internal byte[] ReadData(Stream stream)
 		{
 			uint len = 0;
-			BitcoinStream bitStream = new BitcoinStream(stream, false);
-			if(Code == 0)
-				return new byte[0];
-
-			if((byte)OpcodeType.OP_1 <= (byte)Code && (byte)Code <= (byte)OpcodeType.OP_16)
+			var bitStream = new BitcoinStream(stream, false);
+			if (Code == 0)
 			{
-				return new byte[] { (byte)(Code - OpcodeType.OP_1 + 1) };
+				return new byte[0];
 			}
 
-			if(Code == OpcodeType.OP_1NEGATE)
+			if ((byte) OpcodeType.OP_1 <= (byte) Code && (byte) Code <= (byte) OpcodeType.OP_16)
 			{
-				return new byte[] { 0x81 };
+				return new[] {(byte) (Code - OpcodeType.OP_1 + 1)};
+			}
+
+			if (Code == OpcodeType.OP_1NEGATE)
+			{
+				return new byte[] {0x81};
 			}
 
 			try
 			{
-				if(0x01 <= (byte)Code && (byte)Code <= 0x4b)
-					len = (uint)Code;
-				else if(Code == OpcodeType.OP_PUSHDATA1)
-					len = bitStream.ReadWrite((byte)0);
-				else if(Code == OpcodeType.OP_PUSHDATA2)
-					len = bitStream.ReadWrite((ushort)0);
-				else if(Code == OpcodeType.OP_PUSHDATA4)
-					len = bitStream.ReadWrite((uint)0);
+				if (0x01 <= (byte) Code && (byte) Code <= 0x4b)
+				{
+					len = (uint) Code;
+				}
+				else if (Code == OpcodeType.OP_PUSHDATA1)
+				{
+					len = bitStream.ReadWrite((byte) 0);
+				}
+				else if (Code == OpcodeType.OP_PUSHDATA2)
+				{
+					len = bitStream.ReadWrite((ushort) 0);
+				}
+				else if (Code == OpcodeType.OP_PUSHDATA4)
+				{
+					len = bitStream.ReadWrite((uint) 0);
+				}
 				else
 				{
 					IsInvalid = true;
@@ -493,11 +548,11 @@ namespace BitcoinNet.Scripting
 
 				byte[] data = null;
 
-				if(len <= MAX_SCRIPT_ELEMENT_SIZE) //Most of the time
+				if (len <= MaxScriptElementSize) //Most of the time
 				{
 					data = new byte[len];
 					var readen = stream.Read(data, 0, data.Length);
-					if(readen != data.Length)
+					if (readen != data.Length)
 					{
 						IsInvalid = true;
 						return new byte[0];
@@ -505,23 +560,25 @@ namespace BitcoinNet.Scripting
 				}
 				else //Mitigate against a big array allocation
 				{
-					List<byte> bytes = new List<byte>();
-					for(int i = 0; i < len; i++)
+					var bytes = new List<byte>();
+					for (var i = 0; i < len; i++)
 					{
 						var b = stream.ReadByte();
-						if(b < 0)
+						if (b < 0)
 						{
 							IsInvalid = true;
 							return new byte[0];
 						}
-						bytes.Add((byte)b);
+
+						bytes.Add((byte) b);
 					}
+
 					data = bytes.ToArray();
 				}
-				return data;
 
+				return data;
 			}
-			catch(EndOfStreamException)
+			catch (EndOfStreamException)
 			{
 				IsInvalid = true;
 				return new byte[0];
@@ -530,41 +587,41 @@ namespace BitcoinNet.Scripting
 
 		public byte[] ToBytes()
 		{
-			MemoryStream ms = new MemoryStream();
+			var ms = new MemoryStream();
 			WriteTo(ms);
 			return ms.ToArray();
 		}
 
 		public override string ToString()
 		{
-			if(PushData != null)
+			if (PushData != null)
 			{
-				if(PushData.Length == 0)
+				if (PushData.Length == 0)
+				{
 					return "0";
+				}
+
 				var result = Encoders.Hex.EncodeData(PushData);
 				return result.Length == 2 && result[0] == '0' ? result.Substring(1) : result;
 			}
-			else if(Name == "OP_UNKNOWN")
+
+			if (Name == "OP_UNKNOWN")
 			{
-				return Name + "(" + string.Format("0x{0:x2}", (byte)Code) + ")";
+				return Name + "(" + string.Format("0x{0:x2}", (byte) Code) + ")";
 			}
-			else
-			{
-				return Name;
-			}
+
+			return Name;
 		}
 
 		public void WriteTo(Stream stream)
 		{
-			stream.WriteByte((byte)Code);
-			if(PushData != null)
+			stream.WriteByte((byte) Code);
+			if (PushData != null)
 			{
 				PushDataToStream(PushData, stream);
 			}
 		}
 
-		static string unknown = "OP_UNKNOWN(0x";
-		const int MAX_SCRIPT_ELEMENT_SIZE = 520;
 		internal static Op Read(TextReader textReader)
 		{
 			var opname = ReadWord(textReader);
@@ -572,35 +629,45 @@ namespace BitcoinNet.Scripting
 
 			var isOpCode = GetOpCode(opname, out opcode);
 
-			if(
-				(!isOpCode || Op.IsPushCode(opcode))
-				&& !opname.StartsWith(unknown))
+			if (
+				(!isOpCode || IsPushCode(opcode))
+				&& !opname.StartsWith(Unknown))
 			{
-				if(isOpCode && opcode == OpcodeType.OP_0)
+				if (isOpCode && opcode == OpcodeType.OP_0)
+				{
 					return GetPushOp(new byte[0]);
+				}
+
 				opname = opname.Replace("OP_", "");
-				if(opname.Equals("TRUE", StringComparison.OrdinalIgnoreCase))
+				if (opname.Equals("TRUE", StringComparison.OrdinalIgnoreCase))
+				{
 					opname = "1";
-				if(opname.Equals("FALSE", StringComparison.OrdinalIgnoreCase))
+				}
+
+				if (opname.Equals("FALSE", StringComparison.OrdinalIgnoreCase))
+				{
 					opname = "0";
+				}
+
 				return GetPushOp(Encoders.Hex.DecodeData(opname.Length == 1 ? "0" + opname : opname));
 			}
-			else if(opname.StartsWith(unknown))
+
+			if (opname.StartsWith(Unknown))
 			{
 				try
 				{
-					if(opname.StartsWith(unknown))
+					if (opname.StartsWith(Unknown))
 					{
-						opcode = (OpcodeType)(Encoders.Hex.DecodeData(opname.Substring(unknown.Length, 2))[0]);
+						opcode = (OpcodeType) Encoders.Hex.DecodeData(opname.Substring(Unknown.Length, 2))[0];
 					}
 				}
-				catch(Exception ex)
+				catch (Exception ex)
 				{
 					throw new FormatException("Invalid unknown opcode", ex);
 				}
 			}
 
-			return new Op()
+			return new Op
 			{
 				Code = opcode
 			};
@@ -608,115 +675,116 @@ namespace BitcoinNet.Scripting
 
 		public static implicit operator Op(OpcodeType codeType)
 		{
-			if(!IsPushCode(codeType))
-				return new Op()
+			if (!IsPushCode(codeType))
+			{
+				return new Op
+				{
+					Code = codeType
+				};
+			}
+
+			if (OpcodeType.OP_1 <= codeType && codeType <= OpcodeType.OP_16)
+			{
+				return new Op
 				{
 					Code = codeType,
+					PushData = new[] {(byte) ((byte) codeType - (byte) OpcodeType.OP_1 + 1)}
 				};
-			else
-			{
-				if(OpcodeType.OP_1 <= codeType && codeType <= OpcodeType.OP_16)
-				{
-					return new Op()
-					{
-						Code = codeType,
-						PushData = new byte[] { (byte)((byte)codeType - (byte)OpcodeType.OP_1 + 1) }
-					};
-				}
-				else if(codeType == OpcodeType.OP_0)
-				{
-					return new Op()
-					{
-						Code = codeType,
-						PushData = new byte[0]
-					};
-				}
-				else if(codeType == OpcodeType.OP_1NEGATE)
-				{
-					return new Op()
-					{
-						Code = codeType,
-						PushData = new byte[] { 0x81 }
-					};
-				}
-				else
-				{
-					throw new InvalidOperationException("Push OP without any data provided detected, Op.PushData instead");
-				}
 			}
+
+			if (codeType == OpcodeType.OP_0)
+			{
+				return new Op
+				{
+					Code = codeType,
+					PushData = new byte[0]
+				};
+			}
+
+			if (codeType == OpcodeType.OP_1NEGATE)
+			{
+				return new Op
+				{
+					Code = codeType,
+					PushData = new byte[] {0x81}
+				};
+			}
+
+			throw new InvalidOperationException("Push OP without any data provided detected, Op.PushData instead");
 		}
 
 		private static string ReadWord(TextReader textReader)
 		{
-			StringBuilder builder = new StringBuilder();
+			var builder = new StringBuilder();
 			int r;
-			while((r = textReader.Read()) != -1)
+			while ((r = textReader.Read()) != -1)
 			{
-				var ch = (char)r;
-				bool isSpace = DataEncoder.IsSpace(ch);
-				if(isSpace && builder.Length == 0)
+				var ch = (char) r;
+				var isSpace = DataEncoder.IsSpace(ch);
+				if (isSpace && builder.Length == 0)
+				{
 					continue;
-				if(isSpace && builder.Length != 0)
+				}
+
+				if (isSpace && builder.Length != 0)
+				{
 					break;
-				builder.Append((char)r);
+				}
+
+				builder.Append((char) r);
 			}
+
 			return builder.ToString();
-		}
-
-
-		public bool IsInvalid
-		{
-			get;
-			private set;
-		}
-
-		public bool IsSmallUInt
-		{
-			get
-			{
-				return Code == OpcodeType.OP_0 ||
-				       OpcodeType.OP_1 <= Code && Code <= OpcodeType.OP_16;
-			}
-		}
-		public bool IsSmallInt
-		{
-			get
-			{
-				return IsSmallUInt || Code == OpcodeType.OP_1NEGATE;
-			}
 		}
 
 		public int? GetInt()
 		{
 			var l = GetLong();
-			if(l == null)
+			if (l == null)
+			{
 				return null;
-			if(l.Value > int.MaxValue)
+			}
+
+			if (l.Value > int.MaxValue)
+			{
 				return int.MaxValue;
-			else if(l.Value < int.MinValue)
+			}
+
+			if (l.Value < int.MinValue)
+			{
 				return int.MinValue;
-			return (int)l.Value;
+			}
+
+			return (int) l.Value;
 		}
 
 		public long? GetLong()
 		{
-			if(PushData == null)
+			if (PushData == null)
+			{
 				return null;
+			}
+
 			var vch = PushData;
-			if(vch.Length == 0)
+			if (vch.Length == 0)
+			{
 				return 0;
+			}
 
 			long result = 0;
-			for(int i = 0; i != vch.Length; ++i)
-				result |= ((long)(vch[i])) << 8 * i;
+			for (var i = 0; i != vch.Length; ++i)
+			{
+				result |= (long) vch[i] << (8 * i);
+			}
 
 			// If the input vector's most significant byte is 0x80, remove it from
 			// the result's msb and return a negative.
-			if((vch[vch.Length - 1] & 0x80) != 0)
+			if ((vch[vch.Length - 1] & 0x80) != 0)
 			{
 				var temp = ~(0x80UL << (8 * (vch.Length - 1)));
-				return -((long)((ulong)result & temp));
+				return -(long) ((ulong) result & temp);
 			}
+
 			return result;
 		}
 	}

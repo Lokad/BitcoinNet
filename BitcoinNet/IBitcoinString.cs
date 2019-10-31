@@ -1,16 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet
+﻿namespace BitcoinNet
 {
 	public interface IBitcoinString
 	{
-		Network Network
-		{
-			get;
-		}
+		Network Network { get; }
 	}
 }

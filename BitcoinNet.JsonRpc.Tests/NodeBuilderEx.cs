@@ -1,9 +1,6 @@
-﻿using BitcoinNet.Tests;
-using System;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 using System.Runtime.CompilerServices;
-using System.Text;
+using BitcoinNet.Tests;
 
 namespace BitcoinNet.JsonRpc.Tests
 {
@@ -14,7 +11,8 @@ namespace BitcoinNet.JsonRpc.Tests
 			ServicePointManager.Expect100Continue = true;
 			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-			var builder = NodeBuilder.Create(NodeDownloadData.BitcoinCash.v0_18_2, BitcoinCash.Instance.Regtest, caller);
+			var builder = NodeBuilder.Create(NodeDownloadData.BitcoinCash.v0_18_2, BitcoinCash.Instance.Regtest,
+				caller);
 			return builder;
 		}
 	}

@@ -1,6 +1,4 @@
-﻿using BitcoinNet.JsonRpc;
-using System;
-using System.Linq;
+﻿using System.Linq;
 using Xunit;
 
 namespace BitcoinNet.JsonRpc.Tests
@@ -14,21 +12,9 @@ namespace BitcoinNet.JsonRpc.Tests
 		private static readonly Block RegNetGenesisBlock = Network.RegTest.GetGenesis();
 
 		[Fact]
-		public void CanGetChainInfo()
-		{
-			using(var builder = NodeBuilderEx.Create())
-			{
-				var client = builder.CreateNode().CreateRESTClient();
-				builder.StartAll();
-				var info = client.GetChainInfoAsync().Result;
-				Assert.Equal("regtest", info.Chain);
-			}
-		}
-
-		[Fact]
 		public void CanCalculateChainWork()
 		{
-			using(var builder = NodeBuilderEx.Create())
+			using (var builder = NodeBuilderEx.Create())
 			{
 				var node = builder.CreateNode();
 				var client = node.CreateRESTClient();
@@ -36,7 +22,8 @@ namespace BitcoinNet.JsonRpc.Tests
 				builder.StartAll();
 				var info = client.GetChainInfoAsync().Result;
 				Assert.Equal("regtest", info.Chain);
-				Assert.Equal(new ChainedBlock(Network.RegTest.GetGenesis().Header, 0).GetChainWork(true), info.ChainWork);
+				Assert.Equal(new ChainedBlock(Network.RegTest.GetGenesis().Header, 0).GetChainWork(true),
+					info.ChainWork);
 				rpc.Generate(10);
 				var chain = node.CreateNodeClient().GetChain();
 				info = client.GetChainInfoAsync().Result;
@@ -47,7 +34,7 @@ namespace BitcoinNet.JsonRpc.Tests
 		[Fact]
 		public void CanGetBlock()
 		{
-			using(var builder = NodeBuilderEx.Create())
+			using (var builder = NodeBuilderEx.Create())
 			{
 				var client = builder.CreateNode().CreateRESTClient();
 				builder.StartAll();
@@ -59,7 +46,7 @@ namespace BitcoinNet.JsonRpc.Tests
 		[Fact]
 		public void CanGetBlockHeader()
 		{
-			using(var builder = NodeBuilderEx.Create())
+			using (var builder = NodeBuilderEx.Create())
 			{
 				var client = builder.CreateNode().CreateRESTClient();
 				var rpc = builder.Nodes[0].CreateRPCClient();
@@ -76,9 +63,21 @@ namespace BitcoinNet.JsonRpc.Tests
 		}
 
 		[Fact]
+		public void CanGetChainInfo()
+		{
+			using (var builder = NodeBuilderEx.Create())
+			{
+				var client = builder.CreateNode().CreateRESTClient();
+				builder.StartAll();
+				var info = client.GetChainInfoAsync().Result;
+				Assert.Equal("regtest", info.Chain);
+			}
+		}
+
+		[Fact]
 		public void CanGetTransaction()
 		{
-			using(var builder = NodeBuilderEx.Create())
+			using (var builder = NodeBuilderEx.Create())
 			{
 				var client = builder.CreateNode().CreateRESTClient();
 				builder.StartAll();
@@ -94,13 +93,13 @@ namespace BitcoinNet.JsonRpc.Tests
 		[Fact]
 		public void CanGetUTXOs()
 		{
-			using(var builder = NodeBuilderEx.Create())
+			using (var builder = NodeBuilderEx.Create())
 			{
 				var client = builder.CreateNode().CreateRESTClient();
 				builder.StartAll();
 				var txId = uint256.Parse("3a3422dfd155f1d2ffc3e46cf978a9c5698c17c187f04cfa1b93358699c4ed3f");
 				var outPoint = new OutPoint(txId, 0);
-				var utxos = client.GetUnspentOutputsAsync(new[] { outPoint }, false).Result;
+				var utxos = client.GetUnspentOutputsAsync(new[] {outPoint}, false).Result;
 				Assert.Equal(true, utxos.Bitmap[0]);
 				Assert.Equal(false, utxos.Bitmap[1]);
 				Assert.Equal(0, utxos.Outputs.Length);
@@ -110,11 +109,12 @@ namespace BitcoinNet.JsonRpc.Tests
 		[Fact]
 		public void ThrowsRestApiClientException()
 		{
-			using(var builder = NodeBuilderEx.Create())
+			using (var builder = NodeBuilderEx.Create())
 			{
 				var client = builder.CreateNode().CreateRESTClient();
 				builder.StartAll();
-				var unexistingBlockId = uint256.Parse("100000006c02c8ea6e4ff69651f7fcde348fb9d557a06e6957b65552002a7820");
+				var unexistingBlockId =
+					uint256.Parse("100000006c02c8ea6e4ff69651f7fcde348fb9d557a06e6957b65552002a7820");
 				Assert.Throws<RestApiException>(() => client.GetBlock(unexistingBlockId));
 
 				var txId = uint256.Parse("7569ce92f93f9afd51ffae243e04076be4e5088cf69501aab6de9ede5c331402");

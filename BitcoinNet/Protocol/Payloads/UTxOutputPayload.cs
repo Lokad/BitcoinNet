@@ -23,34 +23,19 @@ namespace BitcoinNet.Protocol.Payloads
 
 		public int ChainHeight
 		{
-			get
-			{
-				return _chainHeight;
-			}
-			internal set
-			{
-				_chainHeight = value;
-			}
+			get => _chainHeight;
+			internal set => _chainHeight = value;
 		}
 
 		public uint256 ChainTipHash
 		{
-			get
-			{
-				return _chainTipHash;
-			}
-			internal set
-			{
-				_chainTipHash = value;
-			}
+			get => _chainTipHash;
+			internal set => _chainTipHash = value;
 		}
 
 		public BitArray Bitmap
 		{
-			get
-			{
-				return new BitArray(_bitmap.ToBytes());
-			}
+			get => new BitArray(_bitmap.ToBytes());
 			internal set
 			{
 				var bits = value;
@@ -61,14 +46,8 @@ namespace BitcoinNet.Protocol.Payloads
 
 		public UTxOut[] Outputs
 		{
-			get
-			{
-				return _outputs;
-			}
-			internal set
-			{
-				_outputs = value;
-			}
+			get => _outputs;
+			internal set => _outputs = value;
 		}
 
 		public void ReadWrite(BitcoinStream stream)
@@ -82,44 +61,26 @@ namespace BitcoinNet.Protocol.Payloads
 
 	public class UTxOut : IBitcoinSerializable
 	{
-		private uint _version;
 		private uint _height;
 		private TxOut _txOut;
+		private uint _version;
 
 		public uint Version
 		{
-			get
-			{
-				return _version;
-			}
-			internal set
-			{
-				_version = value;
-			}
+			get => _version;
+			internal set => _version = value;
 		}
 
 		public uint Height
 		{
-			get
-			{
-				return _height;
-			}
-			internal set
-			{
-				_height = value;
-			}
+			get => _height;
+			internal set => _height = value;
 		}
 
 		public TxOut Output
 		{
-			get
-			{
-				return _txOut;
-			}
-			internal set
-			{
-				_txOut = value;
-			}
+			get => _txOut;
+			internal set => _txOut = value;
 		}
 
 		public void ReadWrite(BitcoinStream stream)
@@ -129,5 +90,4 @@ namespace BitcoinNet.Protocol.Payloads
 			stream.ReadWrite(ref _txOut);
 		}
 	}
-
 }

@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.JsonRpc
 {
@@ -32,7 +28,9 @@ namespace BitcoinNet.JsonRpc
 		verifymessage,
 		createmultisig,
 		validateaddress,
-		[Obsolete("Deprecated in Bitcoin Core 0.16.0 use getblockchaininfo, getnetworkinfo, getwalletinfo or getmininginfo instead")]
+
+		[Obsolete(
+			"Deprecated in Bitcoin Core 0.16.0 use getblockchaininfo, getnetworkinfo, getwalletinfo or getmininginfo instead")]
 		getinfo,
 		getblockchaininfo,
 		getnetworkinfo,
