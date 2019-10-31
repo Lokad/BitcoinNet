@@ -1,63 +1,22 @@
 ﻿using System;
 using System.Linq;
-using System.IO;
 using BitcoinNet.DataEncoders;
-using BitcoinNet.Protocol;
 
 namespace BitcoinNet
 {
 	public class uint256
 	{
-		public class MutableUint256 : IBitcoinSerializable
-		{
-			uint256 _Value;
-			public uint256 Value
-			{
-				get
-				{
-					return _Value;
-				}
-				set
-				{
-					_Value = value;
-				}
-			}
-			public MutableUint256()
-			{
-				_Value = uint256.Zero;
-			}
-			public MutableUint256(uint256 value)
-			{
-				_Value = value;
-			}
+		private const int WIDTH_BYTE = 256 / 8;
 
-			public void ReadWrite(BitcoinStream stream)
-			{
-				if(stream.Serializing)
-				{
-					Span<byte> b = stackalloc byte[WIDTH_BYTE];
-					Value.ToBytes(b);
-					stream.ReadWrite(ref b);
-				}
-				else
-				{
-					Span<byte> b = stackalloc byte[WIDTH_BYTE];
-					stream.ReadWrite(ref b);
-					_Value = new uint256(b);
-				}
-			}
-		}
-		static readonly uint256 _Zero = new uint256();
-		public static uint256 Zero
-		{
-			get { return _Zero; }
-		}
-
-		static readonly uint256 _One = new uint256(1);
-		public static uint256 One 
-		{
-			get { return _One; }
-		}
+		private static readonly HexEncoder Encoder = new HexEncoder();
+		internal readonly uint pn0;
+		internal readonly uint pn1;
+		internal readonly uint pn2;
+		internal readonly uint pn3;
+		internal readonly uint pn4;
+		internal readonly uint pn5;
+		internal readonly uint pn6;
+		internal readonly uint pn7;
 
 		public uint256()
 		{
@@ -75,84 +34,10 @@ namespace BitcoinNet
 			pn7 = b.pn7;
 		}
 
-		public static uint256 Parse(string hex)
-		{
-			return new uint256(hex);
-		}
-		public static bool TryParse(string hex, out uint256 result)
-		{
-			if(hex == null)
-				throw new ArgumentNullException(nameof(hex));
-			if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-				hex = hex.Substring(2);
-			result = null;
-			if(hex.Length != WIDTH_BYTE * 2)
-				return false;
-			if(!((HexEncoder)Encoders.Hex).IsValid(hex))
-				return false;			
-			result = new uint256(hex);
-			return true;
-		}
-
-		private static readonly HexEncoder Encoder = new HexEncoder();
-		private const int WIDTH_BYTE = 256 / 8;
-		internal readonly UInt32 pn0;
-		internal readonly UInt32 pn1;
-		internal readonly UInt32 pn2;
-		internal readonly UInt32 pn3;
-		internal readonly UInt32 pn4;
-		internal readonly UInt32 pn5;
-		internal readonly UInt32 pn6;
-		internal readonly UInt32 pn7;
-		
-		public byte GetByte(int index)
-		{
-			var uintIndex = index / sizeof(uint);
-			var byteIndex = index % sizeof(uint);
-			UInt32 value;
-			switch(uintIndex)
-			{
-				case 0: 
-					value = pn0;
-					break;
-				case 1: 
-					value = pn1;
-					break;
-				case 2: 
-					value = pn2;
-					break;
-				case 3: 
-					value = pn3;
-					break;
-				case 4: 
-					value = pn4;
-					break;
-				case 5: 
-					value = pn5;
-					break;
-				case 6: 
-					value = pn6;
-					break;
-				case 7: 
-					value = pn7;
-					break;
-				default:
-					throw new ArgumentOutOfRangeException("index");
-			}
-			return (byte)(value >> (byteIndex * 8));
-		}
-
-		public override string ToString()
-		{
-			var bytes = ToBytes();
-			Array.Reverse(bytes);
-			return Encoder.EncodeData(bytes);
-		}
-
 		public uint256(ulong b)
 		{
-			pn0 = (uint)b;
-			pn1 = (uint)(b >> 32);
+			pn0 = (uint) b;
+			pn1 = (uint) (b >> 32);
 			pn2 = 0;
 			pn3 = 0;
 			pn4 = 0;
@@ -163,7 +48,6 @@ namespace BitcoinNet
 
 		public uint256(byte[] vch, bool lendian = true) : this(vch, 0, vch.Length, lendian)
 		{
-
 		}
 
 		public uint256(byte[] vch, int offset, int length, bool lendian = true)
@@ -173,10 +57,13 @@ namespace BitcoinNet
 				throw new FormatException("the byte array should be 32 bytes long");
 			}
 
-			if(!lendian)
+			if (!lendian)
 			{
-				if(length != vch.Length)
+				if (length != vch.Length)
+				{
 					vch = vch.Take(32).ToArray();
+				}
+
 				vch = vch.Reverse().ToArray();
 			}
 
@@ -188,12 +75,11 @@ namespace BitcoinNet
 			pn5 = Utils.ToUInt32(vch, offset + 4 * 5, true);
 			pn6 = Utils.ToUInt32(vch, offset + 4 * 6, true);
 			pn7 = Utils.ToUInt32(vch, offset + 4 * 7, true);
-
 		}
 
 		public uint256(ReadOnlySpan<byte> bytes)
 		{
-			if(bytes.Length != WIDTH_BYTE)
+			if (bytes.Length != WIDTH_BYTE)
 			{
 				throw new FormatException("the byte array should be 32 bytes long");
 			}
@@ -221,12 +107,17 @@ namespace BitcoinNet
 			str = str.Trim();
 
 			if (str.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+			{
 				str = str.Substring(2);
+			}
 
 			var bytes = Encoder.DecodeData(str);
 			Array.Reverse(bytes);
-			if(bytes.Length != WIDTH_BYTE)
+			if (bytes.Length != WIDTH_BYTE)
+			{
 				throw new FormatException("Invalid hex length");
+			}
+
 			pn0 = Utils.ToUInt32(bytes, 4 * 0, true);
 			pn1 = Utils.ToUInt32(bytes, 4 * 1, true);
 			pn2 = Utils.ToUInt32(bytes, 4 * 2, true);
@@ -235,23 +126,105 @@ namespace BitcoinNet
 			pn5 = Utils.ToUInt32(bytes, 4 * 5, true);
 			pn6 = Utils.ToUInt32(bytes, 4 * 6, true);
 			pn7 = Utils.ToUInt32(bytes, 4 * 7, true);
-
 		}
 
 		public uint256(byte[] vch)
-			:this(vch, true)
+			: this(vch, true)
 		{
+		}
+
+		public static uint256 Zero { get; } = new uint256();
+
+		public static uint256 One { get; } = new uint256(1);
+
+		public int Size => WIDTH_BYTE;
+
+		public static uint256 Parse(string hex)
+		{
+			return new uint256(hex);
+		}
+
+		public static bool TryParse(string hex, out uint256 result)
+		{
+			if (hex == null)
+			{
+				throw new ArgumentNullException(nameof(hex));
+			}
+
+			if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+			{
+				hex = hex.Substring(2);
+			}
+
+			result = null;
+			if (hex.Length != WIDTH_BYTE * 2)
+			{
+				return false;
+			}
+
+			if (!((HexEncoder) Encoders.Hex).IsValid(hex))
+			{
+				return false;
+			}
+
+			result = new uint256(hex);
+			return true;
+		}
+
+		public byte GetByte(int index)
+		{
+			var uintIndex = index / sizeof(uint);
+			var byteIndex = index % sizeof(uint);
+			uint value;
+			switch (uintIndex)
+			{
+				case 0:
+					value = pn0;
+					break;
+				case 1:
+					value = pn1;
+					break;
+				case 2:
+					value = pn2;
+					break;
+				case 3:
+					value = pn3;
+					break;
+				case 4:
+					value = pn4;
+					break;
+				case 5:
+					value = pn5;
+					break;
+				case 6:
+					value = pn6;
+					break;
+				case 7:
+					value = pn7;
+					break;
+				default:
+					throw new ArgumentOutOfRangeException("index");
+			}
+
+			return (byte) (value >> (byteIndex * 8));
+		}
+
+		public override string ToString()
+		{
+			var bytes = ToBytes();
+			Array.Reverse(bytes);
+			return Encoder.EncodeData(bytes);
 		}
 
 		public override bool Equals(object obj)
 		{
 			var item = obj as uint256;
-			if(item == null)
+			if (item == null)
 			{
 				return false;
 			}
 
-			bool equals = true;
+			var equals = true;
 			equals &= pn0 == item.pn0;
 			equals &= pn1 == item.pn1;
 			equals &= pn2 == item.pn2;
@@ -265,12 +238,17 @@ namespace BitcoinNet
 
 		public static bool operator ==(uint256 a, uint256 b)
 		{
-			if(System.Object.ReferenceEquals(a, b))
+			if (ReferenceEquals(a, b))
+			{
 				return true;
-			if(((object)a == null) || ((object)b == null))
-				return false;
+			}
 
-			bool equals = true;
+			if ((object) a == null || (object) b == null)
+			{
+				return false;
+			}
+
+			var equals = true;
 			equals &= a.pn0 == b.pn0;
 			equals &= a.pn1 == b.pn1;
 			equals &= a.pn2 == b.pn2;
@@ -305,37 +283,85 @@ namespace BitcoinNet
 		private static int Comparison(uint256 a, uint256 b)
 		{
 			if (a.pn7 < b.pn7)
+			{
 				return -1;
+			}
+
 			if (a.pn7 > b.pn7)
+			{
 				return 1;
+			}
+
 			if (a.pn6 < b.pn6)
+			{
 				return -1;
+			}
+
 			if (a.pn6 > b.pn6)
+			{
 				return 1;
+			}
+
 			if (a.pn5 < b.pn5)
+			{
 				return -1;
+			}
+
 			if (a.pn5 > b.pn5)
+			{
 				return 1;
+			}
+
 			if (a.pn4 < b.pn4)
+			{
 				return -1;
+			}
+
 			if (a.pn4 > b.pn4)
+			{
 				return 1;
+			}
+
 			if (a.pn3 < b.pn3)
+			{
 				return -1;
+			}
+
 			if (a.pn3 > b.pn3)
+			{
 				return 1;
+			}
+
 			if (a.pn2 < b.pn2)
+			{
 				return -1;
+			}
+
 			if (a.pn2 > b.pn2)
+			{
 				return 1;
+			}
+
 			if (a.pn1 < b.pn1)
+			{
 				return -1;
+			}
+
 			if (a.pn1 > b.pn1)
+			{
 				return 1;
+			}
+
 			if (a.pn0 < b.pn0)
+			{
 				return -1;
+			}
+
 			if (a.pn0 > b.pn0)
+			{
 				return 1;
+			}
+
 			return 0;
 		}
 
@@ -346,7 +372,7 @@ namespace BitcoinNet
 
 		public static bool operator ==(uint256 a, ulong b)
 		{
-			return (a == new uint256(b));
+			return a == new uint256(b);
 		}
 
 		public static bool operator !=(uint256 a, ulong b)
@@ -364,8 +390,11 @@ namespace BitcoinNet
 		{
 			var arr = new byte[WIDTH_BYTE];
 			ToBytes(arr);
-			if(!lendian)
+			if (!lendian)
+			{
 				Array.Reverse(arr);
+			}
+
 			return arr;
 		}
 
@@ -383,8 +412,10 @@ namespace BitcoinNet
 
 		public void ToBytes(Span<byte> output, bool lendian = true)
 		{
-			if(output.Length < WIDTH_BYTE)
-				throw new ArgumentException(message: $"The array should be at least of size {WIDTH_BYTE}", paramName: nameof(output));
+			if (output.Length < WIDTH_BYTE)
+			{
+				throw new ArgumentException($"The array should be at least of size {WIDTH_BYTE}", nameof(output));
+			}
 
 			var initial = output;
 			Utils.ToBytes(pn0, true, output);
@@ -403,8 +434,10 @@ namespace BitcoinNet
 			output = output.Slice(4);
 			Utils.ToBytes(pn7, true, output);
 
-			if(!lendian)
+			if (!lendian)
+			{
 				initial.Reverse();
+			}
 		}
 
 		public MutableUint256 AsBitcoinSerializable()
@@ -417,17 +450,9 @@ namespace BitcoinNet
 			return WIDTH_BYTE;
 		}
 
-		public int Size
-		{
-			get
-			{
-				return WIDTH_BYTE;
-			}
-		}
-
 		public ulong GetLow64()
 		{
-			return pn0 | (ulong)pn1 << 32;
+			return pn0 | ((ulong) pn1 << 32);
 		}
 
 		public uint GetLow32()
@@ -437,72 +462,64 @@ namespace BitcoinNet
 
 		public override int GetHashCode()
 		{
-			int hash = 17;
+			var hash = 17;
 			unchecked
 			{
-				hash = hash * 31 + (int)pn0;
-				hash = hash * 31 + (int)pn1;
-				hash = hash * 31 + (int)pn2;
-				hash = hash * 31 + (int)pn3;
-				hash = hash * 31 + (int)pn4;
-				hash = hash * 31 + (int)pn5;
-				hash = hash * 31 + (int)pn6;
-				hash = hash * 31 + (int)pn7;
+				hash = hash * 31 + (int) pn0;
+				hash = hash * 31 + (int) pn1;
+				hash = hash * 31 + (int) pn2;
+				hash = hash * 31 + (int) pn3;
+				hash = hash * 31 + (int) pn4;
+				hash = hash * 31 + (int) pn5;
+				hash = hash * 31 + (int) pn6;
+				hash = hash * 31 + (int) pn7;
 			}
+
 			return hash;
 		}
-	}
-	public class uint160
-	{
-		public class MutableUint160 : IBitcoinSerializable
+
+		public class MutableUint256 : IBitcoinSerializable
 		{
-			uint160 _Value;
-			public uint160 Value
+			public MutableUint256()
 			{
-				get
-				{
-					return _Value;
-				}
-				set
-				{
-					_Value = value;
-				}
+				Value = Zero;
 			}
-			public MutableUint160()
+
+			public MutableUint256(uint256 value)
 			{
-				_Value = uint160.Zero;
+				Value = value;
 			}
-			public MutableUint160(uint160 value)
-			{
-				_Value = value;
-			}
+
+			public uint256 Value { get; set; }
 
 			public void ReadWrite(BitcoinStream stream)
 			{
-				if(stream.Serializing)
+				if (stream.Serializing)
 				{
-					var b = Value.ToBytes();
+					Span<byte> b = stackalloc byte[WIDTH_BYTE];
+					Value.ToBytes(b);
 					stream.ReadWrite(ref b);
 				}
 				else
 				{
-					byte[] b = new byte[WIDTH_BYTE];
+					Span<byte> b = stackalloc byte[WIDTH_BYTE];
 					stream.ReadWrite(ref b);
-					_Value = new uint160(b);
+					Value = new uint256(b);
 				}
 			}
 		}
-		static readonly uint160 _Zero = new uint160();
-		public static uint160 Zero
-		{
-			get { return _Zero; }
-		}
+	}
 
-		static readonly uint160 _One = new uint160(1);
-		public static uint160 One 
-		{
-			get { return _One; }
-		}
+	public class uint160
+	{
+		private const int WIDTH_BYTE = 160 / 8;
+
+		private static readonly HexEncoder Encoder = new HexEncoder();
+		internal readonly uint pn0;
+		internal readonly uint pn1;
+		internal readonly uint pn2;
+		internal readonly uint pn3;
+		internal readonly uint pn4;
 
 		public uint160()
 		{
@@ -517,70 +534,10 @@ namespace BitcoinNet
 			pn4 = b.pn4;
 		}
 
-		public static uint160 Parse(string hex)
-		{
-			return new uint160(hex);
-		}
-		public static bool TryParse(string hex, out uint160 result)
-		{
-			if(hex == null)
-				throw new ArgumentNullException(nameof(hex));
-			if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-				hex = hex.Substring(2);
-			result = null;
-			if(hex.Length != WIDTH_BYTE * 2)
-				return false;
-			if(!((HexEncoder)Encoders.Hex).IsValid(hex))
-				return false;			
-			result = new uint160(hex);
-			return true;
-		}
-
-		private static readonly HexEncoder Encoder = new HexEncoder();
-		private const int WIDTH_BYTE = 160 / 8;
-		internal readonly UInt32 pn0;
-		internal readonly UInt32 pn1;
-		internal readonly UInt32 pn2;
-		internal readonly UInt32 pn3;
-		internal readonly UInt32 pn4;
-		
-		public byte GetByte(int index)
-		{
-			var uintIndex = index / sizeof(uint);
-			var byteIndex = index % sizeof(uint);
-			UInt32 value;
-			switch(uintIndex)
-			{
-				case 0: 
-					value = pn0;
-					break;
-				case 1: 
-					value = pn1;
-					break;
-				case 2: 
-					value = pn2;
-					break;
-				case 3: 
-					value = pn3;
-					break;
-				case 4: 
-					value = pn4;
-					break;
-				default:
-					throw new ArgumentOutOfRangeException("index");
-			}
-			return (byte)(value >> (byteIndex * 8));
-		}
-
-		public override string ToString()
-		{ 
-			return Encoder.EncodeData(ToBytes().Reverse().ToArray());
-		}
-
 		public uint160(ulong b)
 		{
-			pn0 = (uint)b;
-			pn1 = (uint)(b >> 32);
+			pn0 = (uint) b;
+			pn1 = (uint) (b >> 32);
 			pn2 = 0;
 			pn3 = 0;
 			pn4 = 0;
@@ -593,20 +550,21 @@ namespace BitcoinNet
 				throw new FormatException("the byte array should be 20 bytes long");
 			}
 
-			if(!lendian)
+			if (!lendian)
+			{
 				vch = vch.Reverse().ToArray();
+			}
 
 			pn0 = Utils.ToUInt32(vch, 4 * 0, true);
 			pn1 = Utils.ToUInt32(vch, 4 * 1, true);
 			pn2 = Utils.ToUInt32(vch, 4 * 2, true);
 			pn3 = Utils.ToUInt32(vch, 4 * 3, true);
 			pn4 = Utils.ToUInt32(vch, 4 * 4, true);
-	
 		}
 
 		public uint160(string str)
 		{
-						pn0 = 0;
+			pn0 = 0;
 			pn1 = 0;
 			pn2 = 0;
 			pn3 = 0;
@@ -614,30 +572,109 @@ namespace BitcoinNet
 			str = str.Trim();
 
 			if (str.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+			{
 				str = str.Substring(2);
+			}
 
 			var bytes = Encoder.DecodeData(str).Reverse().ToArray();
-			if(bytes.Length != WIDTH_BYTE)
-					throw new FormatException("Invalid hex length");
-						pn0 = Utils.ToUInt32(bytes, 4 * 0, true);
+			if (bytes.Length != WIDTH_BYTE)
+			{
+				throw new FormatException("Invalid hex length");
+			}
+
+			pn0 = Utils.ToUInt32(bytes, 4 * 0, true);
 			pn1 = Utils.ToUInt32(bytes, 4 * 1, true);
 			pn2 = Utils.ToUInt32(bytes, 4 * 2, true);
 			pn3 = Utils.ToUInt32(bytes, 4 * 3, true);
 			pn4 = Utils.ToUInt32(bytes, 4 * 4, true);
-	
 		}
 
 		public uint160(byte[] vch)
-			:this(vch, true)
+			: this(vch, true)
 		{
+		}
+
+		public static uint160 Zero { get; } = new uint160();
+
+		public static uint160 One { get; } = new uint160(1);
+
+		public int Size => WIDTH_BYTE;
+
+		public static uint160 Parse(string hex)
+		{
+			return new uint160(hex);
+		}
+
+		public static bool TryParse(string hex, out uint160 result)
+		{
+			if (hex == null)
+			{
+				throw new ArgumentNullException(nameof(hex));
+			}
+
+			if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+			{
+				hex = hex.Substring(2);
+			}
+
+			result = null;
+			if (hex.Length != WIDTH_BYTE * 2)
+			{
+				return false;
+			}
+
+			if (!((HexEncoder) Encoders.Hex).IsValid(hex))
+			{
+				return false;
+			}
+
+			result = new uint160(hex);
+			return true;
+		}
+
+		public byte GetByte(int index)
+		{
+			var uintIndex = index / sizeof(uint);
+			var byteIndex = index % sizeof(uint);
+			uint value;
+			switch (uintIndex)
+			{
+				case 0:
+					value = pn0;
+					break;
+				case 1:
+					value = pn1;
+					break;
+				case 2:
+					value = pn2;
+					break;
+				case 3:
+					value = pn3;
+					break;
+				case 4:
+					value = pn4;
+					break;
+				default:
+					throw new ArgumentOutOfRangeException("index");
+			}
+
+			return (byte) (value >> (byteIndex * 8));
+		}
+
+		public override string ToString()
+		{
+			return Encoder.EncodeData(ToBytes().Reverse().ToArray());
 		}
 
 		public override bool Equals(object obj)
 		{
 			var item = obj as uint160;
-			if(item == null)
+			if (item == null)
+			{
 				return false;
-			bool equals = true;		
+			}
+
+			var equals = true;
 			equals &= pn0 == item.pn0;
 			equals &= pn1 == item.pn1;
 			equals &= pn2 == item.pn2;
@@ -648,12 +685,17 @@ namespace BitcoinNet
 
 		public static bool operator ==(uint160 a, uint160 b)
 		{
-			if(System.Object.ReferenceEquals(a, b))
+			if (ReferenceEquals(a, b))
+			{
 				return true;
-			if(((object)a == null) || ((object)b == null))
-				return false;
+			}
 
-			bool equals = true;		
+			if ((object) a == null || (object) b == null)
+			{
+				return false;
+			}
+
+			var equals = true;
 			equals &= a.pn0 == b.pn0;
 			equals &= a.pn1 == b.pn1;
 			equals &= a.pn2 == b.pn2;
@@ -685,25 +727,55 @@ namespace BitcoinNet
 		private static int Comparison(uint160 a, uint160 b)
 		{
 			if (a.pn4 < b.pn4)
+			{
 				return -1;
+			}
+
 			if (a.pn4 > b.pn4)
+			{
 				return 1;
+			}
+
 			if (a.pn3 < b.pn3)
+			{
 				return -1;
+			}
+
 			if (a.pn3 > b.pn3)
+			{
 				return 1;
+			}
+
 			if (a.pn2 < b.pn2)
+			{
 				return -1;
+			}
+
 			if (a.pn2 > b.pn2)
+			{
 				return 1;
+			}
+
 			if (a.pn1 < b.pn1)
+			{
 				return -1;
+			}
+
 			if (a.pn1 > b.pn1)
+			{
 				return 1;
+			}
+
 			if (a.pn0 < b.pn0)
+			{
 				return -1;
+			}
+
 			if (a.pn0 > b.pn0)
+			{
 				return 1;
+			}
+
 			return 0;
 		}
 
@@ -714,7 +786,7 @@ namespace BitcoinNet
 
 		public static bool operator ==(uint160 a, ulong b)
 		{
-			return (a == new uint160(b));
+			return a == new uint160(b);
 		}
 
 		public static bool operator !=(uint160 a, ulong b)
@@ -727,7 +799,7 @@ namespace BitcoinNet
 			return new uint160(value);
 		}
 
-		
+
 		public byte[] ToBytes(bool lendian = true)
 		{
 			var arr = new byte[WIDTH_BYTE];
@@ -737,7 +809,10 @@ namespace BitcoinNet
 			Buffer.BlockCopy(Utils.ToBytes(pn3, true), 0, arr, 4 * 3, 4);
 			Buffer.BlockCopy(Utils.ToBytes(pn4, true), 0, arr, 4 * 4, 4);
 			if (!lendian)
+			{
 				Array.Reverse(arr);
+			}
+
 			return arr;
 		}
 
@@ -751,17 +826,9 @@ namespace BitcoinNet
 			return WIDTH_BYTE;
 		}
 
-		public int Size
-		{
-			get
-			{
-				return WIDTH_BYTE;
-			}
-		}
-
 		public ulong GetLow64()
 		{
-			return pn0 | (ulong)pn1 << 32;
+			return pn0 | ((ulong) pn1 << 32);
 		}
 
 		public uint GetLow32()
@@ -771,16 +838,47 @@ namespace BitcoinNet
 
 		public override int GetHashCode()
 		{
-			int hash = 17;
+			var hash = 17;
 			unchecked
 			{
-				hash = hash * 31 + (int)pn0;
-				hash = hash * 31 + (int)pn1;
-				hash = hash * 31 + (int)pn2;
-				hash = hash * 31 + (int)pn3;
-				hash = hash * 31 + (int)pn4;
+				hash = hash * 31 + (int) pn0;
+				hash = hash * 31 + (int) pn1;
+				hash = hash * 31 + (int) pn2;
+				hash = hash * 31 + (int) pn3;
+				hash = hash * 31 + (int) pn4;
 			}
+
 			return hash;
+		}
+
+		public class MutableUint160 : IBitcoinSerializable
+		{
+			public MutableUint160()
+			{
+				Value = Zero;
+			}
+
+			public MutableUint160(uint160 value)
+			{
+				Value = value;
+			}
+
+			public uint160 Value { get; set; }
+
+			public void ReadWrite(BitcoinStream stream)
+			{
+				if (stream.Serializing)
+				{
+					var b = Value.ToBytes();
+					stream.ReadWrite(ref b);
+				}
+				else
+				{
+					var b = new byte[WIDTH_BYTE];
+					stream.ReadWrite(ref b);
+					Value = new uint160(b);
+				}
+			}
 		}
 	}
 }

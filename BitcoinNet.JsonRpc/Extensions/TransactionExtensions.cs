@@ -15,7 +15,7 @@ namespace BitcoinNet
 			var formatter = network.GetFormatter(rawFormat);
 			return ToJsonString(transaction, formatter);
 		}
-		
+
 		private static string ToJsonString(Transaction transaction, RawFormatter formatter)
 		{
 			if (formatter == null)

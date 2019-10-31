@@ -1,12 +1,8 @@
-﻿using BitcoinNet.BouncyCastle.Math;
+﻿using System;
+using System.Linq;
+using BitcoinNet.BouncyCastle.Math;
 using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
 using BitcoinNet.Scripting;
 using Xunit;
 
@@ -14,275 +10,14 @@ namespace BitcoinNet.Tests
 {
 	public class util_tests
 	{
-		static byte[] ParseHex_expected = new byte[]{
-	0x04, 0x67, 0x8a, 0xfd, 0xb0, 0xfe, 0x55, 0x48, 0x27, 0x19, 0x67, 0xf1, 0xa6, 0x71, 0x30, 0xb7,
-	0x10, 0x5c, 0xd6, 0xa8, 0x28, 0xe0, 0x39, 0x09, 0xa6, 0x79, 0x62, 0xe0, 0xea, 0x1f, 0x61, 0xde,
-	0xb6, 0x49, 0xf6, 0xbc, 0x3f, 0x4c, 0xef, 0x38, 0xc4, 0xf3, 0x55, 0x04, 0xe5, 0x1e, 0xc1, 0x12,
-	0xde, 0x5c, 0x38, 0x4d, 0xf7, 0xba, 0x0b, 0x8d, 0x57, 0x8a, 0x4c, 0x70, 0x2b, 0x6b, 0xf1, 0x1d,
-	0x5f};
-
-		[Fact]
-		[Trait("Core", "Core")]
-		public void util_ParseHex()
+		private static readonly byte[] ParseHex_expected =
 		{
-			// Basic test vector
-			var result = Encoders.Hex.DecodeData("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0EA1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f");
-			AssertEx.CollectionEquals(result, ParseHex_expected);
-
-			// Spaces between bytes must not be supported
-			Assert.Throws<FormatException>(() => Encoders.Hex.DecodeData("12 34 56 78"));
-
-			// Stop parsing at invalid value
-			Assert.Throws<FormatException>(() => Encoders.Hex.DecodeData("1234 invalid 1234"));
-		}
-
-		[Fact]
-		[Trait("Core", "Core")]
-		public void util_HexStr()
-		{
-			AssertEx.Equal(
-	  new HexEncoder().EncodeData(ParseHex_expected),
-	  "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f");
-
-			AssertEx.Equal(
-				new HexEncoder()
-				{
-					Space = true
-				}.EncodeData(ParseHex_expected, 0, 5),
-				"04 67 8a fd b0");
-
-			AssertEx.Equal(
-				new HexEncoder()
-				{
-					Space = true
-				}.EncodeData(ParseHex_expected, 0, 0),
-				"");
-
-			var ParseHex_vec = ParseHex_expected.Take(5).ToArray();
-
-			AssertEx.Equal(
-				new HexEncoder()
-				{
-					Space = true
-				}.EncodeData(ParseHex_vec),
-				"04 67 8a fd b0");
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		//https://en.bitcoin.it/wiki/Difficulty
-		public void CanReadConvertTargetToDifficulty()
-		{
-			var packed = new Target(TestUtils.ParseHex("1b0404cb"));
-			var unpacked = new Target(uint256.Parse("00000000000404CB000000000000000000000000000000000000000000000000"));
-
-			Assert.Equal(packed, unpacked);
-			Assert.Equal(packed, new Target(0x1b0404cb));
-
-			packed = new Target(TestUtils.ParseHex("1b8404cb"));
-			Assert.True(packed.ToBigInteger().CompareTo(BigInteger.Zero) < 0);
-			Assert.Equal(packed, new Target(0x1b8404cb));
-
-			packed = new Target(TestUtils.ParseHex("1d00ffff"));
-			Assert.Equal(1, packed.Difficulty);
-			Assert.Equal(Target.Difficulty1, packed);
-
-			packed = new Target(TestUtils.ParseHex("1b0404cb"));
-			Assert.Equal(16307.420938523983D, packed.Difficulty, "420938523983".Length);
-
-			Assert.Equal(packed, new Target((uint)0x1b0404cb));
-			Assert.Equal((uint)packed, (uint)0x1b0404cb);
-
-			packed = new Target((uint)0x1b0404d1);
-			Assert.Equal(16307.04943863739, packed.Difficulty, "420938523983".Length);
-
-			packed = new Target(0x1d00ffff);
-			Assert.Equal((uint)packed, (uint)0x1d00ffff);
-
-			//Check http://blockchain.info/block-index/392672/0000000000000000511e193e22d2dfc02aea8037988f0c58e9834f4550e97702
-			packed = new Target(419470732);
-			Assert.Equal(6978842649.592383, packed.Difficulty, "592383".Length);
-			Assert.Equal((uint)packed, (uint)419470732);
-			Assert.True(uint256.Parse("0x0000000000000000511e193e22d2dfc02aea8037988f0c58e9834f4550e97702") < packed.ToUInt256());
-
-			//Check http://blockchain.info/block-index/394713/0000000000000000729a4a7e084c90f932d038c407a6535a51dfecdfba1c8906
-			Assert.True(uint256.Parse("0x0000000000000000729a4a7e084c90f932d038c407a6535a51dfecdfba1c8906 ") < new Target(419470732).ToUInt256());
-
-			var genesis = Network.Main.GetGenesis();
-			Assert.True(genesis.GetHash() < genesis.Header.Bits.ToUInt256());
-			Assert.True(Target.Difficulty1 == Target.Difficulty1);
-		}
-
-		[Fact]
-		[Trait("Core", "Core")]
-		public void util_FormatMoney()
-		{
-			AssertEx.Equal(new Money(0).ToString(false), "0.00");
-			AssertEx.Equal(new Money((Money.COIN / 10000) * 123456789).ToString(false), "12345.6789");
-			AssertEx.Equal(new Money(Money.COIN).ToString(true), "+1.00");
-			AssertEx.Equal(new Money(-Money.COIN).ToString(false), "-1.00");
-			AssertEx.Equal(new Money(-Money.COIN).ToString(true), "-1.00");
-
-			AssertEx.Equal(new Money(Money.COIN * 100000000).ToString(false), "100000000.00");
-			AssertEx.Equal(new Money(Money.COIN * 10000000).ToString(false), "10000000.00");
-			AssertEx.Equal(new Money(Money.COIN * 1000000).ToString(false), "1000000.00");
-			AssertEx.Equal(new Money(Money.COIN * 100000).ToString(false), "100000.00");
-			AssertEx.Equal(new Money(Money.COIN * 10000).ToString(false), "10000.00");
-			AssertEx.Equal(new Money(Money.COIN * 1000).ToString(false), "1000.00");
-			AssertEx.Equal(new Money(Money.COIN * 100).ToString(false), "100.00");
-			AssertEx.Equal(new Money(Money.COIN * 10).ToString(false), "10.00");
-			AssertEx.Equal(new Money(Money.COIN).ToString(false), "1.00");
-			AssertEx.Equal(new Money(Money.COIN / 10).ToString(false), "0.10");
-			AssertEx.Equal(new Money(Money.COIN / 100).ToString(false), "0.01");
-			AssertEx.Equal(new Money(Money.COIN / 1000).ToString(false), "0.001");
-			AssertEx.Equal(new Money(Money.COIN / 10000).ToString(false), "0.0001");
-			AssertEx.Equal(new Money(Money.COIN / 100000).ToString(false), "0.00001");
-			AssertEx.Equal(new Money(Money.COIN / 1000000).ToString(false), "0.000001");
-			AssertEx.Equal(new Money(Money.COIN / 10000000).ToString(false), "0.0000001");
-			AssertEx.Equal(new Money(Money.COIN / 100000000).ToString(false), "0.00000001");
-		}
-
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanDecodeBTrashAddress()
-		{
-			var bcash = BitcoinCash.Instance.Mainnet;
-			BitcoinAddress trashAddress = bcash.Parse<BitcoinPubKeyAddress>("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a");
-			BitcoinAddress trashAddress2 = trashAddress.ScriptPubKey.GetDestinationAddress(bcash);
-			Assert.Equal(trashAddress.ToString(), trashAddress2.ToString());
-
-			trashAddress = bcash.Parse<BitcoinScriptAddress>("bitcoincash:ppm2qsznhks23z7629mms6s4cwef74vcwvn0h829pq");
-			trashAddress2 = trashAddress.ScriptPubKey.GetDestinationAddress(bcash);
-			Assert.Equal(trashAddress.ToString(), trashAddress2.ToString());
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void MoneyCoverage()
-		{
-			Money a = Money.Coins(2.0m);
-			Money b = Money.Coins(4.0m);
-			Assert.Equal(a, Money.Min(a, b));
-			Assert.Equal(a, Money.Min(b, a));
-			Assert.Equal(b, Money.Max(a, b));
-			Assert.Equal(b, Money.Max(b, a));
-			Assert.Equal(a, new Money(a.Satoshi));
-			Assert.Equal(a.GetHashCode(), new Money(a.Satoshi).GetHashCode());
-			Assert.True(Money.Coins(1.0m).Almost(Money.Coins(0.95m), 0.05m));
-			Assert.False(Money.Coins(1.0m).Almost(Money.Coins(0.949m), 0.05m));
-			Assert.Throws<ArgumentOutOfRangeException>(() => Money.Coins(1.0m).Almost(Money.Coins(0.949m), -0.05m));
-			Assert.Throws<ArgumentOutOfRangeException>(() => Money.Coins(1.0m).Almost(Money.Coins(0.949m), -1.05m));
-			long data = 5;
-			Assert.Equal(Money.Coins(5), data * Money.Coins(1.0m));
-			Assert.Equal(Money.Coins(5), Money.Coins(1.0m) * data);
-			Assert.Equal(500000000L, (long)Money.Coins(5).Satoshi);
-			Assert.Equal(500000000U, (uint)Money.Coins(5).Satoshi);
-			Assert.Equal("5.00000000", Money.Coins(5).ToString());
-		}
-
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanConvertMoney()
-		{
-			var tests = new[]
-			{
-				new object[]{ 1.23456789m, MoneyUnit.BTC, 123456789m, MoneyUnit.Satoshi  },
-				new object[]{ 1.23456789m, MoneyUnit.BTC, 1234.56789m, MoneyUnit.MilliBTC  },
-				new object[]{ 1.23456789m, MoneyUnit.BTC, 1234567.89m, MoneyUnit.Bit  },
-				new object[]{ 1.23456789m, MoneyUnit.BTC, 1.23456789m, MoneyUnit.BTC  },
-			};
-
-			foreach(var test in tests)
-			{
-				var inputAmount = (decimal)test[0];
-				var inputUnit = (MoneyUnit)test[1];
-				var outputAmount = (decimal)test[2];
-				var outputUnit = (MoneyUnit)test[3];
-
-				var result = new Money(inputAmount, inputUnit);
-				var actual = result.ToUnit(outputUnit);
-
-				Assert.Equal(outputAmount, actual);
-
-				result = new Money(outputAmount, outputUnit);
-				actual = result.ToUnit(inputUnit);
-
-				Assert.Equal(inputAmount, actual);
-			}
-		}
-
-		[Fact]
-		[Trait("Core", "Core")]
-		public void util_ParseMoney()
-		{
-			Money ret;
-			foreach(var prefix in new string[] { "", "+", "-" })
-			{
-				int multiplier = prefix == "-" ? -1 : 1;
-				Assert.True(Money.TryParse(prefix + "0.0", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(0));
-
-				Assert.True(Money.TryParse(prefix + "12345.6789", out ret));
-				AssertEx.Equal(ret, multiplier * new Money((Money.COIN / 10000) * 123456789));
-
-				Assert.True(Money.TryParse(prefix + "100000000.00", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN * 100000000));
-				Assert.True(Money.TryParse(prefix + "10000000.00", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN * 10000000));
-				Assert.True(Money.TryParse(prefix + "1000000.00", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN * 1000000));
-				Assert.True(Money.TryParse(prefix + "100000.00", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN * 100000));
-				Assert.True(Money.TryParse(prefix + "10000.00", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN * 10000));
-				Assert.True(Money.TryParse(prefix + "1000.00", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN * 1000));
-				Assert.True(Money.TryParse(prefix + "100.00", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN * 100));
-				Assert.True(Money.TryParse(prefix + "10.00", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN * 10));
-				Assert.True(Money.TryParse(prefix + "1.00", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN));
-				Assert.True(Money.TryParse(prefix + "0.1", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN / 10));
-				Assert.True(Money.TryParse(prefix + "0.01", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN / 100));
-				Assert.True(Money.TryParse(prefix + "0.001", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN / 1000));
-				Assert.True(Money.TryParse(prefix + "0.0001", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN / 10000));
-				Assert.True(Money.TryParse(prefix + "0.00001", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN / 100000));
-				Assert.True(Money.TryParse(prefix + "0.000001", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN / 1000000));
-				Assert.True(Money.TryParse(prefix + "0.0000001", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN / 10000000));
-				Assert.True(Money.TryParse(prefix + "0.00000001", out ret));
-				AssertEx.Equal(ret, multiplier * new Money(Money.COIN / 100000000));
-
-				// Attempted 63 bit overflow should fail
-				Assert.False(Money.TryParse(prefix + "92233720368.54775808", out ret));
-			}
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanSplitMoney()
-		{
-			CanSplitMoneyCore(Money.Satoshis(1234), 3);
-			CanSplitMoneyCore(Money.Satoshis(1234), 2);
-			CanSplitMoneyCore(Money.Satoshis(1234), 10);
-			CanSplitMoneyCore(Money.Satoshis(1), 3);
-			Assert.Throws<ArgumentOutOfRangeException>(() => CanSplitMoneyCore(Money.Satoshis(1000), 0));
-			CanSplitMoneyCore(Money.Satoshis(0), 10);
-
-			var result = Money.Satoshis(20).Split(3).ToArray();
-			Assert.True(result[0].Satoshi == 7);
-			Assert.True(result[1].Satoshi == 7);
-			Assert.True(result[2].Satoshi == 6);
-		}
+			0x04, 0x67, 0x8a, 0xfd, 0xb0, 0xfe, 0x55, 0x48, 0x27, 0x19, 0x67, 0xf1, 0xa6, 0x71, 0x30, 0xb7,
+			0x10, 0x5c, 0xd6, 0xa8, 0x28, 0xe0, 0x39, 0x09, 0xa6, 0x79, 0x62, 0xe0, 0xea, 0x1f, 0x61, 0xde,
+			0xb6, 0x49, 0xf6, 0xbc, 0x3f, 0x4c, 0xef, 0x38, 0xc4, 0xf3, 0x55, 0x04, 0xe5, 0x1e, 0xc1, 0x12,
+			0xde, 0x5c, 0x38, 0x4d, 0xf7, 0xba, 0x0b, 0x8d, 0x57, 0x8a, 0x4c, 0x70, 0x2b, 0x6b, 0xf1, 0x1d,
+			0x5f
+		};
 
 		private void CanSplitMoneyCore(Money money, int parts)
 		{
@@ -292,6 +27,15 @@ namespace BitcoinNet.Tests
 			var groups = splitted.Select(s => s.Satoshi).GroupBy(o => o);
 			var differentValues = groups.Count();
 			Assert.True(differentValues == 1 || differentValues == 2);
+		}
+
+		private void CanConvertBigIntegerToBytesCore(BigInteger b, byte[] bbytes, bool testByteSerialization = true)
+		{
+			Assert.Equal(b, Utils.BytesToBigInteger(bbytes));
+			if (testByteSerialization)
+			{
+				Assert.True(Utils.BigIntegerToBytes(b).SequenceEqual(bbytes));
+			}
 		}
 
 		[Fact]
@@ -315,44 +59,357 @@ namespace BitcoinNet.Tests
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
-		public void MoneyUnitSanityCheck()
+		public void CanConvertBigIntegerToBytes()
 		{
-			Money.FromUnit(10m, MoneyUnit.BTC);
-			Money.FromUnit(10m, MoneyUnit.MilliBTC);
-			Money.FromUnit(10m, MoneyUnit.Bit);
-			Money.FromUnit(10m, MoneyUnit.Satoshi);
+			CanConvertBigIntegerToBytesCore(BigInteger.Zero, new byte[0]);
+			CanConvertBigIntegerToBytesCore(BigInteger.Zero, new byte[] {0}, false);
+			CanConvertBigIntegerToBytesCore(BigInteger.Zero, new byte[] {0x80}, false);
+			CanConvertBigIntegerToBytesCore(BigInteger.One, new byte[] {1});
+			CanConvertBigIntegerToBytesCore(BigInteger.One.Negate(), new byte[] {0x81});
+			CanConvertBigIntegerToBytesCore(BigInteger.ValueOf(-128), new byte[] {0x80, 0x80});
+			CanConvertBigIntegerToBytesCore(BigInteger.ValueOf(-129), new byte[] {0x81, 0x80});
+			CanConvertBigIntegerToBytesCore(BigInteger.ValueOf(-256), new byte[] {0x00, 0x81});
+		}
 
-			Money.FromUnit(10m, (MoneyUnit)100000000);
-			Money.FromUnit(10m, (MoneyUnit)100000);
-			Money.FromUnit(10m, (MoneyUnit)100);
-			Money.FromUnit(10m, (MoneyUnit)1);
 
-			Assert.Throws<ArgumentException>(() => Money.FromUnit(10, (MoneyUnit)14));
-			Assert.Throws<ArgumentException>(() => Money.FromUnit(10, (MoneyUnit)(-41)));
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanConvertMoney()
+		{
+			var tests = new[]
+			{
+				new object[] {1.23456789m, MoneyUnit.BTC, 123456789m, MoneyUnit.Satoshi},
+				new object[] {1.23456789m, MoneyUnit.BTC, 1234.56789m, MoneyUnit.MilliBTC},
+				new object[] {1.23456789m, MoneyUnit.BTC, 1234567.89m, MoneyUnit.Bit},
+				new object[] {1.23456789m, MoneyUnit.BTC, 1.23456789m, MoneyUnit.BTC}
+			};
+
+			foreach (var test in tests)
+			{
+				var inputAmount = (decimal) test[0];
+				var inputUnit = (MoneyUnit) test[1];
+				var outputAmount = (decimal) test[2];
+				var outputUnit = (MoneyUnit) test[3];
+
+				var result = new Money(inputAmount, inputUnit);
+				var actual = result.ToUnit(outputUnit);
+
+				Assert.Equal(outputAmount, actual);
+
+				result = new Money(outputAmount, outputUnit);
+				actual = result.ToUnit(inputUnit);
+
+				Assert.Equal(inputAmount, actual);
+			}
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
-		public void Overflow()
+		public void CanConvertToUnixTime()
 		{
-			Assert.Throws<OverflowException>(() => Money.Satoshis(decimal.MaxValue));
-			Assert.Throws<OverflowException>(() => Money.Satoshis(decimal.MinValue));
-			Assert.Throws<OverflowException>(() => Money.Satoshis(ulong.MaxValue));
-			Assert.Throws<OverflowException>(() => Money.Satoshis(long.MinValue));
+			var date = Utils.UnixTimeToDateTime(1368576000);
+			Assert.Equal(new DateTimeOffset(2013, 5, 15, 0, 0, 0, TimeSpan.Zero), date);
+			Assert.Equal((uint) 1368576000, Utils.DateTimeToUnixTime(date));
 
-			Assert.Throws<OverflowException>(() => -1 * (Money)long.MinValue);
+			Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(uint.MaxValue));
+			Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(0));
 
-			Assert.Throws<OverflowException>(() =>
+			Assert.Throws<ArgumentOutOfRangeException>(() =>
+				Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(uint.MaxValue) + TimeSpan.FromSeconds(1)));
+			Assert.Throws<ArgumentOutOfRangeException>(() =>
+				Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(0) - TimeSpan.FromSeconds(1)));
+		}
+
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanDecodeBTrashAddress()
+		{
+			var bcash = BitcoinCash.Instance.Mainnet;
+			BitcoinAddress trashAddress =
+				bcash.Parse<BitcoinPubKeyAddress>("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a");
+			var trashAddress2 = trashAddress.ScriptPubKey.GetDestinationAddress(bcash);
+			Assert.Equal(trashAddress.ToString(), trashAddress2.ToString());
+
+			trashAddress = bcash.Parse<BitcoinScriptAddress>("bitcoincash:ppm2qsznhks23z7629mms6s4cwef74vcwvn0h829pq");
+			trashAddress2 = trashAddress.ScriptPubKey.GetDestinationAddress(bcash);
+			Assert.Equal(trashAddress.ToString(), trashAddress2.ToString());
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		//https://en.bitcoin.it/wiki/List_of_address_prefixes
+		public void CanDeduceNetworkInBase58Constructor()
+		{
+			BitcoinAddress addr = new BitcoinPubKeyAddress("17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem");
+			Assert.Equal(addr.Network, Network.Main);
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		//https://en.bitcoin.it/wiki/List_of_address_prefixes
+		public void CanDetectBase58NetworkAndType()
+		{
+			var tests = new[]
 			{
-				var m = (Money)long.MaxValue;
-				m++;
-			});
-			Assert.Throws<OverflowException>(() =>
+				new
+				{
+					Base58 = "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem",
+					ExpectedType = typeof(BitcoinPubKeyAddress),
+					Network = Network.Main
+				},
+				new
+				{
+					Base58 = "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem",
+					ExpectedType = typeof(BitcoinPubKeyAddress),
+					Network = Network.Main
+				},
+				new
+				{
+					Base58 = "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX",
+					ExpectedType = typeof(BitcoinScriptAddress),
+					Network = Network.Main
+				},
+				new
+				{
+					Base58 = "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
+					ExpectedType = typeof(BitcoinPubKeyAddress),
+					Network = Network.TestNet
+				},
+				new
+				{
+					Base58 = "5Hwgr3u458GLafKBgxtssHSPqJnYoGrSzgQsPwLFhLNYskDPyyA",
+					ExpectedType = typeof(BitcoinSecret),
+					Network = Network.Main
+				},
+				new
+				{
+					Base58 = "92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc",
+					ExpectedType = typeof(BitcoinSecret),
+					Network = Network.TestNet
+				},
+				new
+				{
+					Base58 = "3qdi7TXgRo1qR",
+					ExpectedType = (Type) null,
+					Network = (Network) null
+				},
+				new
+				{
+					Base58 =
+						"xprv9s21ZrQH143K3Gx1VAAD1ueDmwoPQUApekxWYSJ1f4W4m1nUPpRGdV5sTVhixZJT5cP2NqtEMZ2mrwHdW5RWpohCwspWidCpcLALvioXDyz",
+					ExpectedType = typeof(BitcoinExtKey),
+					Network = Network.Main
+				},
+				new
+				{
+					Base58 =
+						"xpub661MyMwAqRbcEhHavVcryjNF2uA5woK6JCNRNJB8Z3dxPU8VNBd9E8GP7fusw2bhgYe7BXt6izr5iUaYo483919jjdtfEpG8j97djnEgJqo",
+					ExpectedType = typeof(BitcoinExtPubKey),
+					Network = Network.Main
+				}
+			};
+
+			foreach (var test in tests)
 			{
-				var m = (Money)(long.MinValue + 1);
-				m--;
-			});
-			Assert.Throws<OverflowException>(() => -1 * (Money)long.MinValue);
+				if (test.ExpectedType == null)
+				{
+					Assert.Throws<FormatException>(() => Network.Parse(test.Base58, null));
+				}
+				else
+				{
+					var result = Network.Parse(test.Base58, null);
+					Assert.True(test.ExpectedType == result.GetType());
+					if (test.Network != null)
+					{
+						Assert.Equal(test.Network, result.Network);
+					}
+
+					Network.Parse(test.Base58, test.Network);
+
+					if (test.Network != null)
+					{
+						foreach (var network in Network.GetNetworks())
+						{
+							if (network == test.Network)
+							{
+								break;
+							}
+
+							Assert.Throws<FormatException>(() => Network.Parse(test.Base58, network));
+						}
+					}
+				}
+			}
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanDetectBase58WithoutAmbiguity()
+		{
+			var address = new
+			{
+				Base58 = new ExtKey().Neuter().ToString(Network.RegTest),
+				ExpectedType = typeof(BitcoinExtPubKey),
+				Network = Network.RegTest
+			};
+
+			var result = Network.Parse(address.Base58, address.Network);
+			Assert.IsType<BitcoinExtPubKey>(result);
+			Assert.True(result.Network == Network.RegTest);
+
+			result = Network.Parse(address.Base58, null);
+			Assert.True(result.Network == Network.TestNet);
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanDivideMoney()
+		{
+			var bobInput = Money.Coins(1.1M);
+			var aliceInput = Money.Coins(0.275M);
+			var actual = (bobInput + aliceInput) / 2;
+			var expected = Money.Satoshis((bobInput.Satoshi + aliceInput.Satoshi) / 2);
+			Assert.Equal(expected, actual);
+		}
+
+		// Pubkey: 04a5cf05bfe42daffaff4f1732f5868ed7c7919cba279fa7d940e6b02a8b059bde56be218077bcab1ad6b5f5dcb04c42534477fb8d21b6312b0063e08a8ae52b3e, Private: 7bd0db101160c888e9643f10594185a36a8db91b5308aaa7aad4c03245c6bdc1, Secret: a461392f592ff4292bfce732d808a07f1bc3f49c9a66a40d50761ffb8b2325f6
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanECDH()
+		{
+			var tests = new[]
+			{
+				new
+				{
+					Pubkey =
+						"04a5cf05bfe42daffaff4f1732f5868ed7c7919cba279fa7d940e6b02a8b059bde56be218077bcab1ad6b5f5dcb04c42534477fb8d21b6312b0063e08a8ae52b3e",
+					Private = "7bd0db101160c888e9643f10594185a36a8db91b5308aaa7aad4c03245c6bdc1",
+					ExpectedSecret = "a461392f592ff4292bfce732d808a07f1bc3f49c9a66a40d50761ffb8b2325f6"
+				},
+				new
+				{
+					Pubkey =
+						"043f12235bcf2776c8489ed138d4c9b85a1e29f3f4ad2787b9c8588e960867afc9de1e5702caa787665f5d0a4b04015c8bd5f1541e3d170efc3668f6ac587d43bc",
+					Private = "1249b289c5959c71ae60e0a2a7d57dffbd5cb862aaf10442db205f6787791732",
+					ExpectedSecret = "1d664ba11d3925cfcd938b2ef131213ba4ca986822944d0a7616b34027738e7c"
+				},
+				new
+				{
+					Pubkey =
+						"04769c29328998917d9f2f7c6ce46f2f12a6064e937dff722b4811e9c88b4e1d45387fea132321541e8dbdc92384aef1944d650aa889bfa836db078897e5299262",
+					Private = "41d0cbeeb3365b8c9e190f9898689997002f94006ad3bf1dcfbac28b6e4fb84d",
+					ExpectedSecret = "7fcfa754a40ceaabee5cd3df1a99ee2e5d2c027fdcbd8e437d9be757ea58708f"
+				}
+			};
+			foreach (var test in tests)
+			{
+				var pubKey = new PubKey(test.Pubkey);
+				var key = new Key(Encoders.Hex.DecodeData(test.Private));
+				var secret = Hashes.SHA256(pubKey.GetSharedPubkey(key).ToBytes());
+				Assert.Equal(test.ExpectedSecret, Encoders.Hex.EncodeData(secret));
+			}
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanGenerateScriptFromAddress()
+		{
+			var address = new BitcoinPubKeyAddress(new KeyId("47376c6f537d62177a2c41c4ca9b45829ab99083"), Network.Main);
+			Assert.Equal("OP_DUP OP_HASH160 47376c6f537d62177a2c41c4ca9b45829ab99083 OP_EQUALVERIFY OP_CHECKSIG",
+				address.ScriptPubKey.ToString());
+
+			var scriptAddress =
+				new BitcoinScriptAddress(new ScriptId("8f55563b9a19f321c211e9b9f38cdf686ea07845"), Network.Main);
+			Assert.Equal("OP_HASH160 8f55563b9a19f321c211e9b9f38cdf686ea07845 OP_EQUAL",
+				scriptAddress.ScriptPubKey.ToString());
+
+			var pubKey = new PubKey("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6");
+			Assert.Equal("OP_DUP OP_HASH160 4d29186f76581c7375d70499afd1d585149d42cd OP_EQUALVERIFY OP_CHECKSIG",
+				pubKey.Hash.ScriptPubKey.ToString());
+			Assert.Equal("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6 OP_CHECKSIG",
+				pubKey.ScriptPubKey.ToString());
+
+			var script = new Script("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6 OP_CHECKSIG");
+			Assert.Equal("OP_HASH160 a216e3bce8c1b3adf376731b6cd0b6936c4e053f OP_EQUAL",
+				script.PaymentScript.ToString());
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		//https://en.bitcoin.it/wiki/Difficulty
+		public void CanReadConvertTargetToDifficulty()
+		{
+			var packed = new Target(TestUtils.ParseHex("1b0404cb"));
+			var unpacked =
+				new Target(uint256.Parse("00000000000404CB000000000000000000000000000000000000000000000000"));
+
+			Assert.Equal(packed, unpacked);
+			Assert.Equal(packed, new Target(0x1b0404cb));
+
+			packed = new Target(TestUtils.ParseHex("1b8404cb"));
+			Assert.True(packed.ToBigInteger().CompareTo(BigInteger.Zero) < 0);
+			Assert.Equal(packed, new Target(0x1b8404cb));
+
+			packed = new Target(TestUtils.ParseHex("1d00ffff"));
+			Assert.Equal(1, packed.Difficulty);
+			Assert.Equal(Target.Difficulty1, packed);
+
+			packed = new Target(TestUtils.ParseHex("1b0404cb"));
+			Assert.Equal(16307.420938523983D, packed.Difficulty, "420938523983".Length);
+
+			Assert.Equal(packed, new Target(0x1b0404cb));
+			Assert.Equal((uint) packed, (uint) 0x1b0404cb);
+
+			packed = new Target(0x1b0404d1);
+			Assert.Equal(16307.04943863739, packed.Difficulty, "420938523983".Length);
+
+			packed = new Target(0x1d00ffff);
+			Assert.Equal((uint) packed, (uint) 0x1d00ffff);
+
+			//Check http://blockchain.info/block-index/392672/0000000000000000511e193e22d2dfc02aea8037988f0c58e9834f4550e97702
+			packed = new Target(419470732);
+			Assert.Equal(6978842649.592383, packed.Difficulty, "592383".Length);
+			Assert.Equal((uint) packed, (uint) 419470732);
+			Assert.True(uint256.Parse("0x0000000000000000511e193e22d2dfc02aea8037988f0c58e9834f4550e97702") <
+			            packed.ToUInt256());
+
+			//Check http://blockchain.info/block-index/394713/0000000000000000729a4a7e084c90f932d038c407a6535a51dfecdfba1c8906
+			Assert.True(uint256.Parse("0x0000000000000000729a4a7e084c90f932d038c407a6535a51dfecdfba1c8906 ") <
+			            new Target(419470732).ToUInt256());
+
+			var genesis = Network.Main.GetGenesis();
+			Assert.True(genesis.GetHash() < genesis.Header.Bits.ToUInt256());
+			Assert.True(Target.Difficulty1 == Target.Difficulty1);
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanRoundTripBigIntegerToBytes()
+		{
+			foreach (var expected in Enumerable.Range(-100, 100))
+			{
+				var bytes = Utils.BigIntegerToBytes(BigInteger.ValueOf(expected));
+				var actual = Utils.BytesToBigInteger(bytes);
+				Assert.Equal(BigInteger.ValueOf(expected), actual);
+			}
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void CanSplitMoney()
+		{
+			CanSplitMoneyCore(Money.Satoshis(1234), 3);
+			CanSplitMoneyCore(Money.Satoshis(1234), 2);
+			CanSplitMoneyCore(Money.Satoshis(1234), 10);
+			CanSplitMoneyCore(Money.Satoshis(1), 3);
+			Assert.Throws<ArgumentOutOfRangeException>(() => CanSplitMoneyCore(Money.Satoshis(1000), 0));
+			CanSplitMoneyCore(Money.Satoshis(0), 10);
+
+			var result = Money.Satoshis(20).Split(3).ToArray();
+			Assert.True(result[0].Satoshi == 7);
+			Assert.True(result[1].Satoshi == 7);
+			Assert.True(result[2].Satoshi == 6);
 		}
 
 		[Fact]
@@ -386,12 +443,149 @@ namespace BitcoinNet.Tests
 			Assert.False(a.Equals(o));
 			Assert.True(b == bb);
 			Assert.True(b != aa);
-			Assert.True(b != (null as FeeRate));
-			Assert.True((null as FeeRate) == (null as FeeRate));
-			Assert.False((null as FeeRate) != (null as FeeRate));
+			Assert.True(b != null);
+			Assert.True(null == null as FeeRate);
+			Assert.False(null != null as FeeRate);
 			Assert.False(a.Equals(b));
 			Assert.True(aa == a);
 			Assert.True(bb == b);
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void MoneyCoverage()
+		{
+			var a = Money.Coins(2.0m);
+			var b = Money.Coins(4.0m);
+			Assert.Equal(a, Money.Min(a, b));
+			Assert.Equal(a, Money.Min(b, a));
+			Assert.Equal(b, Money.Max(a, b));
+			Assert.Equal(b, Money.Max(b, a));
+			Assert.Equal(a, new Money(a.Satoshi));
+			Assert.Equal(a.GetHashCode(), new Money(a.Satoshi).GetHashCode());
+			Assert.True(Money.Coins(1.0m).Almost(Money.Coins(0.95m), 0.05m));
+			Assert.False(Money.Coins(1.0m).Almost(Money.Coins(0.949m), 0.05m));
+			Assert.Throws<ArgumentOutOfRangeException>(() => Money.Coins(1.0m).Almost(Money.Coins(0.949m), -0.05m));
+			Assert.Throws<ArgumentOutOfRangeException>(() => Money.Coins(1.0m).Almost(Money.Coins(0.949m), -1.05m));
+			long data = 5;
+			Assert.Equal(Money.Coins(5), data * Money.Coins(1.0m));
+			Assert.Equal(Money.Coins(5), Money.Coins(1.0m) * data);
+			Assert.Equal(500000000L, Money.Coins(5).Satoshi);
+			Assert.Equal(500000000U, (uint) Money.Coins(5).Satoshi);
+			Assert.Equal("5.00000000", Money.Coins(5).ToString());
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void MoneyUnitSanityCheck()
+		{
+			Money.FromUnit(10m, MoneyUnit.BTC);
+			Money.FromUnit(10m, MoneyUnit.MilliBTC);
+			Money.FromUnit(10m, MoneyUnit.Bit);
+			Money.FromUnit(10m, MoneyUnit.Satoshi);
+
+			Money.FromUnit(10m, (MoneyUnit) 100000000);
+			Money.FromUnit(10m, (MoneyUnit) 100000);
+			Money.FromUnit(10m, (MoneyUnit) 100);
+			Money.FromUnit(10m, (MoneyUnit) 1);
+
+			Assert.Throws<ArgumentException>(() => Money.FromUnit(10, (MoneyUnit) 14));
+			Assert.Throws<ArgumentException>(() => Money.FromUnit(10, (MoneyUnit) (-41)));
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void NetworksAreValid()
+		{
+			foreach (var network in Network.GetNetworks())
+			{
+				Assert.NotNull(network);
+			}
+		}
+
+		[Fact]
+		[Trait("UnitTest", "UnitTest")]
+		public void Overflow()
+		{
+			Assert.Throws<OverflowException>(() => Money.Satoshis(decimal.MaxValue));
+			Assert.Throws<OverflowException>(() => Money.Satoshis(decimal.MinValue));
+			Assert.Throws<OverflowException>(() => Money.Satoshis(ulong.MaxValue));
+			Assert.Throws<OverflowException>(() => Money.Satoshis(long.MinValue));
+
+			Assert.Throws<OverflowException>(() => -1 * (Money) long.MinValue);
+
+			Assert.Throws<OverflowException>(() =>
+			{
+				var m = (Money) long.MaxValue;
+				m++;
+			});
+			Assert.Throws<OverflowException>(() =>
+			{
+				var m = (Money) (long.MinValue + 1);
+				m--;
+			});
+			Assert.Throws<OverflowException>(() => -1 * (Money) long.MinValue);
+		}
+
+		[Fact]
+		[Trait("Core", "Core")]
+		public void util_FormatMoney()
+		{
+			AssertEx.Equal(new Money(0).ToString(false), "0.00");
+			AssertEx.Equal(new Money(Money.Coin / 10000 * 123456789).ToString(false), "12345.6789");
+			AssertEx.Equal(new Money(Money.Coin).ToString(true), "+1.00");
+			AssertEx.Equal(new Money(-Money.Coin).ToString(false), "-1.00");
+			AssertEx.Equal(new Money(-Money.Coin).ToString(true), "-1.00");
+
+			AssertEx.Equal(new Money(Money.Coin * 100000000).ToString(false), "100000000.00");
+			AssertEx.Equal(new Money(Money.Coin * 10000000).ToString(false), "10000000.00");
+			AssertEx.Equal(new Money(Money.Coin * 1000000).ToString(false), "1000000.00");
+			AssertEx.Equal(new Money(Money.Coin * 100000).ToString(false), "100000.00");
+			AssertEx.Equal(new Money(Money.Coin * 10000).ToString(false), "10000.00");
+			AssertEx.Equal(new Money(Money.Coin * 1000).ToString(false), "1000.00");
+			AssertEx.Equal(new Money(Money.Coin * 100).ToString(false), "100.00");
+			AssertEx.Equal(new Money(Money.Coin * 10).ToString(false), "10.00");
+			AssertEx.Equal(new Money(Money.Coin).ToString(false), "1.00");
+			AssertEx.Equal(new Money(Money.Coin / 10).ToString(false), "0.10");
+			AssertEx.Equal(new Money(Money.Coin / 100).ToString(false), "0.01");
+			AssertEx.Equal(new Money(Money.Coin / 1000).ToString(false), "0.001");
+			AssertEx.Equal(new Money(Money.Coin / 10000).ToString(false), "0.0001");
+			AssertEx.Equal(new Money(Money.Coin / 100000).ToString(false), "0.00001");
+			AssertEx.Equal(new Money(Money.Coin / 1000000).ToString(false), "0.000001");
+			AssertEx.Equal(new Money(Money.Coin / 10000000).ToString(false), "0.0000001");
+			AssertEx.Equal(new Money(Money.Coin / 100000000).ToString(false), "0.00000001");
+		}
+
+		[Fact]
+		[Trait("Core", "Core")]
+		public void util_HexStr()
+		{
+			AssertEx.Equal(
+				new HexEncoder().EncodeData(ParseHex_expected),
+				"04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f");
+
+			AssertEx.Equal(
+				new HexEncoder
+				{
+					Space = true
+				}.EncodeData(ParseHex_expected, 0, 5),
+				"04 67 8a fd b0");
+
+			AssertEx.Equal(
+				new HexEncoder
+				{
+					Space = true
+				}.EncodeData(ParseHex_expected, 0, 0),
+				"");
+
+			var ParseHex_vec = ParseHex_expected.Take(5).ToArray();
+
+			AssertEx.Equal(
+				new HexEncoder
+				{
+					Space = true
+				}.EncodeData(ParseHex_vec),
+				"04 67 8a fd b0");
 		}
 
 		[Fact]
@@ -412,241 +606,74 @@ namespace BitcoinNet.Tests
 		}
 
 		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanRoundTripBigIntegerToBytes()
+		[Trait("Core", "Core")]
+		public void util_ParseHex()
 		{
-			foreach(var expected in Enumerable.Range(-100, 100))
+			// Basic test vector
+			var result =
+				Encoders.Hex.DecodeData(
+					"04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0EA1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f");
+			AssertEx.CollectionEquals(result, ParseHex_expected);
+
+			// Spaces between bytes must not be supported
+			Assert.Throws<FormatException>(() => Encoders.Hex.DecodeData("12 34 56 78"));
+
+			// Stop parsing at invalid value
+			Assert.Throws<FormatException>(() => Encoders.Hex.DecodeData("1234 invalid 1234"));
+		}
+
+		[Fact]
+		[Trait("Core", "Core")]
+		public void util_ParseMoney()
+		{
+			Money ret;
+			foreach (var prefix in new[] {"", "+", "-"})
 			{
-				var bytes = Utils.BigIntegerToBytes(BigInteger.ValueOf(expected));
-				var actual = Utils.BytesToBigInteger(bytes);
-				Assert.Equal<BigInteger>(BigInteger.ValueOf(expected), actual);
+				var multiplier = prefix == "-" ? -1 : 1;
+				Assert.True(Money.TryParse(prefix + "0.0", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(0));
+
+				Assert.True(Money.TryParse(prefix + "12345.6789", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin / 10000 * 123456789));
+
+				Assert.True(Money.TryParse(prefix + "100000000.00", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin * 100000000));
+				Assert.True(Money.TryParse(prefix + "10000000.00", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin * 10000000));
+				Assert.True(Money.TryParse(prefix + "1000000.00", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin * 1000000));
+				Assert.True(Money.TryParse(prefix + "100000.00", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin * 100000));
+				Assert.True(Money.TryParse(prefix + "10000.00", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin * 10000));
+				Assert.True(Money.TryParse(prefix + "1000.00", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin * 1000));
+				Assert.True(Money.TryParse(prefix + "100.00", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin * 100));
+				Assert.True(Money.TryParse(prefix + "10.00", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin * 10));
+				Assert.True(Money.TryParse(prefix + "1.00", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin));
+				Assert.True(Money.TryParse(prefix + "0.1", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin / 10));
+				Assert.True(Money.TryParse(prefix + "0.01", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin / 100));
+				Assert.True(Money.TryParse(prefix + "0.001", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin / 1000));
+				Assert.True(Money.TryParse(prefix + "0.0001", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin / 10000));
+				Assert.True(Money.TryParse(prefix + "0.00001", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin / 100000));
+				Assert.True(Money.TryParse(prefix + "0.000001", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin / 1000000));
+				Assert.True(Money.TryParse(prefix + "0.0000001", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin / 10000000));
+				Assert.True(Money.TryParse(prefix + "0.00000001", out ret));
+				AssertEx.Equal(ret, multiplier * new Money(Money.Coin / 100000000));
+
+				// Attempted 63 bit overflow should fail
+				Assert.False(Money.TryParse(prefix + "92233720368.54775808", out ret));
 			}
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanDivideMoney()
-		{
-			var bobInput = Money.Coins(1.1M);
-			var aliceInput = Money.Coins(0.275M);
-			var actual = (bobInput + aliceInput) / 2;
-			Money expected = Money.Satoshis((bobInput.Satoshi + aliceInput.Satoshi) / 2);
-			Assert.Equal(expected, actual);
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanConvertBigIntegerToBytes()
-		{
-			CanConvertBigIntegerToBytesCore(BigInteger.Zero, new byte[0]);
-			CanConvertBigIntegerToBytesCore(BigInteger.Zero, new byte[] { 0 }, false);
-			CanConvertBigIntegerToBytesCore(BigInteger.Zero, new byte[] { 0x80 }, false);
-			CanConvertBigIntegerToBytesCore(BigInteger.One, new byte[] { 1 });
-			CanConvertBigIntegerToBytesCore(BigInteger.One.Negate(), new byte[] { 0x81 });
-			CanConvertBigIntegerToBytesCore(BigInteger.ValueOf(-128), new byte[] { 0x80, 0x80 });
-			CanConvertBigIntegerToBytesCore(BigInteger.ValueOf(-129), new byte[] { 0x81, 0x80 });
-			CanConvertBigIntegerToBytesCore(BigInteger.ValueOf(-256), new byte[] { 0x00, 0x81 });
-		}
-
-		private void CanConvertBigIntegerToBytesCore(BigInteger b, byte[] bbytes, bool testByteSerialization = true)
-		{
-			Assert.Equal(b, Utils.BytesToBigInteger(bbytes));
-			if(testByteSerialization)
-				Assert.True(Utils.BigIntegerToBytes(b).SequenceEqual(bbytes));
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void NetworksAreValid()
-		{
-			foreach(var network in Network.GetNetworks())
-			{
-				Assert.NotNull(network);
-			}
-		}
-
-		// Pubkey: 04a5cf05bfe42daffaff4f1732f5868ed7c7919cba279fa7d940e6b02a8b059bde56be218077bcab1ad6b5f5dcb04c42534477fb8d21b6312b0063e08a8ae52b3e, Private: 7bd0db101160c888e9643f10594185a36a8db91b5308aaa7aad4c03245c6bdc1, Secret: a461392f592ff4292bfce732d808a07f1bc3f49c9a66a40d50761ffb8b2325f6
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanECDH()
-		{
-			var tests = new[]
-			{
-				new
-				{
-					Pubkey = "04a5cf05bfe42daffaff4f1732f5868ed7c7919cba279fa7d940e6b02a8b059bde56be218077bcab1ad6b5f5dcb04c42534477fb8d21b6312b0063e08a8ae52b3e",
-					Private = "7bd0db101160c888e9643f10594185a36a8db91b5308aaa7aad4c03245c6bdc1",
-					ExpectedSecret = "a461392f592ff4292bfce732d808a07f1bc3f49c9a66a40d50761ffb8b2325f6"
-				},
-				new
-				{
-					Pubkey = "043f12235bcf2776c8489ed138d4c9b85a1e29f3f4ad2787b9c8588e960867afc9de1e5702caa787665f5d0a4b04015c8bd5f1541e3d170efc3668f6ac587d43bc",
-					Private = "1249b289c5959c71ae60e0a2a7d57dffbd5cb862aaf10442db205f6787791732",
-					ExpectedSecret = "1d664ba11d3925cfcd938b2ef131213ba4ca986822944d0a7616b34027738e7c"
-				},
-				new
-				{
-					Pubkey = "04769c29328998917d9f2f7c6ce46f2f12a6064e937dff722b4811e9c88b4e1d45387fea132321541e8dbdc92384aef1944d650aa889bfa836db078897e5299262",
-					Private = "41d0cbeeb3365b8c9e190f9898689997002f94006ad3bf1dcfbac28b6e4fb84d",
-					ExpectedSecret = "7fcfa754a40ceaabee5cd3df1a99ee2e5d2c027fdcbd8e437d9be757ea58708f"
-				}
-			};
-			foreach(var test in tests)
-			{
-				var pubKey = new PubKey(test.Pubkey);
-				var key = new Key(Encoders.Hex.DecodeData(test.Private));
-				var secret = Hashes.SHA256(pubKey.GetSharedPubkey(key).ToBytes());
-				Assert.Equal(test.ExpectedSecret, Encoders.Hex.EncodeData(secret));
-			}
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanGenerateScriptFromAddress()
-		{
-			var address = new BitcoinPubKeyAddress(new KeyId("47376c6f537d62177a2c41c4ca9b45829ab99083"), Network.Main);
-			Assert.Equal("OP_DUP OP_HASH160 47376c6f537d62177a2c41c4ca9b45829ab99083 OP_EQUALVERIFY OP_CHECKSIG", address.ScriptPubKey.ToString());
-
-			var scriptAddress = new BitcoinScriptAddress(new ScriptId("8f55563b9a19f321c211e9b9f38cdf686ea07845"), Network.Main);
-			Assert.Equal("OP_HASH160 8f55563b9a19f321c211e9b9f38cdf686ea07845 OP_EQUAL", scriptAddress.ScriptPubKey.ToString());
-
-			var pubKey = new PubKey("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6");
-			Assert.Equal("OP_DUP OP_HASH160 4d29186f76581c7375d70499afd1d585149d42cd OP_EQUALVERIFY OP_CHECKSIG", pubKey.Hash.ScriptPubKey.ToString());
-			Assert.Equal("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6 OP_CHECKSIG", pubKey.ScriptPubKey.ToString());
-
-			Script script = new Script("0359d3092e4a8d5f3b3948235b5dec7395259273ccf3c4e9d5e16695a3fc9588d6 OP_CHECKSIG");
-			Assert.Equal("OP_HASH160 a216e3bce8c1b3adf376731b6cd0b6936c4e053f OP_EQUAL", script.PaymentScript.ToString());
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		//https://en.bitcoin.it/wiki/List_of_address_prefixes
-		public void CanDeduceNetworkInBase58Constructor()
-		{
-			BitcoinAddress addr = new BitcoinPubKeyAddress("17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem");
-			Assert.Equal(addr.Network, Network.Main);
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanDetectBase58WithoutAmbiguity()
-		{
-			var address = new
-			{
-				Base58 = new ExtKey().Neuter().ToString(Network.RegTest),
-				ExpectedType = typeof(BitcoinExtPubKey),
-				Network = Network.RegTest
-			};
-
-			var result = Network.Parse(address.Base58, address.Network);
-			Assert.IsType<BitcoinExtPubKey>(result);
-			Assert.True(result.Network == Network.RegTest);
-
-			result = Network.Parse(address.Base58, null);
-			Assert.True(result.Network == Network.TestNet);
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		//https://en.bitcoin.it/wiki/List_of_address_prefixes
-		public void CanDetectBase58NetworkAndType()
-		{
-			var tests = new[]
-				{
-					new
-					{
-						Base58 = "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem",
-						ExpectedType = typeof(BitcoinPubKeyAddress),
-						Network = Network.Main
-					},
-					new
-					{
-						Base58 = "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem",
-						ExpectedType = typeof(BitcoinPubKeyAddress),
-						Network = Network.Main
-					},
-					new
-					{
-						Base58 = "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX",
-						ExpectedType = typeof(BitcoinScriptAddress),
-						Network = Network.Main
-					},
-					new
-					{
-						Base58 = "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
-						ExpectedType = typeof(BitcoinPubKeyAddress),
-						Network = Network.TestNet
-					},
-					new
-					{
-						Base58 = "5Hwgr3u458GLafKBgxtssHSPqJnYoGrSzgQsPwLFhLNYskDPyyA",
-						ExpectedType = typeof(BitcoinSecret),
-						Network = Network.Main
-					},
-					new
-					{
-						Base58 = "92Pg46rUhgTT7romnV7iGW6W1gbGdeezqdbJCzShkCsYNzyyNcc",
-						ExpectedType = typeof(BitcoinSecret),
-						Network = Network.TestNet
-					},
-					new
-					{
-						Base58 = "3qdi7TXgRo1qR",
-						ExpectedType = (Type)null,
-						Network = (Network)null
-					},
-					new
-					{
-						Base58 = "xprv9s21ZrQH143K3Gx1VAAD1ueDmwoPQUApekxWYSJ1f4W4m1nUPpRGdV5sTVhixZJT5cP2NqtEMZ2mrwHdW5RWpohCwspWidCpcLALvioXDyz",
-						ExpectedType = typeof(BitcoinExtKey),
-						Network = Network.Main
-					},
-					new
-					{
-						Base58 = "xpub661MyMwAqRbcEhHavVcryjNF2uA5woK6JCNRNJB8Z3dxPU8VNBd9E8GP7fusw2bhgYe7BXt6izr5iUaYo483919jjdtfEpG8j97djnEgJqo",
-						ExpectedType = typeof(BitcoinExtPubKey),
-						Network = Network.Main
-					}
-				};
-
-			foreach(var test in tests)
-			{
-				if(test.ExpectedType == null)
-				{
-					Assert.Throws<FormatException>(() => Network.Parse(test.Base58, null));
-				}
-				else
-				{
-					var result = Network.Parse(test.Base58, null);
-					Assert.True(test.ExpectedType == result.GetType());
-					if(test.Network != null)
-						Assert.Equal(test.Network, result.Network);
-					Network.Parse(test.Base58, test.Network);
-
-					if(test.Network != null)
-						foreach(var network in Network.GetNetworks())
-						{
-							if(network == test.Network)
-								break;
-							Assert.Throws<FormatException>(() => Network.Parse(test.Base58, network));
-						}
-				}
-			}
-		}
-
-		[Fact]
-		[Trait("UnitTest", "UnitTest")]
-		public void CanConvertToUnixTime()
-		{
-			var date = Utils.UnixTimeToDateTime(1368576000);
-			Assert.Equal(new DateTimeOffset(2013, 5, 15, 0, 0, 0, TimeSpan.Zero), date);
-			Assert.Equal((uint)1368576000, Utils.DateTimeToUnixTime(date));
-
-			Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(uint.MaxValue));
-			Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(0));
-
-			Assert.Throws<ArgumentOutOfRangeException>(() => Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(uint.MaxValue) + TimeSpan.FromSeconds(1)));
-			Assert.Throws<ArgumentOutOfRangeException>(() => Utils.DateTimeToUnixTime(Utils.UnixTimeToDateTime(0) - TimeSpan.FromSeconds(1)));
 		}
 	}
 }

@@ -1,17 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Protocol
+﻿namespace BitcoinNet.Protocol
 {
 	[Payload("havewitness")]
 	public class HaveWitnessPayload : Payload
 	{
-		public HaveWitnessPayload()
-		{
-
-		}
 	}
 }

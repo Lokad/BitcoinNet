@@ -8,20 +8,11 @@
 			HashSequence = tx.GetHashSequence();
 			HashPrevouts = tx.GetHashPrevouts();
 		}
-		public uint256 HashPrevouts
-		{
-			get;
-			set;
-		}
-		public uint256 HashSequence
-		{
-			get;
-			set;
-		}
-		public uint256 HashOutputs
-		{
-			get;
-			set;
-		}
+
+		public uint256 HashPrevouts { get; set; }
+
+		public uint256 HashSequence { get; set; }
+
+		public uint256 HashOutputs { get; set; }
 	}
 }

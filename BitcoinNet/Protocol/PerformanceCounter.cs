@@ -1,75 +1,44 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace BitcoinNet
 {
 	public class PerformanceSnapshot
 	{
-
-		public PerformanceSnapshot(long readen, long written)
+		public PerformanceSnapshot(long bytesRead, long bytesWritten)
 		{
-			_TotalWrittenBytes = written;
-			_TotalReadenBytes = readen;
-		}
-		private readonly long _TotalWrittenBytes;
-		public long TotalWrittenBytes
-		{
-			get
-			{
-				return _TotalWrittenBytes;
-			}
+			TotalBytesWritten = bytesWritten;
+			TotalBytesRead = bytesRead;
 		}
 
-		long _TotalReadenBytes;
-		public long TotalReadenBytes
-		{
-			get
-			{
-				return _TotalReadenBytes;
-			}
-			set
-			{
-				_TotalReadenBytes = value;
-			}
-		}
-		public TimeSpan Elapsed
-		{
-			get
-			{
-				return Taken - Start;
-			}
-		}
-		public ulong ReadenBytesPerSecond
-		{
-			get
-			{
-				return (ulong)((double)TotalReadenBytes / Elapsed.TotalSeconds);
-			}
-		}
-		public ulong WrittenBytesPerSecond
-		{
-			get
-			{
-				return (ulong)((double)TotalWrittenBytes / Elapsed.TotalSeconds);
-			}
-		}
+		public long TotalBytesWritten { get; }
+
+		public long TotalBytesRead { get; set; }
+
+		public TimeSpan Elapsed => Taken - Start;
+
+		public ulong BytesReadPerSecond => (ulong) (TotalBytesRead / Elapsed.TotalSeconds);
+
+		public ulong BytesWrittenPerSecond => (ulong) (TotalBytesWritten / Elapsed.TotalSeconds);
+
+		public DateTime Start { get; set; }
+
+		public DateTime Taken { get; set; }
 
 		public static PerformanceSnapshot operator -(PerformanceSnapshot end, PerformanceSnapshot start)
 		{
-			if(end.Start != start.Start)
+			if (end.Start != start.Start)
 			{
 				throw new InvalidOperationException("Performance snapshot should be taken from the same point of time");
 			}
-			if(end.Taken < start.Taken)
+
+			if (end.Taken < start.Taken)
 			{
 				throw new InvalidOperationException("The difference of snapshot can't be negative");
 			}
-			return new PerformanceSnapshot(end.TotalReadenBytes - start.TotalReadenBytes,
-											end.TotalWrittenBytes - start.TotalWrittenBytes)
+
+			return new PerformanceSnapshot(end.TotalBytesRead - start.TotalBytesRead,
+				end.TotalBytesWritten - start.TotalBytesWritten)
 			{
 				Start = start.Taken,
 				Taken = end.Taken
@@ -78,86 +47,52 @@ namespace BitcoinNet
 
 		public override string ToString()
 		{
-			return "Read : " + ToKBSec(ReadenBytesPerSecond) + ", Write : " + ToKBSec(WrittenBytesPerSecond);
+			return "Read : " + ToKBSec(BytesReadPerSecond) + ", Write : " + ToKBSec(BytesWrittenPerSecond);
 		}
 
 		private string ToKBSec(ulong bytesPerSec)
 		{
-			double speed = ((double)bytesPerSec / 1024.0);
+			var speed = bytesPerSec / 1024.0;
 			return speed.ToString("0.00") + " KB/S)";
 		}
-
-		public DateTime Start
-		{
-			get;
-			set;
-		}
-
-		public DateTime Taken
-		{
-			get;
-			set;
-		}
 	}
+
 	public class PerformanceCounter
 	{
+		private long _bytesRead;
+		private long _bytesWritten;
+
 		public PerformanceCounter()
 		{
-			_Start = DateTime.UtcNow;
+			Start = DateTime.UtcNow;
 		}
 
-		long _WrittenBytes;
-		public long WrittenBytes
+		public long BytesWritten => _bytesWritten;
+
+		public long BytesRead => _bytesRead;
+
+		public DateTime Start { get; }
+
+		public TimeSpan Elapsed => DateTime.UtcNow - Start;
+
+		public void AddBytesWritten(long count)
 		{
-			get
-			{
-				return _WrittenBytes;
-			}
+			Interlocked.Add(ref _bytesWritten, count);
 		}
 
-
-		public void AddWritten(long count)
+		public void AddBytesRead(long count)
 		{
-			Interlocked.Add(ref _WrittenBytes, count);
-		}
-		public void AddReaden(long count)
-		{
-			Interlocked.Add(ref _ReadenBytes, count);
-		}
-
-		long _ReadenBytes;
-		public long ReadenBytes
-		{
-			get
-			{
-				return _ReadenBytes;
-			}
+			Interlocked.Add(ref _bytesRead, count);
 		}
 
 		public PerformanceSnapshot Snapshot()
 		{
-			var snap = new PerformanceSnapshot(ReadenBytes, WrittenBytes)
+			var snap = new PerformanceSnapshot(BytesRead, BytesWritten)
 			{
 				Start = Start,
 				Taken = DateTime.UtcNow
 			};
 			return snap;
-		}
-
-		DateTime _Start;
-		public DateTime Start
-		{
-			get
-			{
-				return _Start;
-			}
-		}
-		public TimeSpan Elapsed
-		{
-			get
-			{
-				return DateTime.UtcNow - Start;
-			}
 		}
 
 		public override string ToString()
@@ -167,8 +102,8 @@ namespace BitcoinNet
 
 		internal void Add(PerformanceCounter counter)
 		{
-			AddWritten(counter.WrittenBytes);
-			AddReaden(counter.ReadenBytes);
+			AddBytesWritten(counter.BytesWritten);
+			AddBytesRead(counter.BytesRead);
 		}
 	}
 }

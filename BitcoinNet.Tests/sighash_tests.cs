@@ -1,9 +1,5 @@
-﻿using BitcoinNet.DataEncoders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
+using BitcoinNet.DataEncoders;
 using BitcoinNet.Scripting;
 using Xunit;
 
@@ -11,18 +7,28 @@ namespace BitcoinNet.Tests
 {
 	public class sighash_tests
 	{
+		private static readonly Random rand = new Random();
 
-		static Random rand = new Random();
-
-		static Script RandomScript()
+		private static Script RandomScript()
 		{
-			OpcodeType[] oplist = { OpcodeType.OP_FALSE, OpcodeType.OP_1, OpcodeType.OP_2, OpcodeType.OP_3, OpcodeType.OP_CHECKSIG, OpcodeType.OP_IF, OpcodeType.OP_VERIF, OpcodeType.OP_RETURN, OpcodeType.OP_CODESEPARATOR };
+			OpcodeType[] oplist =
+			{
+				OpcodeType.OP_FALSE, OpcodeType.OP_1, OpcodeType.OP_2, OpcodeType.OP_3, OpcodeType.OP_CHECKSIG,
+				OpcodeType.OP_IF, OpcodeType.OP_VERIF, OpcodeType.OP_RETURN, OpcodeType.OP_CODESEPARATOR
+			};
 			var script = new Script();
-			int ops = (rand.Next() % 10);
-			for(int i = 0; i < ops; i++)
+			var ops = rand.Next() % 10;
+			for (var i = 0; i < ops; i++)
+			{
 				script += oplist[rand.Next() % oplist.Length];
+			}
 
 			return script;
+		}
+
+		private byte[] ParseHex(string data)
+		{
+			return Encoders.Hex.DecodeData(data);
 		}
 
 
@@ -55,43 +61,42 @@ namespace BitcoinNet.Tests
 		{
 			var tests = TestCase.read_json("data/sighash.json");
 
-			foreach(var test in tests)
+			foreach (var test in tests)
 			{
 				var strTest = test.ToString();
-				if(test.Count < 1) // Allow for extra stuff (useful for comments)
+				if (test.Count < 1) // Allow for extra stuff (useful for comments)
 				{
 					Assert.True(false, "Bad test: " + strTest);
 					continue;
 				}
-				if(test.Count == 1)
+
+				if (test.Count == 1)
+				{
 					continue; // comment
+				}
 
 				string raw_tx, raw_script, sigHashHex;
 				int nIn, nHashType;
-				Transaction tx = new Transaction();
-				Script scriptCode = new Script();
+				var tx = new Transaction();
+				var scriptCode = new Script();
 
 
 				// deserialize test data
-				raw_tx = (string)test[0];
-				raw_script = (string)test[1];
-				nIn = (int)(long)test[2];
-				nHashType = (int)(long)test[3];
-				sigHashHex = (string)test[4];
+				raw_tx = (string) test[0];
+				raw_script = (string) test[1];
+				nIn = (int) (long) test[2];
+				nHashType = (int) (long) test[3];
+				sigHashHex = (string) test[4];
 
 
-				tx.ReadWrite(ParseHex(raw_tx));				
+				tx.ReadWrite(ParseHex(raw_tx));
 
 				var raw = ParseHex(raw_script);
 				scriptCode = new Script(raw);
 
-				var sh = tx.GetSignatureHash(scriptCode, nIn, (SigHash)nHashType);
+				var sh = tx.GetSignatureHash(scriptCode, nIn, (SigHash) nHashType);
 				Assert.True(sh.ToString() == sigHashHex, strTest);
 			}
-		}
-		private byte[] ParseHex(string data)
-		{
-			return Encoders.Hex.DecodeData(data);
 		}
 	}
 }

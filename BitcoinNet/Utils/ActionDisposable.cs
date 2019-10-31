@@ -1,26 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet
 {
 	internal class ActionDisposable : IDisposable
 	{
-		Action onEnter, onLeave;
+		private readonly Action _onEnter;
+		private readonly Action _onLeave;
+
 		public ActionDisposable(Action onEnter, Action onLeave)
 		{
-			this.onEnter = onEnter;
-			this.onLeave = onLeave;
-			onEnter();
+			_onEnter = onEnter;
+			_onLeave = onLeave;
+			_onEnter();
 		}
 
 		// IDisposable Members
 
 		public void Dispose()
 		{
-			onLeave();
+			_onLeave();
 		}
 	}
 }

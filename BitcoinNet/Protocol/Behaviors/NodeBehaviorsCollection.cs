@@ -1,53 +1,47 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Protocol.Behaviors
+﻿namespace BitcoinNet.Protocol.Behaviors
 {
 	public class NodeBehaviorsCollection : ThreadSafeCollection<INodeBehavior>
 	{
-		Node _Node;
+		private readonly Node _node;
+		private bool _delayAttach;
+
 		public NodeBehaviorsCollection(Node node)
 		{
-			_Node = node;
+			_node = node;
 		}
 
+		private bool CanAttach => _node != null && !DelayAttach && _node.State != NodeState.Offline &&
+		                          _node.State != NodeState.Failed && _node.State != NodeState.Disconnecting;
 
-		bool CanAttach
+		internal bool DelayAttach
 		{
-			get
+			get => _delayAttach;
+			set
 			{
-				return _Node != null && !DelayAttach && _Node.State != NodeState.Offline && _Node.State != NodeState.Failed && _Node.State != NodeState.Disconnecting;
+				_delayAttach = value;
+				if (CanAttach)
+				{
+					foreach (var b in this)
+					{
+						b.Attach(_node);
+					}
+				}
 			}
 		}
 
 		protected override void OnAdding(INodeBehavior obj)
 		{
-			if(CanAttach)
-				obj.Attach(_Node);
+			if (CanAttach)
+			{
+				obj.Attach(_node);
+			}
 		}
 
 		protected override void OnRemoved(INodeBehavior obj)
 		{
-			if(obj.AttachedNode != null)
+			if (obj.AttachedNode != null)
+			{
 				obj.Detach();
-		}
-		bool _DelayAttach;
-		internal bool DelayAttach
-		{
-			get
-			{
-				return _DelayAttach;
-			}
-			set
-			{
-				_DelayAttach = value;
-				if(CanAttach)
-					foreach(var b in this)
-						b.Attach(_Node);
 			}
 		}
 	}

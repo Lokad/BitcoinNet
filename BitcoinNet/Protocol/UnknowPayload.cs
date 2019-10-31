@@ -1,44 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Protocol
+﻿namespace BitcoinNet.Protocol
 {
 	public class UnknowPayload : Payload
 	{
+		internal string _command;
+		private byte[] _data = new byte[0];
+
 		public UnknowPayload()
 		{
-
 		}
+
 		public UnknowPayload(string command)
 		{
-			_Command = command;
+			_command = command;
 		}
-		internal string _Command;
-		public override string Command
-		{
-			get
-			{
-				return _Command;
-			}
-		}
-		private byte[] _Data = new byte[0];
+
+		public override string Command => _command;
+
 		public byte[] Data
 		{
-			get
-			{
-				return _Data;
-			}
-			set
-			{
-				_Data = value;
-			}
+			get => _data;
+			set => _data = value;
 		}
+
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			stream.ReadWrite(ref _Data);
+			stream.ReadWrite(ref _data);
 		}
 	}
 }

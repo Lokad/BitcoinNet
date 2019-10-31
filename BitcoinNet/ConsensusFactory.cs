@@ -1,48 +1,49 @@
-﻿using BitcoinNet.Protocol;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+using BitcoinNet.Protocol;
 
 namespace BitcoinNet
 {
 	public class ConsensusFactory
 	{
-		ConcurrentDictionary<Type, bool> _IsAssignableFromBlockHeader = new ConcurrentDictionary<Type, bool>();
-		TypeInfo BlockHeaderType = typeof(BlockHeader).GetTypeInfo();
+		private readonly TypeInfo _blockHeaderType = typeof(BlockHeader).GetTypeInfo();
+		private readonly TypeInfo _blockType = typeof(Block).GetTypeInfo();
 
-		ConcurrentDictionary<Type, bool> _IsAssignableFromBlock = new ConcurrentDictionary<Type, bool>();
-		TypeInfo BlockType = typeof(Block).GetTypeInfo();
+		private readonly ConcurrentDictionary<Type, bool> _isAssignableFromBlock =
+			new ConcurrentDictionary<Type, bool>();
 
-		ConcurrentDictionary<Type, bool> _IsAssignableFromTransaction = new ConcurrentDictionary<Type, bool>();
-		TypeInfo TransactionType = typeof(Transaction).GetTypeInfo();
+		private readonly ConcurrentDictionary<Type, bool> _isAssignableFromBlockHeader =
+			new ConcurrentDictionary<Type, bool>();
+
+		private readonly ConcurrentDictionary<Type, bool> _isAssignableFromTransaction =
+			new ConcurrentDictionary<Type, bool>();
+
+		private readonly TypeInfo _transactionType = typeof(Transaction).GetTypeInfo();
 
 		protected bool IsBlockHeader(Type type)
 		{
-			return IsAssignable(type, BlockHeaderType, _IsAssignableFromBlockHeader);
+			return IsAssignable(type, _blockHeaderType, _isAssignableFromBlockHeader);
 		}
 
 		protected bool IsBlock(Type type)
 		{
-			return IsAssignable(type, BlockType, _IsAssignableFromBlock);
+			return IsAssignable(type, _blockType, _isAssignableFromBlock);
 		}
 
 		protected bool IsTransaction(Type type)
 		{
-			return IsAssignable(type, TransactionType, _IsAssignableFromTransaction);
+			return IsAssignable(type, _transactionType, _isAssignableFromTransaction);
 		}
 
 		private bool IsAssignable(Type type, TypeInfo baseType, ConcurrentDictionary<Type, bool> cache)
 		{
-			bool isAssignable = false;
-			if (!cache.TryGetValue(type, out isAssignable))
+			if (!cache.TryGetValue(type, out var isAssignable))
 			{
 				isAssignable = baseType.IsAssignableFrom(type.GetTypeInfo());
 				cache.TryAdd(type, isAssignable);
 			}
+
 			return isAssignable;
 		}
 
@@ -54,32 +55,37 @@ namespace BitcoinNet
 				result = CreateBlock();
 				return true;
 			}
+
 			if (IsBlockHeader(type))
 			{
 				result = CreateBlockHeader();
 				return true;
 			}
+
 			if (IsTransaction(type))
 			{
 				result = CreateTransaction();
 				return true;
 			}
+
 			return false;
 		}
 
 		public bool TryCreateNew<T>(out T result) where T : IBitcoinSerializable
 		{
-			result = default(T);
-			IBitcoinSerializable r = null;
-			var success = TryCreateNew(typeof(T), out r);
+			result = default;
+			var success = TryCreateNew(typeof(T), out var r);
 			if (success)
-				result = (T)r;
+			{
+				result = (T) r;
+			}
+
 			return success;
 		}
 
 		public virtual ProtocolCapabilities GetProtocolCapabilities(uint protocolVersion)
 		{
-			return new ProtocolCapabilities()
+			return new ProtocolCapabilities
 			{
 				PeerTooOld = protocolVersion < 209U,
 				SupportTimeAddress = protocolVersion >= 31402U,

@@ -8,19 +8,16 @@ namespace BitcoinNet
 	{
 		public UnsignedList()
 		{
-
 		}
+
 		public UnsignedList(Transaction parent)
 		{
-			if(parent == null)
+			if (parent == null)
+			{
 				throw new ArgumentNullException(nameof(parent));
-			Transaction = parent;
-		}
+			}
 
-		public Transaction Transaction
-		{
-			get;
-			internal set;
+			Transaction = parent;
 		}
 
 		public UnsignedList(IEnumerable<T> collection)
@@ -33,16 +30,12 @@ namespace BitcoinNet
 		{
 		}
 
+		public Transaction Transaction { get; internal set; }
+
 		public T this[uint index]
 		{
-			get
-			{
-				return base[(int)index];
-			}
-			set
-			{
-				base[(int)index] = value;
-			}
+			get => base[(int) index];
+			set => base[(int) index] = value;
 		}
 	}
 }

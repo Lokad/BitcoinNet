@@ -1,44 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.Protocol
 {
-
 	/// <summary>
-	/// Block headers received after a getheaders messages
+	///     Block headers received after a getheaders messages
 	/// </summary>
 	[Payload("headers")]
 	public class HeadersPayload : Payload
 	{
-		class BlockHeaderWithTxCount : IBitcoinSerializable
-		{
-			public BlockHeaderWithTxCount()
-			{
-
-			}
-			public BlockHeaderWithTxCount(BlockHeader header)
-			{
-				_Header = header;
-			}
-			internal BlockHeader _Header;
-
-			// IBitcoinSerializable Members
-
-			public void ReadWrite(BitcoinStream stream)
-			{
-				stream.ReadWrite(ref _Header);
-				VarInt txCount = new VarInt(0);
-				stream.ReadWrite(ref txCount);
-			}
-		}
-		List<BlockHeader> headers = new List<BlockHeader>();
-
 		public HeadersPayload()
 		{
-
 		}
 
 		public HeadersPayload(params BlockHeader[] headers)
@@ -46,27 +18,44 @@ namespace BitcoinNet.Protocol
 			Headers.AddRange(headers);
 		}
 
-		public List<BlockHeader> Headers
-		{
-			get
-			{
-				return headers;
-			}
-		}
+		public List<BlockHeader> Headers { get; } = new List<BlockHeader>();
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			if(stream.Serializing)
+			if (stream.Serializing)
 			{
-				var heardersOff = headers.Select(h => new BlockHeaderWithTxCount(h)).ToList();
-				stream.ReadWrite(ref heardersOff);
+				var headersOff = Headers.Select(h => new BlockHeaderWithTxCount(h)).ToList();
+				stream.ReadWrite(ref headersOff);
 			}
 			else
 			{
-				headers.Clear();
-				List<BlockHeaderWithTxCount> headersOff = new List<BlockHeaderWithTxCount>();
+				Headers.Clear();
+				var headersOff = new List<BlockHeaderWithTxCount>();
 				stream.ReadWrite(ref headersOff);
-				headers.AddRange(headersOff.Select(h => h._Header));
+				Headers.AddRange(headersOff.Select(h => h._header));
+			}
+		}
+
+		private class BlockHeaderWithTxCount : IBitcoinSerializable
+		{
+			internal BlockHeader _header;
+
+			public BlockHeaderWithTxCount()
+			{
+			}
+
+			public BlockHeaderWithTxCount(BlockHeader header)
+			{
+				_header = header;
+			}
+
+			// IBitcoinSerializable Members
+
+			public void ReadWrite(BitcoinStream stream)
+			{
+				stream.ReadWrite(ref _header);
+				var txCount = new VarInt(0);
+				stream.ReadWrite(ref txCount);
 			}
 		}
 	}

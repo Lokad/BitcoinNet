@@ -1,37 +1,42 @@
-﻿using BitcoinNet.Crypto;
-using System;
-using System.Collections.Generic;
+﻿using System;
+using System.Collections;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using BitcoinNet.Crypto;
 using BitcoinNet.Scripting;
 using Xunit;
 
 namespace BitcoinNet.Tests
 {
-	class AssertEx
+	internal class AssertEx
 	{
 		[DebuggerHidden]
 		internal static void Error(string msg)
 		{
 			Assert.False(true, msg);
 		}
+
 		[DebuggerHidden]
 		internal static void Equal<T>(T actual, T expected)
 		{
 			Assert.Equal(expected, actual);
 		}
+
 		[DebuggerHidden]
 		internal static void CollectionEquals<T>(T[] actual, T[] expected)
 		{
-			if(actual.Length != expected.Length)
-				Assert.False(true, "Actual.Length(" + actual.Length + ") != Expected.Length(" + expected.Length + ")");
-
-			for(int i = 0; i < actual.Length; i++)
+			if (actual.Length != expected.Length)
 			{
-				if(!Object.Equals(actual[i], expected[i]))
-					Assert.False(true, "Actual[" + i + "](" + actual[i] + ") != Expected[" + i + "](" + expected[i] + ")");
+				Assert.False(true, "Actual.Length(" + actual.Length + ") != Expected.Length(" + expected.Length + ")");
+			}
+
+			for (var i = 0; i < actual.Length; i++)
+			{
+				if (!Equals(actual[i], expected[i]))
+				{
+					Assert.False(true,
+						"Actual[" + i + "](" + actual[i] + ") != Expected[" + i + "](" + expected[i] + ")");
+				}
 			}
 		}
 
@@ -40,10 +45,10 @@ namespace BitcoinNet.Tests
 		{
 			var hash1 = stack1.Select(o => Hashes.Hash256(o)).ToArray();
 			var hash2 = stack2.Select(o => Hashes.Hash256(o)).ToArray();
-			AssertEx.CollectionEquals(hash1, hash2);
+			CollectionEquals(hash1, hash2);
 		}
 
-		internal static void CollectionEquals(System.Collections.BitArray bitArray, int p)
+		internal static void CollectionEquals(BitArray bitArray, int p)
 		{
 			throw new NotImplementedException();
 		}

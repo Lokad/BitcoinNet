@@ -1,56 +1,41 @@
-﻿using BitcoinNet.BouncyCastle.Asn1;
-using BitcoinNet.BouncyCastle.Math;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using BitcoinNet.BouncyCastle.Asn1;
+using BitcoinNet.BouncyCastle.Math;
 
 namespace BitcoinNet.Crypto
 {
 	public class ECDSASignature
 	{
-		private readonly BigInteger _R;
-		public BigInteger R
-		{
-			get
-			{
-				return _R;
-			}
-		}
-		private BigInteger _S;
-		public BigInteger S
-		{
-			get
-			{
-				return _S;
-			}
-		}
+		private const string InvalidDERSignature = "Invalid DER signature";
+
 		public ECDSASignature(BigInteger r, BigInteger s)
 		{
-			_R = r;
-			_S = s;
+			R = r;
+			S = s;
 		}
 
 		public ECDSASignature(BigInteger[] rs)
 		{
-			_R = rs[0];
-			_S = rs[1];
+			R = rs[0];
+			S = rs[1];
 		}
 
 		public ECDSASignature(byte[] derSig)
 		{
 			try
 			{
-				Asn1InputStream decoder = new Asn1InputStream(derSig);
+				var decoder = new Asn1InputStream(derSig);
 				var seq = decoder.ReadObject() as DerSequence;
-				if(seq == null || seq.Count != 2)
+				if (seq == null || seq.Count != 2)
+				{
 					throw new FormatException(InvalidDERSignature);
-				_R = ((DerInteger)seq[0]).Value;
-				_S = ((DerInteger)seq[1]).Value;
+				}
+
+				R = ((DerInteger) seq[0]).Value;
+				S = ((DerInteger) seq[1]).Value;
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				throw new FormatException(InvalidDERSignature, ex);
 			}
@@ -60,18 +45,27 @@ namespace BitcoinNet.Crypto
 		{
 			try
 			{
-				Asn1InputStream decoder = new Asn1InputStream(derSig);
+				var decoder = new Asn1InputStream(derSig);
 				var seq = decoder.ReadObject() as DerSequence;
-				if(seq == null || seq.Count != 2)
+				if (seq == null || seq.Count != 2)
+				{
 					throw new FormatException(InvalidDERSignature);
-				_R = ((DerInteger)seq[0]).Value;
-				_S = ((DerInteger)seq[1]).Value;
+				}
+
+				R = ((DerInteger) seq[0]).Value;
+				S = ((DerInteger) seq[1]).Value;
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				throw new FormatException(InvalidDERSignature, ex);
 			}
 		}
+
+		public BigInteger R { get; }
+
+		public BigInteger S { get; }
+
+		public bool IsLowS => S.CompareTo(ECKey.HalfCurveOrder) <= 0;
 
 		/**
 		* What we get back from the signer are the two components of a signature, r and s. To get a flat byte stream
@@ -81,55 +75,47 @@ namespace BitcoinNet.Crypto
 		public byte[] ToDER()
 		{
 			// Usually 70-72 bytes.
-			MemoryStream bos = new MemoryStream(72);
-			DerSequenceGenerator seq = new DerSequenceGenerator(bos);
-			seq.AddObject(new DerInteger(R));
-			seq.AddObject(new DerInteger(S));
-			seq.Close();
-			return bos.ToArray();
-
+			using (var bos = new MemoryStream(72))
+			{
+				var seq = new DerSequenceGenerator(bos);
+				seq.AddObject(new DerInteger(R));
+				seq.AddObject(new DerInteger(S));
+				seq.Close();
+				return bos.ToArray();
+			}
 		}
-		const string InvalidDERSignature = "Invalid DER signature";
+
 		public static ECDSASignature FromDER(byte[] sig)
 		{
 			return new ECDSASignature(sig);
 		}
 
 		/// <summary>
-		/// Enforce LowS on the signature
+		///     Enforce LowS on the signature
 		/// </summary>
 		public ECDSASignature MakeCanonical()
 		{
-			if(!IsLowS)
+			if (!IsLowS)
 			{
-				return new ECDSASignature(this.R, ECKey.CURVE_ORDER.Subtract(this.S));
+				return new ECDSASignature(R, ECKey.CurveOrder.Subtract(S));
 			}
-			else
-				return this;
-		}
 
-		public bool IsLowS
-		{
-			get
-			{
-				return this.S.CompareTo(ECKey.HALF_CURVE_ORDER) <= 0;
-			}
+			return this;
 		}
-
 
 
 		public static bool IsValidDER(byte[] bytes)
 		{
 			try
 			{
-				ECDSASignature.FromDER(bytes);
+				FromDER(bytes);
 				return true;
 			}
-			catch(FormatException)
+			catch (FormatException)
 			{
 				return false;
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				Utils.error("Unexpected exception in ECDSASignature.IsValidDER " + ex.Message);
 				return false;

@@ -1,68 +1,77 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.Protocol
 {
 	public class MessageProducer<T>
 	{
-		List<MessageListener<T>> _Listeners = new List<MessageListener<T>>();
-		public IDisposable AddMessageListener(MessageListener<T> listener)
+		private readonly List<IMessageListener<T>> _listeners = new List<IMessageListener<T>>();
+
+		public IDisposable AddMessageListener(IMessageListener<T> listener)
 		{
-			if(listener == null)
-				throw new ArgumentNullException(nameof(listener));
-			lock(_Listeners)
+			if (listener == null)
 			{
-				return new Scope(() =>
+				throw new ArgumentNullException(nameof(listener));
+			}
+
+			lock (_listeners)
+			{
+				return new Scope(() => { _listeners.Add(listener); }, () =>
 				{
-					_Listeners.Add(listener);
-				}, () =>
-				{
-					lock(_Listeners)
+					lock (_listeners)
 					{
-						_Listeners.Remove(listener);
+						_listeners.Remove(listener);
 					}
 				});
 			}
 		}
 
-		public void RemoveMessageListener(MessageListener<T> listener)
+		public void RemoveMessageListener(IMessageListener<T> listener)
 		{
-			if(listener == null)
-				throw new ArgumentNullException(nameof(listener));
-			lock(_Listeners)
+			if (listener == null)
 			{
-				_Listeners.Add(listener);
+				throw new ArgumentNullException(nameof(listener));
+			}
+
+			lock (_listeners)
+			{
+				_listeners.Add(listener);
 			}
 		}
 
 		public void PushMessage(T message)
 		{
-			if(message == null)
-				throw new ArgumentNullException(nameof(message));
-			lock(_Listeners)
+			if (message == null)
 			{
-				foreach(var listener in _Listeners)
+				throw new ArgumentNullException(nameof(message));
+			}
+
+			lock (_listeners)
+			{
+				foreach (var listener in _listeners)
 				{
 					listener.PushMessage(message);
 				}
 			}
 		}
 
-
 		public void PushMessages(IEnumerable<T> messages)
 		{
-			if(messages == null)
-				throw new ArgumentNullException(nameof(messages));
-			lock(_Listeners)
+			if (messages == null)
 			{
-				foreach(var message in messages)
+				throw new ArgumentNullException(nameof(messages));
+			}
+
+			lock (_listeners)
+			{
+				foreach (var message in messages)
 				{
-					if(message == null)
+					if (message == null)
+					{
 						throw new ArgumentNullException(nameof(message));
-					foreach(var listener in _Listeners)
+					}
+
+					foreach (var listener in _listeners)
 					{
 						listener.PushMessage(message);
 					}

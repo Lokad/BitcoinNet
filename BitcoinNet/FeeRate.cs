@@ -1,67 +1,83 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet
 {
 	public class FeeRate : IEquatable<FeeRate>, IComparable<FeeRate>
 	{
-		private readonly Money _FeePerK;
-		/// <summary>
-		/// Fee per KB
-		/// </summary>
-		public Money FeePerK
-		{
-			get
-			{
-				return _FeePerK;
-			}
-		}
-
-		readonly static FeeRate _Zero = new FeeRate(Money.Zero);
-		public static FeeRate Zero
-		{
-			get
-			{
-				return _Zero;
-			}
-		}
-
 		public FeeRate(Money feePerK)
 		{
-			if(feePerK == null)
+			if (feePerK == null)
+			{
 				throw new ArgumentNullException(nameof(feePerK));
-			if(feePerK.Satoshi < 0)
-				throw new ArgumentOutOfRangeException("feePerK");
-			_FeePerK = feePerK;
+			}
+
+			if (feePerK.Satoshi < 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(feePerK));
+			}
+
+			FeePerK = feePerK;
 		}
 
 		public FeeRate(Money feePaid, int size)
 		{
-			if(feePaid == null)
+			if (feePaid == null)
+			{
 				throw new ArgumentNullException(nameof(feePaid));
-			if(feePaid.Satoshi < 0)
-				throw new ArgumentOutOfRangeException("feePaid");
-			if(size > 0)
-				_FeePerK = feePaid * 1000 / size;
+			}
+
+			if (feePaid.Satoshi < 0)
+			{
+				throw new ArgumentOutOfRangeException(nameof(feePaid));
+			}
+
+			if (size > 0)
+			{
+				FeePerK = feePaid * 1000 / size;
+			}
 			else
-				_FeePerK = 0;
+			{
+				FeePerK = 0;
+			}
 		}
 
 		/// <summary>
-		/// Get fee for the size
+		///     Fee per KB
+		/// </summary>
+		public Money FeePerK { get; }
+
+		public static FeeRate Zero { get; } = new FeeRate(Money.Zero);
+
+		public int CompareTo(FeeRate other)
+		{
+			return other == null
+				? 1
+				: FeePerK.CompareTo(other.FeePerK);
+		}
+
+		// IEquatable<FeeRate> Members
+
+		public bool Equals(FeeRate other)
+		{
+			return other != null && FeePerK.Equals(other.FeePerK);
+		}
+
+		/// <summary>
+		///     Get fee for the size
 		/// </summary>
 		/// <param name="virtualSize">Size in bytes</param>
 		/// <returns></returns>
 		public Money GetFee(int virtualSize)
 		{
-			Money nFee = _FeePerK.Satoshi * virtualSize / 1000;
-			if(nFee == 0 && _FeePerK.Satoshi > 0)
-				nFee = _FeePerK.Satoshi;
+			Money nFee = FeePerK.Satoshi * virtualSize / 1000;
+			if (nFee == 0 && FeePerK.Satoshi > 0)
+			{
+				nFee = FeePerK.Satoshi;
+			}
+
 			return nFee;
 		}
+
 		public Money GetFee(Transaction tx)
 		{
 			return GetFee(tx.GetVirtualSize());
@@ -69,34 +85,29 @@ namespace BitcoinNet
 
 		public override bool Equals(object obj)
 		{
-			if(Object.ReferenceEquals(this, obj))
+			if (ReferenceEquals(this, obj))
+			{
 				return true;
-			if(((object)this == null) || (obj == null))
+			}
+
+			if ((object) this == null || obj == null)
+			{
 				return false;
+			}
+
 			var left = this;
 			var right = obj as FeeRate;
-			if(right == null)
+			if (right == null)
+			{
 				return false;
-			return left._FeePerK == right._FeePerK;
+			}
+
+			return left.FeePerK == right.FeePerK;
 		}
 
 		public override string ToString()
 		{
-			return String.Format("{0} BTC/kB", _FeePerK.ToString());
-		}
-
-		// IEquatable<FeeRate> Members
-
-		public bool Equals(FeeRate other)
-		{
-			return other != null && _FeePerK.Equals(other._FeePerK);
-		}
-
-		public int CompareTo(FeeRate other)
-		{
-			return other == null 
-				? 1 
-				: _FeePerK.CompareTo(other._FeePerK);
+			return $"{FeePerK} BTC/kB";
 		}
 
 		// IComparable Members
@@ -104,54 +115,92 @@ namespace BitcoinNet
 		public int CompareTo(object obj)
 		{
 			if (obj == null)
+			{
 				return 1;
+			}
+
 			var m = obj as FeeRate;
 			if (m != null)
-				return _FeePerK.CompareTo(m._FeePerK);
+			{
+				return FeePerK.CompareTo(m.FeePerK);
+			}
 
-			return _FeePerK.CompareTo((long)obj);
+			return FeePerK.CompareTo((long) obj);
 		}
 
 		public static bool operator <(FeeRate left, FeeRate right)
 		{
 			if (left == null)
+			{
 				throw new ArgumentNullException(nameof(left));
+			}
+
 			if (right == null)
+			{
 				throw new ArgumentNullException(nameof(right));
-			return left._FeePerK < right._FeePerK;
+			}
+
+			return left.FeePerK < right.FeePerK;
 		}
+
 		public static bool operator >(FeeRate left, FeeRate right)
 		{
 			if (left == null)
+			{
 				throw new ArgumentNullException(nameof(left));
+			}
+
 			if (right == null)
+			{
 				throw new ArgumentNullException(nameof(right));
-			return left._FeePerK > right._FeePerK;
+			}
+
+			return left.FeePerK > right.FeePerK;
 		}
+
 		public static bool operator <=(FeeRate left, FeeRate right)
 		{
 			if (left == null)
+			{
 				throw new ArgumentNullException(nameof(left));
+			}
+
 			if (right == null)
+			{
 				throw new ArgumentNullException(nameof(right));
-			return left._FeePerK <= right._FeePerK;
+			}
+
+			return left.FeePerK <= right.FeePerK;
 		}
+
 		public static bool operator >=(FeeRate left, FeeRate right)
 		{
 			if (left == null)
+			{
 				throw new ArgumentNullException(nameof(left));
+			}
+
 			if (right == null)
+			{
 				throw new ArgumentNullException(nameof(right));
-			return left._FeePerK >= right._FeePerK;
+			}
+
+			return left.FeePerK >= right.FeePerK;
 		}
 
 		public static bool operator ==(FeeRate left, FeeRate right)
 		{
-			if (Object.ReferenceEquals(left, right))
+			if (ReferenceEquals(left, right))
+			{
 				return true;
-			if (((object)left == null) || ((object)right == null))
+			}
+
+			if ((object) left == null || (object) right == null)
+			{
 				return false;
-			return left._FeePerK == right._FeePerK;
+			}
+
+			return left.FeePerK == right.FeePerK;
 		}
 
 		public static bool operator !=(FeeRate left, FeeRate right)
@@ -161,26 +210,38 @@ namespace BitcoinNet
 
 		public override int GetHashCode()
 		{
-			return _FeePerK.GetHashCode();
+			return FeePerK.GetHashCode();
 		}
 
 		public static FeeRate Min(FeeRate left, FeeRate right)
 		{
 			if (left == null)
+			{
 				throw new ArgumentNullException(nameof(left));
+			}
+
 			if (right == null)
+			{
 				throw new ArgumentNullException(nameof(right));
-			return left <= right 
-				? left 
+			}
+
+			return left <= right
+				? left
 				: right;
 		}
 
 		public static FeeRate Max(FeeRate left, FeeRate right)
 		{
 			if (left == null)
+			{
 				throw new ArgumentNullException(nameof(left));
+			}
+
 			if (right == null)
+			{
 				throw new ArgumentNullException(nameof(right));
+			}
+
 			return left >= right
 				? left
 				: right;

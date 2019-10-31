@@ -1,13 +1,12 @@
-﻿using BitcoinNet.Policy;
-using System.Linq;
+﻿using System.Linq;
+using BitcoinNet.Policy;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {
-
 	public static class StandardScripts
 	{
-		static readonly ScriptTemplate[] _StandardTemplates = new ScriptTemplate[]
+		private static readonly ScriptTemplate[] StandardTemplates =
 		{
 			PayToPubkeyHashTemplate.Instance,
 			PayToPubkeyTemplate.Instance,
@@ -28,18 +27,21 @@ namespace BitcoinNet
 
 		public static ScriptTemplate GetTemplateFromScriptPubKey(Script script)
 		{
-			return _StandardTemplates.FirstOrDefault(t => t.CheckScriptPubKey(script));
+			return StandardTemplates.FirstOrDefault(t => t.CheckScriptPubKey(script));
 		}
 
 		public static bool IsStandardScriptPubKey(Script scriptPubKey)
 		{
-			return _StandardTemplates.Any(template => template.CheckScriptPubKey(scriptPubKey));
+			return StandardTemplates.Any(template => template.CheckScriptPubKey(scriptPubKey));
 		}
+
 		private static bool IsStandardScriptSig(Script scriptSig, Script scriptPubKey)
 		{
 			var template = GetTemplateFromScriptPubKey(scriptPubKey);
-			if(template == null)
+			if (template == null)
+			{
 				return false;
+			}
 
 			return template.CheckScriptSig(scriptSig, scriptPubKey);
 		}

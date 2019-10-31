@@ -21,7 +21,7 @@ namespace BitcoinNet.Mnemonic.Tests
 		{
 			foreach(var count in new[] { WordCount.Twelve, WordCount.TwentyFour, WordCount.TwentyOne, WordCount.Fifteen, WordCount.Eighteen })
 			{
-				Assert.Equal((int)count, new MnemonicSequence(Wordlist.English, count).Words.Length);
+				Assert.Equal((int)count, new MnemonicSequence(WordList.English, count).Words.Length);
 			}
 		}
 
@@ -29,9 +29,9 @@ namespace BitcoinNet.Mnemonic.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanDetectBadChecksum()
 		{
-			var mnemonic = new MnemonicSequence("turtle front uncle idea crush write shrug there lottery flower risk shell", Wordlist.English);
+			var mnemonic = new MnemonicSequence("turtle front uncle idea crush write shrug there lottery flower risk shell", WordList.English);
 			Assert.True(mnemonic.IsValidChecksum);
-			mnemonic = new MnemonicSequence("front front uncle idea crush write shrug there lottery flower risk shell", Wordlist.English);
+			mnemonic = new MnemonicSequence("front front uncle idea crush write shrug there lottery flower risk shell", WordList.English);
 			Assert.False(mnemonic.IsValidChecksum);
 		}
 
@@ -40,20 +40,20 @@ namespace BitcoinNet.Mnemonic.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void CanCheckBIP39TestVectors()
 		{
-			CanCheckBIP39TestVectorsCore("fr", Wordlist.French);
-			CanCheckBIP39TestVectorsCore("ja", Wordlist.Japanese);
-			CanCheckBIP39TestVectorsCore("es", Wordlist.Spanish);
-			CanCheckBIP39TestVectorsCore("en", Wordlist.English);
-			CanCheckBIP39TestVectorsCore("zh-CN", Wordlist.ChineseSimplified);
-			CanCheckBIP39TestVectorsCore("zh-TW", Wordlist.ChineseTraditional);
+			CanCheckBIP39TestVectorsCore("fr", WordList.French);
+			CanCheckBIP39TestVectorsCore("ja", WordList.Japanese);
+			CanCheckBIP39TestVectorsCore("es", WordList.Spanish);
+			CanCheckBIP39TestVectorsCore("en", WordList.English);
+			CanCheckBIP39TestVectorsCore("zh-CN", WordList.ChineseSimplified);
+			CanCheckBIP39TestVectorsCore("zh-TW", WordList.ChineseTraditional);
 		}
 
-		private void CanCheckBIP39TestVectorsCore(string file, Wordlist wordlist)
+		private void CanCheckBIP39TestVectorsCore(string file, WordList wordList)
 		{
 			var tests = JArray.Parse(File.ReadAllText($"Data/bip39_vectors.{file}.json"));
 			foreach(var test in tests.Children().OfType<JObject>())
 			{
-				var mnemonic = new MnemonicSequence(test["mnemonic"].Value<string>(), wordlist);
+				var mnemonic = new MnemonicSequence(test["mnemonic"].Value<string>(), wordList);
 				var actual = mnemonic.DeriveExtKey(test["passphrase"].Value<string>()).GetWif(Network.Main);
 				var expected = new BitcoinExtKey(test["bip32_xprv"].Value<string>(), Network.Main);
 				Assert.Equal(actual, expected);
@@ -108,13 +108,13 @@ namespace BitcoinNet.Mnemonic.Tests
 				string mnemonicStr = unitTest["mnemonic"].ToString();
 				string seed = unitTest["seed"].ToString();
 				string passphrase = unitTest["passphrase"].ToString();
-				var mnemonic = new MnemonicSequence(mnemonicStr, Wordlist.Japanese);
+				var mnemonic = new MnemonicSequence(mnemonicStr, WordList.Japanese);
 				Assert.True(mnemonic.IsValidChecksum);
 				Assert.Equal(seed, Encoders.Hex.EncodeData(mnemonic.DeriveSeed(passphrase)));
 				var bip32 = unitTest["bip32_xprv"].ToString();
 				var bip32Actual = mnemonic.DeriveExtKey(passphrase).ToString(Network.Main);
 				Assert.Equal(bip32, bip32Actual.ToString());
-				mnemonic = new MnemonicSequence(Wordlist.Japanese, entropy);
+				mnemonic = new MnemonicSequence(WordList.Japanese, entropy);
 				Assert.True(mnemonic.IsValidChecksum);
 				bip32Actual = mnemonic.DeriveExtKey(passphrase).ToString(Network.Main);
 				Assert.Equal(bip32, bip32Actual.ToString());
@@ -125,56 +125,56 @@ namespace BitcoinNet.Mnemonic.Tests
 		[Trait("UnitTest", "UnitTest")]
 		public void TestKnownEnglish()
 		{
-			Assert.Equal(Language.English, Wordlist.AutoDetectLanguage(new string[] { "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "about" }));
+			Assert.Equal(Language.English, WordList.AutoDetectLanguage(new string[] { "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "abandon", "about" }));
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void TestKnownJapenese()
 		{
-			Assert.Equal(Language.Japanese, Wordlist.AutoDetectLanguage(new string[] { "あいこくしん", "あいさつ", "あいだ", "あおぞら", "あかちゃん", "あきる", "あけがた", "あける", "あこがれる", "あさい", "あさひ", "あしあと", "あじわう", "あずかる", "あずき", "あそぶ", "あたえる", "あたためる", "あたりまえ", "あたる", "あつい", "あつかう", "あっしゅく", "あつまり", "あつめる", "あてな", "あてはまる", "あひる", "あぶら", "あぶる", "あふれる", "あまい", "あまど", "あまやかす", "あまり", "あみもの", "あめりか" }));
+			Assert.Equal(Language.Japanese, WordList.AutoDetectLanguage(new string[] { "あいこくしん", "あいさつ", "あいだ", "あおぞら", "あかちゃん", "あきる", "あけがた", "あける", "あこがれる", "あさい", "あさひ", "あしあと", "あじわう", "あずかる", "あずき", "あそぶ", "あたえる", "あたためる", "あたりまえ", "あたる", "あつい", "あつかう", "あっしゅく", "あつまり", "あつめる", "あてな", "あてはまる", "あひる", "あぶら", "あぶる", "あふれる", "あまい", "あまど", "あまやかす", "あまり", "あみもの", "あめりか" }));
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void TestKnownSpanish()
 		{
-			Assert.Equal(Language.Spanish, Wordlist.AutoDetectLanguage(new string[] { "yoga", "yogur", "zafiro", "zanja", "zapato", "zarza", "zona", "zorro", "zumo", "zurdo" }));
+			Assert.Equal(Language.Spanish, WordList.AutoDetectLanguage(new string[] { "yoga", "yogur", "zafiro", "zanja", "zapato", "zarza", "zona", "zorro", "zumo", "zurdo" }));
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void TestKnownFrench()
 		{
-			Assert.Equal(Language.French, Wordlist.AutoDetectLanguage(new string[] { "abusif", "antidote" }));
+			Assert.Equal(Language.French, WordList.AutoDetectLanguage(new string[] { "abusif", "antidote" }));
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void TestKnownChineseSimplified()
 		{
-			Assert.Equal(Language.ChineseSimplified, Wordlist.AutoDetectLanguage(new string[] { "的", "一", "是", "在", "不", "了", "有", "和", "人", "这" }));
+			Assert.Equal(Language.ChineseSimplified, WordList.AutoDetectLanguage(new string[] { "的", "一", "是", "在", "不", "了", "有", "和", "人", "这" }));
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void TestKnownChineseTraditional()
 		{
-			Assert.Equal(Language.ChineseTraditional, Wordlist.AutoDetectLanguage(new string[] { "的", "一", "是", "在", "不", "了", "有", "和", "載" }));
+			Assert.Equal(Language.ChineseTraditional, WordList.AutoDetectLanguage(new string[] { "的", "一", "是", "在", "不", "了", "有", "和", "載" }));
 		}
 
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void TestKnownUnknown()
 		{
-			Assert.Equal(Language.Unknown, Wordlist.AutoDetectLanguage(new string[] { "gffgfg", "khjkjk", "kjkkj" }));
+			Assert.Equal(Language.Unknown, WordList.AutoDetectLanguage(new string[] { "gffgfg", "khjkjk", "kjkkj" }));
 		}
 
 
-		private Wordlist GetList(string lang)
+		private WordList GetList(string lang)
 		{
 			if(lang == "english")
-				return Wordlist.English;
+				return WordList.English;
 			throw new NotSupportedException(lang);
 		}
 	}
@@ -187,7 +187,7 @@ namespace BitcoinNet.Mnemonic.Tests
 			StringBuilder builder = new StringBuilder();
 			foreach(var lang in new[] { Language.ChineseSimplified, Language.ChineseTraditional, Language.English, Language.Japanese, Language.Spanish, Language.French })
 			{
-				string name = Wordlist.GetLanguageFileName(lang);
+				string name = WordList.GetLanguageFileName(lang);
 				builder.AppendLine("dico.Add(\"" + name + "\",\"" + GetLanguage(lang) + "\");");
 			}
 			var dico = builder.ToString();
@@ -288,7 +288,7 @@ namespace BitcoinNet.Mnemonic.Tests
 
 		private string GetLanguage(Language lang)
 		{
-			string name = Wordlist.GetLanguageFileName(lang);
+			string name = WordList.GetLanguageFileName(lang);
 			System.Net.Http.HttpClient client = new System.Net.Http.HttpClient();
 			var data = client.GetAsync("https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/" + name + ".txt").Result.Content.ReadAsStringAsync().Result;
 			return data.Replace("\n", "\\n");

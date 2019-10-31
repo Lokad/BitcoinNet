@@ -1,9 +1,5 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
+using Newtonsoft.Json;
 
 namespace BitcoinNet.JsonRpc.JsonConverters
 {
@@ -14,11 +10,12 @@ namespace BitcoinNet.JsonRpc.JsonConverters
 			return objectType == typeof(LockTime);
 		}
 
-		public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+		public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
+			JsonSerializer serializer)
 		{
 			try
 			{
-				return reader.TokenType == JsonToken.Null ? LockTime.Zero : new LockTime((uint)reader.Value);
+				return reader.TokenType == JsonToken.Null ? LockTime.Zero : new LockTime((uint) reader.Value);
 			}
 			catch
 			{
@@ -28,9 +25,9 @@ namespace BitcoinNet.JsonRpc.JsonConverters
 
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			if(value != null)
+			if (value != null)
 			{
-				writer.WriteValue(((LockTime)value).Value);
+				writer.WriteValue(((LockTime) value).Value);
 			}
 		}
 	}

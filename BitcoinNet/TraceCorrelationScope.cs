@@ -1,116 +1,85 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet
 {
 	public class TraceCorrelationScope : IDisposable
 	{
-		private Guid old;
+		private readonly TraceSource _source;
+		private readonly bool _transferred;
 
-		public Guid OldActivity
-		{
-			get
-			{
-				return old;
-			}
-			private set
-			{
-				old = value;
-			}
-		}
-
-		bool _Transfered;
-
-		TraceSource _Source;
 		public TraceCorrelationScope(Guid activity, TraceSource source, bool traceTransfer)
 		{
-			this.old = Trace.CorrelationManager.ActivityId;
+			OldActivity = Trace.CorrelationManager.ActivityId;
 
-			_Transfered = old != activity && traceTransfer;
-			if(_Transfered)
+			_transferred = OldActivity != activity && traceTransfer;
+			if (_transferred)
 			{
-				_Source = source;
-				_Source.TraceTransfer(0, "t", activity);
+				_source = source;
+				_source.TraceTransfer(0, "t", activity);
 			}
+
 			Trace.CorrelationManager.ActivityId = activity;
 		}
+
+		public Guid OldActivity { get; }
 
 		// IDisposable Members
 
 		public void Dispose()
 		{
-			if(_Transfered)
+			if (_transferred)
 			{
-				_Source.TraceTransfer(0, "transfer", old);
+				_source.TraceTransfer(0, "transfer", OldActivity);
 			}
-			Trace.CorrelationManager.ActivityId = old;
+
+			Trace.CorrelationManager.ActivityId = OldActivity;
 		}
 	}
 
 	public class TraceCorrelation
 	{
+		private readonly string _activityName;
+		private readonly TraceSource _source;
+		private volatile bool _first = true;
 
-		TraceSource _Source;
-		string _ActivityName;
 		public TraceCorrelation(TraceSource source, string activityName)
 			: this(Guid.NewGuid(), source, activityName)
 		{
-
 		}
+
 		public TraceCorrelation(Guid activity, TraceSource source, string activityName)
 		{
-			_Source = source;
-			_ActivityName = activityName;
-			this.activity = activity;
+			_source = source;
+			_activityName = activityName;
+			Activity = activity;
 		}
 
-		Guid activity;
-		public Guid Activity
-		{
-			get
-			{
-				return activity;
-			}
-			private set
-			{
-				activity = value;
-			}
-		}
+		public Guid Activity { get; }
 
-		volatile bool _First = true;
 		public TraceCorrelationScope Open(bool traceTransfer = true)
 		{
-			var scope = new TraceCorrelationScope(activity, _Source, traceTransfer);
-			if(_First)
+			var scope = new TraceCorrelationScope(Activity, _source, traceTransfer);
+			if (_first)
 			{
-				_First = false;
-				_Source.TraceEvent(TraceEventType.Start, 0, _ActivityName);
+				_first = false;
+				_source.TraceEvent(TraceEventType.Start, 0, _activityName);
 			}
+
 			return scope;
 		}
 
 		public void LogInside(Action act, bool traceTransfer = true)
 		{
-			using(Open(traceTransfer))
+			using (Open(traceTransfer))
 			{
 				act();
 			}
 		}
 
-
-
-
-
-
-
-
 		public override string ToString()
 		{
-			return _ActivityName;
+			return _activityName;
 		}
 	}
 }

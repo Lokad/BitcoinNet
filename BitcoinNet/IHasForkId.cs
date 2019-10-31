@@ -1,14 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace BitcoinNet
+﻿namespace BitcoinNet
 {
-    public interface IHasForkId
-    {
-		uint ForkId
-		{
-			get;
-		}
-    }
+	public interface IHasForkId
+	{
+		uint ForkId { get; }
+	}
 }

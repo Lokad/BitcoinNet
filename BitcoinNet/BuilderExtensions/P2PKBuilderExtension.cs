@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet.BuilderExtensions
@@ -47,8 +43,11 @@ namespace BitcoinNet.BuilderExtensions
 		public override Script GenerateScriptSig(Script scriptPubKey, IKeyRepository keyRepo, ISigner signer)
 		{
 			var key = keyRepo.FindKey(scriptPubKey);
-			if(key == null)
+			if (key == null)
+			{
 				return null;
+			}
+
 			var sig = signer.Sign(key);
 			return PayToPubkeyTemplate.Instance.GenerateScriptSig(sig);
 		}

@@ -1,132 +1,103 @@
-﻿using BitcoinNet.DataEncoders;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using BitcoinNet.DataEncoders;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {
 	public class BitcoinSecret : Base58Data, IDestination, ISecret
 	{
+		private BitcoinPubKeyAddress _address;
+		private Key _key;
+
 		public BitcoinSecret(Key key, Network network)
 			: base(ToBytes(key), network)
 		{
 		}
 
-		private static byte[] ToBytes(Key key)
-		{
-			var keyBytes = key.ToBytes();
-			if(!key.IsCompressed)
-				return keyBytes;
-			else
-				return keyBytes.Concat(new byte[] { 0x01 }).ToArray();
-		}
 		public BitcoinSecret(string base58, Network expectedAddress = null)
 		{
 			Init<BitcoinSecret>(base58, expectedAddress);
 		}
 
-		private BitcoinPubKeyAddress _address;
+		public virtual KeyId PubKeyHash => PrivateKey.PubKey.Hash;
 
-		public BitcoinPubKeyAddress GetAddress()
-		{
-			return _address ?? (_address = PrivateKey.PubKey.GetAddress(Network));
-		}
-		
-		public virtual KeyId PubKeyHash
-		{
-			get
-			{
-				return PrivateKey.PubKey.Hash;
-			}
-		}
-
-		public PubKey PubKey
-		{
-			get
-			{
-				return PrivateKey.PubKey;
-			}
-		}
-
-		// ISecret Members
-
-		Key _Key;
-		public Key PrivateKey
-		{
-			get
-			{
-				return _Key ?? (_Key = new Key(vchData, 32, IsCompressed));
-			}
-		}
+		public PubKey PubKey => PrivateKey.PubKey;
 
 		protected override bool IsValid
 		{
 			get
 			{
-				if(vchData.Length != 33 && vchData.Length != 32)
+				if (_vchData.Length != 33 && _vchData.Length != 32)
+				{
 					return false;
+				}
 
-				if(vchData.Length == 33 && IsCompressed)
+				if (_vchData.Length == 33 && IsCompressed)
+				{
 					return true;
-				if(vchData.Length == 32 && !IsCompressed)
+				}
+
+				if (_vchData.Length == 32 && !IsCompressed)
+				{
 					return true;
+				}
+
 				return false;
 			}
 		}
 
-		public BitcoinSecret Copy(bool? compressed)
-		{
-			if(compressed == null)
-				compressed = IsCompressed;
+		public bool IsCompressed => _vchData.Length > 32 && _vchData[32] == 1;
 
-			if(compressed.Value && IsCompressed)
-			{
-				return new BitcoinSecret(wifData, Network);
-			}
-			else
-			{
-				byte[] result = Encoders.Base58Check.DecodeData(wifData);
-				var resultList = result.ToList();
-
-				if(compressed.Value)
-				{
-					resultList.Insert(resultList.Count, 0x1);
-				}
-				else
-				{
-					resultList.RemoveAt(resultList.Count - 1);
-				}
-				return new BitcoinSecret(Encoders.Base58Check.EncodeData(resultList.ToArray()), Network);
-			}
-		}
-
-		public bool IsCompressed
-		{
-			get
-			{
-				return vchData.Length > 32 && vchData[32] == 1;
-			}
-		}
-
-		public override Base58Type Type
-		{
-			get
-			{
-				return Base58Type.SECRET_KEY;
-			}
-		}
+		public override Base58Type Type => Base58Type.SECRET_KEY;
 
 		// IDestination Members
 
-		public Script ScriptPubKey
+		public Script ScriptPubKey => GetAddress().ScriptPubKey;
+
+		public Key PrivateKey => _key ?? (_key = new Key(_vchData, 32, IsCompressed));
+
+		private static byte[] ToBytes(Key key)
 		{
-			get
+			var keyBytes = key.ToBytes();
+			if (!key.IsCompressed)
 			{
-				return GetAddress().ScriptPubKey;
+				return keyBytes;
 			}
+
+			return keyBytes.Concat(new byte[] {0x01}).ToArray();
+		}
+
+		public BitcoinPubKeyAddress GetAddress()
+		{
+			return _address ?? (_address = PrivateKey.PubKey.GetAddress(Network));
+		}
+
+		public BitcoinSecret Copy(bool? compressed)
+		{
+			if (compressed == null)
+			{
+				compressed = IsCompressed;
+			}
+
+			if (compressed.Value && IsCompressed)
+			{
+				return new BitcoinSecret(_wifData, Network);
+			}
+
+			var result = Encoders.Base58Check.DecodeData(_wifData);
+			var resultList = result.ToList();
+
+			if (compressed.Value)
+			{
+				resultList.Insert(resultList.Count, 0x1);
+			}
+			else
+			{
+				resultList.RemoveAt(resultList.Count - 1);
+			}
+
+			return new BitcoinSecret(Encoders.Base58Check.EncodeData(resultList.ToArray()), Network);
 		}
 	}
 }

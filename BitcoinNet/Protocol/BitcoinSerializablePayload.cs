@@ -1,38 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Protocol
+﻿namespace BitcoinNet.Protocol
 {
 	public class BitcoinSerializablePayload<T> : Payload where T : IBitcoinSerializable, new()
 	{
+		private T _object = new T();
+
 		public BitcoinSerializablePayload()
 		{
-
 		}
+
 		public BitcoinSerializablePayload(T obj)
 		{
-			_Object = obj;
+			_object = obj;
 		}
-		T _Object = new T();
+
 		public T Object
 		{
-			get
-			{
-				return _Object;
-			}
-			set
-			{
-				_Object = value;
-			}
+			get => _object;
+			set => _object = value;
 		}
+
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			if(!stream.Serializing)
-				_Object = default(T);
-			stream.ReadWrite(ref _Object);
+			if (!stream.Serializing)
+			{
+				_object = default;
+			}
+
+			stream.ReadWrite(ref _object);
 		}
 	}
 }

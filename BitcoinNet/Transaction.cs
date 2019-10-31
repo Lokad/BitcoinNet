@@ -1,91 +1,34 @@
-﻿using BitcoinNet.Crypto;
-using BitcoinNet.DataEncoders;
-using BitcoinNet.Protocol;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using BitcoinNet.Crypto;
+using BitcoinNet.DataEncoders;
+using BitcoinNet.Protocol;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {
 	public class OutPoint : IBitcoinSerializable
 	{
-		public bool IsNull
-		{
-			get
-			{
-				return (hash == uint256.Zero && n == uint.MaxValue);
-			}
-		}
-		private uint256 hash = uint256.Zero;
-		private uint n;
-
-
-		public uint256 Hash
-		{
-			get
-			{
-				return hash;
-			}
-			set
-			{
-				hash = value;
-			}
-		}
-		public uint N
-		{
-			get
-			{
-				return n;
-			}
-			set
-			{
-				n = value;
-			}
-		}
-
-		public static bool TryParse(string str, out OutPoint result)
-		{
-			result = null;
-			if (str == null)
-				throw new ArgumentNullException("str");
-			var splitted = str.Split('-');
-			if (splitted.Length != 2)
-				return false;
-
-			uint256 hash;
-			if (!uint256.TryParse(splitted[0], out hash))
-				return false;
-
-			uint index;
-			if (!uint.TryParse(splitted[1], out index))
-				return false;
-			result = new OutPoint(hash, index);
-			return true;
-		}
-
-		public static OutPoint Parse(string str)
-		{
-			OutPoint result;
-			if (TryParse(str, out result))
-				return result;
-			throw new FormatException("The format of the outpoint is incorrect");
-		}
+		private uint256 _hash = uint256.Zero;
+		private uint _n;
 
 		public OutPoint()
 		{
 			SetNull();
 		}
+
 		public OutPoint(uint256 hashIn, uint nIn)
 		{
-			hash = hashIn;
-			n = nIn;
+			_hash = hashIn;
+			_n = nIn;
 		}
+
 		public OutPoint(uint256 hashIn, int nIn)
 		{
-			hash = hashIn;
-			this.n = nIn == -1 ? n = uint.MaxValue : (uint)nIn;
+			_hash = hashIn;
+			_n = nIn == -1 ? _n = uint.MaxValue : (uint) nIn;
 		}
 
 		public OutPoint(Transaction tx, uint i)
@@ -102,52 +45,112 @@ namespace BitcoinNet
 		{
 			this.FromBytes(outpoint.ToBytes());
 		}
+
+		public bool IsNull => _hash == uint256.Zero && _n == uint.MaxValue;
+
+
+		public uint256 Hash
+		{
+			get => _hash;
+			set => _hash = value;
+		}
+
+		public uint N
+		{
+			get => _n;
+			set => _n = value;
+		}
 		//IMPLEMENT_SERIALIZE( READWRITE(FLATDATA(*this)); )
 
 		public void ReadWrite(BitcoinStream stream)
 		{
-			stream.ReadWrite(ref hash);
-			stream.ReadWrite(ref n);
+			stream.ReadWrite(ref _hash);
+			stream.ReadWrite(ref _n);
+		}
+
+		public static bool TryParse(string str, out OutPoint result)
+		{
+			result = null;
+			if (str == null)
+			{
+				throw new ArgumentNullException("str");
+			}
+
+			var splitted = str.Split('-');
+			if (splitted.Length != 2)
+			{
+				return false;
+			}
+
+			if (!uint256.TryParse(splitted[0], out var hash))
+			{
+				return false;
+			}
+
+			if (!uint.TryParse(splitted[1], out var index))
+			{
+				return false;
+			}
+
+			result = new OutPoint(hash, index);
+			return true;
+		}
+
+		public static OutPoint Parse(string str)
+		{
+			if (TryParse(str, out var result))
+			{
+				return result;
+			}
+
+			throw new FormatException("The format of the outpoint is incorrect");
 		}
 
 
-		void SetNull()
+		private void SetNull()
 		{
-			hash = uint256.Zero;
-			n = uint.MaxValue;
+			_hash = uint256.Zero;
+			_n = uint.MaxValue;
 		}
 
 		public static bool operator <(OutPoint a, OutPoint b)
 		{
-			return (a.hash < b.hash || (a.hash == b.hash && a.n < b.n));
+			return a._hash < b._hash || a._hash == b._hash && a._n < b._n;
 		}
+
 		public static bool operator >(OutPoint a, OutPoint b)
 		{
-			return (a.hash > b.hash || (a.hash == b.hash && a.n > b.n));
+			return a._hash > b._hash || a._hash == b._hash && a._n > b._n;
 		}
 
 		public static bool operator ==(OutPoint a, OutPoint b)
 		{
-			if (Object.ReferenceEquals(a, null))
+			if (ReferenceEquals(a, null))
 			{
-				return Object.ReferenceEquals(b, null);
+				return ReferenceEquals(b, null);
 			}
-			if (Object.ReferenceEquals(b, null))
+
+			if (ReferenceEquals(b, null))
 			{
 				return false;
 			}
-			return (a.hash == b.hash && a.n == b.n);
+
+			return a._hash == b._hash && a._n == b._n;
 		}
 
 		public static bool operator !=(OutPoint a, OutPoint b)
 		{
 			return !(a == b);
 		}
+
 		public override bool Equals(object obj)
 		{
-			OutPoint item = obj as OutPoint;
-			if (object.ReferenceEquals(null, item))
+			var item = obj as OutPoint;
+			if (ReferenceEquals(null, item))
+			{
 				return false;
+			}
+
 			return item == this;
 		}
 
@@ -155,7 +158,7 @@ namespace BitcoinNet
 		{
 			unchecked
 			{
-				return 17 + hash.GetHashCode() * 31 + n.GetHashCode() * 31 * 31;
+				return 17 + _hash.GetHashCode() * 31 + _n.GetHashCode() * 31 * 31;
 			}
 		}
 
@@ -168,80 +171,68 @@ namespace BitcoinNet
 
 	public class TxIn : IBitcoinSerializable
 	{
+		protected uint _nSequence = uint.MaxValue;
+		protected OutPoint _prevout = new OutPoint();
+		protected Script _scriptSig = Script.Empty;
+
 		public TxIn()
 		{
-
 		}
+
 		public TxIn(Script scriptSig)
 		{
-			this.scriptSig = scriptSig;
+			_scriptSig = scriptSig;
 		}
+
 		public TxIn(OutPoint prevout, Script scriptSig)
 		{
-			this.prevout = prevout;
-			this.scriptSig = scriptSig;
+			_prevout = prevout;
+			_scriptSig = scriptSig;
 		}
+
 		public TxIn(OutPoint prevout)
 		{
-			this.prevout = prevout;
+			_prevout = prevout;
 		}
-		protected OutPoint prevout = new OutPoint();
-		protected Script scriptSig = Script.Empty;
-		protected uint nSequence = uint.MaxValue;
 
 		public Sequence Sequence
 		{
-			get
-			{
-				return nSequence;
-			}
-			set
-			{
-				nSequence = value.Value;
-			}
+			get => _nSequence;
+			set => _nSequence = value.Value;
 		}
+
 		public OutPoint PrevOut
 		{
-			get
-			{
-				return prevout;
-			}
-			set
-			{
-				prevout = value;
-			}
+			get => _prevout;
+			set => _prevout = value;
 		}
 
 
 		public Script ScriptSig
 		{
-			get
-			{
-				return scriptSig;
-			}
-			set
-			{
-				scriptSig = value;
-			}
+			get => _scriptSig;
+			set => _scriptSig = value;
 		}
 
+		public bool IsFinal => _nSequence == uint.MaxValue;
 
-		/// <summary>
-		/// Try to get the expected scriptPubKey of this TxIn based on its scriptSig and witScript.
-		/// </summary>
-		/// <returns>Null if could not infer the scriptPubKey, else, the expected scriptPubKey</returns>
-		public IDestination GetSigner()
-		{
-			return scriptSig.GetSigner();
-		}
-		
 		// IBitcoinSerializable Members
 
 		public virtual void ReadWrite(BitcoinStream stream)
 		{
-			stream.ReadWrite(ref prevout);
-			stream.ReadWrite(ref scriptSig);
-			stream.ReadWrite(ref nSequence);
+			stream.ReadWrite(ref _prevout);
+			stream.ReadWrite(ref _scriptSig);
+			stream.ReadWrite(ref _nSequence);
+		}
+
+
+		/// <summary>
+		///     Try to get the expected scriptPubKey of this TxIn based on its scriptSig and witScript.
+		/// </summary>
+		/// <returns>Null if could not infer the scriptPubKey, else, the expected scriptPubKey</returns>
+		public IDestination GetSigner()
+		{
+			return _scriptSig.GetSigner();
 		}
 
 		public bool IsFrom(PubKey pubKey)
@@ -250,24 +241,20 @@ namespace BitcoinNet
 			return result != null && result.PublicKey == pubKey;
 		}
 
-		public bool IsFinal
-		{
-			get
-			{
-				return (nSequence == uint.MaxValue);
-			}
-		}
-		
 		public virtual ConsensusFactory GetConsensusFactory()
 		{
 			return BitcoinCash.Instance.Mainnet.Consensus.ConsensusFactory;
 		}
+
 		public virtual TxIn Clone()
 		{
 			var consensusFactory = GetConsensusFactory();
 			if (!consensusFactory.TryCreateNew<TxIn>(out var txin))
+			{
 				txin = new TxIn();
-			txin.ReadWrite(new BitcoinStream(this.ToBytes()) { ConsensusFactory = consensusFactory });
+			}
+
+			txin.ReadWrite(new BitcoinStream(this.ToBytes()) {ConsensusFactory = consensusFactory});
 			//txin.WitScript = (witScript ?? WitScript.Empty).Clone();
 			return txin;
 		}
@@ -282,6 +269,40 @@ namespace BitcoinNet
 
 	public class TxOutCompressor : IBitcoinSerializable
 	{
+		public TxOutCompressor()
+		{
+		}
+
+		public TxOutCompressor(TxOut txOut)
+		{
+			TxOut = txOut;
+		}
+
+		public TxOut TxOut { get; } = new TxOut();
+
+		// IBitcoinSerializable Members
+
+		public void ReadWrite(BitcoinStream stream)
+		{
+			if (stream.Serializing)
+			{
+				var val = CompressAmount((ulong) TxOut.Value.Satoshi);
+				stream.ReadWriteAsCompactVarInt(ref val);
+			}
+			else
+			{
+				ulong val = 0;
+				stream.ReadWriteAsCompactVarInt(ref val);
+				TxOut.Value = new Money(DecompressAmount(val));
+			}
+
+			var cscript = new ScriptCompressor(TxOut.ScriptPubKey);
+			stream.ReadWrite(ref cscript);
+			if (!stream.Serializing)
+			{
+				TxOut.ScriptPubKey = new Script(cscript.ScriptBytes);
+			}
+		}
 		// Amount compression:
 		// * If the amount is 0, output 0
 		// * first, divide the amount (in base units) by the largest power of 10 possible; call the exponent e (e is max 9)
@@ -291,95 +312,63 @@ namespace BitcoinNet
 		// * if e==9, we only know the resulting number is not zero, so output 1 + 10*(n - 1) + 9
 		// (this is decodable, as d is in [1-9] and e is in [0-9])
 
-		ulong CompressAmount(ulong n)
+		private ulong CompressAmount(ulong n)
 		{
 			if (n == 0)
+			{
 				return 0;
-			int e = 0;
-			while (((n % 10) == 0) && e < 9)
+			}
+
+			var e = 0;
+			while (n % 10 == 0 && e < 9)
 			{
 				n /= 10;
 				e++;
 			}
+
 			if (e < 9)
 			{
-				int d = (int)(n % 10);
+				var d = (int) (n % 10);
 				n /= 10;
-				return 1 + (n * 9 + (ulong)(d - 1)) * 10 + (ulong)e;
+				return 1 + (n * 9 + (ulong) (d - 1)) * 10 + (ulong) e;
 			}
-			else
-			{
-				return 1 + (n - 1) * 10 + 9;
-			}
+
+			return 1 + (n - 1) * 10 + 9;
 		}
 
-		ulong DecompressAmount(ulong x)
+		private ulong DecompressAmount(ulong x)
 		{
 			// x = 0  OR  x = 1+10*(9*n + d - 1) + e  OR  x = 1+10*(n - 1) + 9
 			if (x == 0)
+			{
 				return 0;
+			}
+
 			x--;
 			// x = 10*(9*n + d - 1) + e
-			int e = (int)(x % 10);
+			var e = (int) (x % 10);
 			x /= 10;
 			ulong n = 0;
 			if (e < 9)
 			{
 				// x = 9*n + d - 1
-				int d = (int)((x % 9) + 1);
+				var d = (int) (x % 9 + 1);
 				x /= 9;
 				// x = n
-				n = (x * 10 + (ulong)d);
+				n = x * 10 + (ulong) d;
 			}
 			else
 			{
 				n = x + 1;
 			}
+
 			while (e != 0)
 			{
 				n *= 10;
 				e--;
 			}
+
 			return n;
-		}
-
-
-		private TxOut _TxOut = new TxOut();
-		public TxOut TxOut
-		{
-			get
-			{
-				return _TxOut;
-			}
-		}
-		public TxOutCompressor()
-		{
-
-		}
-		public TxOutCompressor(TxOut txOut)
-		{
-			_TxOut = txOut;
-		}
-
-		// IBitcoinSerializable Members
-
-		public void ReadWrite(BitcoinStream stream)
-		{
-			if (stream.Serializing)
-			{
-				ulong val = CompressAmount((ulong)_TxOut.Value.Satoshi);
-				stream.ReadWriteAsCompactVarInt(ref val);
-			}
-			else
-			{
-				ulong val = 0;
-				stream.ReadWriteAsCompactVarInt(ref val);
-				_TxOut.Value = new Money(DecompressAmount(val));
-			}
-			ScriptCompressor cscript = new ScriptCompressor(_TxOut.ScriptPubKey);
-			stream.ReadWrite(ref cscript);
-			if (!stream.Serializing)
-				_TxOut.ScriptPubKey = new Script(cscript.ScriptBytes);
 		}
 	}
 
@@ -389,95 +378,19 @@ namespace BitcoinNet
 		// this can potentially be extended together with a new nVersion for
 		// transactions, in which case this value becomes dependent on nVersion
 		// and nHeight of the enclosing transaction.
-		const uint nSpecialScripts = 6;
-		byte[] _Script;
-		public byte[] ScriptBytes
-		{
-			get
-			{
-				return _Script;
-			}
-		}
+		private const uint NSpecialScripts = 6;
+		private byte[] _script;
+
 		public ScriptCompressor(Script script)
 		{
-			_Script = script.ToBytes(true);
+			_script = script.ToBytes(true);
 		}
+
 		public ScriptCompressor()
 		{
-
 		}
 
-		public Script GetScript()
-		{
-			return new Script(_Script);
-		}
-
-		byte[] Compress()
-		{
-			byte[] result = null;
-			var script = Script.FromBytesUnsafe(_Script);
-			KeyId keyID = PayToPubkeyHashTemplate.Instance.ExtractScriptPubKeyParameters(script);
-			if (keyID != null)
-			{
-				result = new byte[21];
-				result[0] = 0x00;
-				Array.Copy(keyID.ToBytes(true), 0, result, 1, 20);
-				return result;
-			}
-			ScriptId scriptID = PayToScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(script);
-			if (scriptID != null)
-			{
-				result = new byte[21];
-				result[0] = 0x01;
-				Array.Copy(scriptID.ToBytes(true), 0, result, 1, 20);
-				return result;
-			}
-			PubKey pubkey = PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(script, true);
-			if (pubkey != null)
-			{
-				result = new byte[33];
-				var pubBytes = pubkey.ToBytes(true);
-				Array.Copy(pubBytes, 1, result, 1, 32);
-				if (pubBytes[0] == 0x02 || pubBytes[0] == 0x03)
-				{
-					result[0] = pubBytes[0];
-					return result;
-				}
-				else if (pubBytes[0] == 0x04)
-				{
-					result[0] = (byte)(0x04 | (pubBytes[64] & 0x01));
-					return result;
-				}
-			}
-			return null;
-		}
-
-		Script Decompress(uint nSize, byte[] data)
-		{
-			switch (nSize)
-			{
-				case 0x00:
-					return PayToPubkeyHashTemplate.Instance.GenerateScriptPubKey(new KeyId(data.SafeSubarray(0, 20)));
-				case 0x01:
-					return PayToScriptHashTemplate.Instance.GenerateScriptPubKey(new ScriptId(data.SafeSubarray(0, 20)));
-				case 0x02:
-				case 0x03:
-					var keyPart = data.SafeSubarray(0, 32);
-					var keyBytes = new byte[33];
-					keyBytes[0] = (byte)nSize;
-					Array.Copy(keyPart, 0, keyBytes, 1, 32);
-					return PayToPubkeyTemplate.Instance.GenerateScriptPubKey(keyBytes);
-				case 0x04:
-				case 0x05:
-					byte[] vch = new byte[33];
-					vch[0] = (byte)(nSize - 2);
-					Array.Copy(data, 0, vch, 1, 32);
-					PubKey pubkey = new PubKey(vch, true);
-					pubkey = pubkey.Decompress();
-					return PayToPubkeyTemplate.Instance.GenerateScriptPubKey(pubkey);
-			}
-			return null;
-		}
+		public byte[] ScriptBytes => _script;
 
 		// IBitcoinSerializable Members
 
@@ -491,62 +404,139 @@ namespace BitcoinNet
 					stream.ReadWrite(ref compr);
 					return;
 				}
-				uint nSize = (uint)_Script.Length + nSpecialScripts;
+
+				var nSize = (uint) _script.Length + NSpecialScripts;
 				stream.ReadWriteAsCompactVarInt(ref nSize);
-				stream.ReadWrite(ref _Script);
+				stream.ReadWrite(ref _script);
 			}
 			else
 			{
 				uint nSize = 0;
 				stream.ReadWriteAsCompactVarInt(ref nSize);
-				if (nSize < nSpecialScripts)
+				if (nSize < NSpecialScripts)
 				{
-					byte[] vch = new byte[GetSpecialSize(nSize)];
+					var vch = new byte[GetSpecialSize(nSize)];
 					stream.ReadWrite(ref vch);
-					_Script = Decompress(nSize, vch).ToBytes();
+					_script = Decompress(nSize, vch).ToBytes();
 					return;
 				}
-				nSize -= nSpecialScripts;
-				_Script = new byte[nSize];
-				stream.ReadWrite(ref _Script);
+
+				nSize -= NSpecialScripts;
+				_script = new byte[nSize];
+				stream.ReadWrite(ref _script);
 			}
+		}
+
+		public Script GetScript()
+		{
+			return new Script(_script);
+		}
+
+		private byte[] Compress()
+		{
+			byte[] result = null;
+			var script = Script.FromBytesUnsafe(_script);
+			var keyID = PayToPubkeyHashTemplate.Instance.ExtractScriptPubKeyParameters(script);
+			if (keyID != null)
+			{
+				result = new byte[21];
+				result[0] = 0x00;
+				Array.Copy(keyID.ToBytes(true), 0, result, 1, 20);
+				return result;
+			}
+
+			var scriptID = PayToScriptHashTemplate.Instance.ExtractScriptPubKeyParameters(script);
+			if (scriptID != null)
+			{
+				result = new byte[21];
+				result[0] = 0x01;
+				Array.Copy(scriptID.ToBytes(true), 0, result, 1, 20);
+				return result;
+			}
+
+			var pubkey = PayToPubkeyTemplate.Instance.ExtractScriptPubKeyParameters(script, true);
+			if (pubkey != null)
+			{
+				result = new byte[33];
+				var pubBytes = pubkey.ToBytes(true);
+				Array.Copy(pubBytes, 1, result, 1, 32);
+				if (pubBytes[0] == 0x02 || pubBytes[0] == 0x03)
+				{
+					result[0] = pubBytes[0];
+					return result;
+				}
+
+				if (pubBytes[0] == 0x04)
+				{
+					result[0] = (byte) (0x04 | (pubBytes[64] & 0x01));
+					return result;
+				}
+			}
+
+			return null;
+		}
+
+		private Script Decompress(uint nSize, byte[] data)
+		{
+			switch (nSize)
+			{
+				case 0x00:
+					return PayToPubkeyHashTemplate.Instance.GenerateScriptPubKey(new KeyId(data.SafeSubArray(0, 20)));
+				case 0x01:
+					return PayToScriptHashTemplate.Instance.GenerateScriptPubKey(
+						new ScriptId(data.SafeSubArray(0, 20)));
+				case 0x02:
+				case 0x03:
+					var keyPart = data.SafeSubArray(0, 32);
+					var keyBytes = new byte[33];
+					keyBytes[0] = (byte) nSize;
+					Array.Copy(keyPart, 0, keyBytes, 1, 32);
+					return PayToPubkeyTemplate.Instance.GenerateScriptPubKey(keyBytes);
+				case 0x04:
+				case 0x05:
+					var vch = new byte[33];
+					vch[0] = (byte) (nSize - 2);
+					Array.Copy(data, 0, vch, 1, 32);
+					var pubkey = new PubKey(vch, true);
+					pubkey = pubkey.Decompress();
+					return PayToPubkeyTemplate.Instance.GenerateScriptPubKey(pubkey);
+			}
+
+			return null;
 		}
 
 		private int GetSpecialSize(uint nSize)
 		{
 			if (nSize == 0 || nSize == 1)
+			{
 				return 20;
+			}
+
 			if (nSize == 2 || nSize == 3 || nSize == 4 || nSize == 5)
+			{
 				return 32;
+			}
+
 			return 0;
 		}
 	}
 
 	public class TxOut : IBitcoinSerializable, IDestination
 	{
-		protected Script publicKey = Script.Empty;
-		public Script ScriptPubKey
-		{
-			get
-			{
-				return this.publicKey;
-			}
-			set
-			{
-				this.publicKey = value;
-			}
-		}
+		private static readonly Money NullMoney = new Money(-1);
+		protected Script _publicKey = Script.Empty;
 
 		public TxOut()
 		{
-
 		}
 
 		public TxOut(Money value, IDestination destination)
 		{
 			Value = value;
 			if (destination != null)
+			{
 				ScriptPubKey = destination.ScriptPubKey;
+			}
 		}
 
 		public TxOut(Money value, Script scriptPubKey)
@@ -555,43 +545,43 @@ namespace BitcoinNet
 			ScriptPubKey = scriptPubKey;
 		}
 
-		readonly static Money NullMoney = new Money(-1);
-		Money _Value = NullMoney;
-		public Money Value
-		{
-			get
-			{
-				return _Value;
-			}
-			set
-			{
-				_Value = value;
-			}
-		}
-
-
-		public bool IsDust(FeeRate minRelayTxFee)
-		{
-			return (Value < GetDustThreshold(minRelayTxFee));
-		}
-
-		public Money GetDustThreshold(FeeRate minRelayTxFee)
-		{
-			if (minRelayTxFee == null)
-				throw new ArgumentNullException("minRelayTxFee");
-			int nSize = this.GetSerializedSize() + 148;
-			return 3 * minRelayTxFee.GetFee(nSize);
-		}
+		public Money Value { get; set; } = NullMoney;
 
 		// IBitcoinSerializable Members
 
 		public virtual void ReadWrite(BitcoinStream stream)
 		{
-			long value = Value.Satoshi;
+			var value = Value.Satoshi;
 			stream.ReadWrite(ref value);
 			if (!stream.Serializing)
-				_Value = new Money(value);
-			stream.ReadWrite(ref publicKey);
+			{
+				Value = new Money(value);
+			}
+
+			stream.ReadWrite(ref _publicKey);
+		}
+
+		public Script ScriptPubKey
+		{
+			get => _publicKey;
+			set => _publicKey = value;
+		}
+
+
+		public bool IsDust(FeeRate minRelayTxFee)
+		{
+			return Value < GetDustThreshold(minRelayTxFee);
+		}
+
+		public Money GetDustThreshold(FeeRate minRelayTxFee)
+		{
+			if (minRelayTxFee == null)
+			{
+				throw new ArgumentNullException(nameof(minRelayTxFee));
+			}
+
+			var nSize = this.GetSerializedSize() + 148;
+			return 3 * minRelayTxFee.GetFee(nSize);
 		}
 
 		public bool IsTo(IDestination destination)
@@ -610,8 +600,11 @@ namespace BitcoinNet
 		{
 			var consensusFactory = GetConsensusFactory();
 			if (!consensusFactory.TryCreateNew<TxOut>(out var txout))
+			{
 				txout = new TxOut();
-			txout.ReadWrite(new BitcoinStream(this.ToBytes()) { ConsensusFactory = consensusFactory });
+			}
+
+			txout.ReadWrite(new BitcoinStream(this.ToBytes()) {ConsensusFactory = consensusFactory});
 			return txout;
 		}
 
@@ -623,79 +616,61 @@ namespace BitcoinNet
 
 	public class IndexedTxIn
 	{
-		public TxIn TxIn
-		{
-			get;
-			set;
-		}
+		public TxIn TxIn { get; set; }
 
 		/// <summary>
-		/// The index of this TxIn in its transaction
+		///     The index of this TxIn in its transaction
 		/// </summary>
-		public uint Index
-		{
-			get;
-			set;
-		}
+		public uint Index { get; set; }
 
 		public OutPoint PrevOut
 		{
-			get
-			{
-				return TxIn.PrevOut;
-			}
-			set
-			{
-				TxIn.PrevOut = value;
-			}
+			get => TxIn.PrevOut;
+			set => TxIn.PrevOut = value;
 		}
 
 		public Script ScriptSig
 		{
-			get
-			{
-				return TxIn.ScriptSig;
-			}
-			set
-			{
-				TxIn.ScriptSig = value;
-			}
+			get => TxIn.ScriptSig;
+			set => TxIn.ScriptSig = value;
 		}
 
-		public Transaction Transaction
-		{
-			get;
-			set;
-		}
+		public Transaction Transaction { get; set; }
 
 		public bool VerifyScript(Script scriptPubKey, ScriptVerify scriptVerify = ScriptVerify.Standard)
 		{
 			ScriptError unused;
 			return VerifyScript(scriptPubKey, scriptVerify, out unused);
 		}
+
 		public bool VerifyScript(Script scriptPubKey, out ScriptError error)
 		{
-			return Script.VerifyScript(scriptPubKey, Transaction, (int)Index, null, out error);
+			return Script.VerifyScript(scriptPubKey, Transaction, (int) Index, null, out error);
 		}
+
 		public bool VerifyScript(Script scriptPubKey, ScriptVerify scriptVerify, out ScriptError error)
 		{
-			return Script.VerifyScript(scriptPubKey, Transaction, (int)Index, null, scriptVerify, SigHash.Undefined, out error);
+			return Script.VerifyScript(scriptPubKey, Transaction, (int) Index, null, scriptVerify, SigHash.Undefined,
+				out error);
 		}
+
 		public bool VerifyScript(Script scriptPubKey, Money value, ScriptVerify scriptVerify, out ScriptError error)
 		{
-			return Script.VerifyScript(scriptPubKey, Transaction, (int)Index, value, scriptVerify, SigHash.Undefined, out error);
+			return Script.VerifyScript(scriptPubKey, Transaction, (int) Index, value, scriptVerify, SigHash.Undefined,
+				out error);
 		}
 
 		public bool VerifyScript(ICoin coin, ScriptVerify scriptVerify = ScriptVerify.Standard)
 		{
-			ScriptError error;
-			return VerifyScript(coin, scriptVerify, out error);
+			return VerifyScript(coin, scriptVerify, out _);
 		}
 
 		public bool VerifyScript(ICoin coin, ScriptVerify scriptVerify, out ScriptError error)
 		{
-			return Script.VerifyScript(coin.TxOut.ScriptPubKey, Transaction, (int)Index, coin.TxOut.Value, scriptVerify, SigHash.Undefined, out error);
+			return Script.VerifyScript(coin.TxOut.ScriptPubKey, Transaction, (int) Index, coin.TxOut.Value,
+				scriptVerify, SigHash.Undefined, out error);
 		}
+
 		public bool VerifyScript(ICoin coin, out ScriptError error)
 		{
 			return VerifyScript(coin, ScriptVerify.Standard, out error);
@@ -709,69 +684,78 @@ namespace BitcoinNet
 
 		public uint256 GetSignatureHash(ICoin coin, SigHash sigHash = SigHash.All)
 		{
-			return Transaction.GetSignatureHash(coin.GetScriptCode(), (int)Index, sigHash, coin.TxOut.Value);
+			return Transaction.GetSignatureHash(coin.GetScriptCode(), (int) Index, sigHash, coin.TxOut.Value);
 		}
-
 	}
+
 	public class TxInList : UnsignedList<TxIn>
 	{
 		public TxInList()
 		{
-
 		}
+
 		public TxInList(Transaction parent)
 			: base(parent)
 		{
-
 		}
+
 		public TxIn this[OutPoint outpoint]
 		{
-			get
-			{
-				return this[outpoint.N];
-			}
-			set
-			{
-				this[outpoint.N] = value;
-			}
+			get => this[outpoint.N];
+			set => this[outpoint.N] = value;
 		}
 
 		/// <summary>
-		/// Returns the IndexedTxIn whose PrevOut is equal to <paramref name="outpoint"/> or null.
+		///     Returns the IndexedTxIn whose PrevOut is equal to <paramref name="outpoint" /> or null.
 		/// </summary>
 		/// <param name="outpoint">The outpoint being searched for</param>
-		/// <returns>The IndexedTxIn which PrevOut is equal to <paramref name="outpoint"/> or null if not found</returns>
+		/// <returns>The IndexedTxIn which PrevOut is equal to <paramref name="outpoint" /> or null if not found</returns>
 		public IndexedTxIn FindIndexedInput(OutPoint outpoint)
 		{
 			if (outpoint == null)
+			{
 				throw new ArgumentNullException(nameof(outpoint));
-			for (int i = 0; i < this.Count; i++)
+			}
+
+			for (var i = 0; i < Count; i++)
 			{
 				var txin = this[i];
 				if (outpoint == txin.PrevOut)
 				{
-					return new IndexedTxIn()
+					return new IndexedTxIn
 					{
 						TxIn = txin,
-						Index = (uint)i,
+						Index = (uint) i,
 						Transaction = Transaction
 					};
 				}
 			}
+
 			return null;
 		}
 
 		public TxIn CreateNewTxIn(OutPoint outpoint = null, Script scriptSig = null, Sequence? sequence = null)
 		{
-			TxIn txIn;
-			if (!Transaction.GetConsensusFactory().TryCreateNew<TxIn>(out txIn))
+			if (!Transaction.GetConsensusFactory().TryCreateNew(out TxIn txIn))
+			{
 				txIn = new TxIn();
+			}
+
 			if (outpoint != null)
+			{
 				txIn.PrevOut = outpoint;
+			}
+
 			if (scriptSig != null)
+			{
 				txIn.ScriptSig = scriptSig;
+			}
+
 			if (sequence.HasValue)
+			{
 				txIn.Sequence = sequence.Value;
+			}
+
 			return txIn;
 		}
 
@@ -790,10 +774,10 @@ namespace BitcoinNet
 		public IEnumerable<IndexedTxIn> AsIndexedInputs()
 		{
 			// We want i as the index of txIn in Intputs[], not index in enumerable after where filter
-			return this.Select((r, i) => new IndexedTxIn()
+			return this.Select((r, i) => new IndexedTxIn
 			{
 				TxIn = r,
-				Index = (uint)i,
+				Index = (uint) i,
 				Transaction = Transaction
 			});
 		}
@@ -801,32 +785,25 @@ namespace BitcoinNet
 		public TxIn Add(Transaction prevTx, int outIndex)
 		{
 			if (outIndex >= prevTx.Outputs.Count)
+			{
 				throw new InvalidOperationException("Output " + outIndex + " is not present in the prevTx");
+			}
+
 			var @in = CreateNewTxIn();
 			@in.PrevOut.Hash = prevTx.GetHash();
-			@in.PrevOut.N = (uint)outIndex;
-			return this.Add(@in);
+			@in.PrevOut.N = (uint) outIndex;
+			return Add(@in);
 		}
 	}
 
 	public class IndexedTxOut
 	{
-		public TxOut TxOut
-		{
-			get;
-			set;
-		}
-		public uint N
-		{
-			get;
-			set;
-		}
+		public TxOut TxOut { get; set; }
 
-		public Transaction Transaction
-		{
-			get;
-			set;
-		}
+		public uint N { get; set; }
+
+		public Transaction Transaction { get; set; }
+
 		public Coin ToCoin()
 		{
 			return new Coin(this);
@@ -837,17 +814,18 @@ namespace BitcoinNet
 	{
 		public TxOutList()
 		{
-
 		}
+
 		public TxOutList(Transaction parent)
 			: base(parent)
 		{
-
 		}
+
 		public IEnumerable<TxOut> To(IDestination destination)
 		{
 			return this.Where(r => r.IsTo(destination));
 		}
+
 		public IEnumerable<TxOut> To(Script scriptPubKey)
 		{
 			return this.Where(r => r.ScriptPubKey == scriptPubKey);
@@ -856,10 +834,10 @@ namespace BitcoinNet
 		public IEnumerable<IndexedTxOut> AsIndexedOutputs()
 		{
 			// We want i as the index of txOut in Outputs[], not index in enumerable after where filter
-			return this.Select((r, i) => new IndexedTxOut()
+			return this.Select((r, i) => new IndexedTxOut
 			{
 				TxOut = r,
-				N = (uint)i,
+				N = (uint) i,
 				Transaction = Transaction
 			});
 		}
@@ -867,23 +845,34 @@ namespace BitcoinNet
 		public IEnumerable<Coin> AsCoins()
 		{
 			var txId = Transaction.GetHash();
-			for (int i = 0; i < Count; i++)
+			for (var i = 0; i < Count; i++)
 			{
 				yield return new Coin(new OutPoint(txId, i), this[i]);
 			}
 		}
+
 		public TxOut CreateNewTxOut()
 		{
 			return CreateNewTxOut(null, null as Script);
 		}
+
 		public TxOut CreateNewTxOut(Money money = null, Script scriptPubKey = null)
 		{
 			if (!Transaction.GetConsensusFactory().TryCreateNew<TxOut>(out var txout))
+			{
 				txout = new TxOut();
+			}
+
 			if (money != null)
+			{
 				txout.Value = money;
+			}
+
 			if (scriptPubKey != null)
+			{
 				txout.ScriptPubKey = scriptPubKey;
+			}
+
 			return txout;
 		}
 
@@ -922,42 +911,45 @@ namespace BitcoinNet
 	//https://en.bitcoin.it/wiki/Protocol_specification
 	public class Transaction : IBitcoinSerializable
 	{
-		public bool RBF
+		[Flags]
+		public enum LockTimeFlags
 		{
-			get
-			{
-				return Inputs.Any(i => i.Sequence < 0xffffffff - 1);
-			}
+			None = 0,
+
+			/// <summary>
+			///     Interpret sequence numbers as relative lock-time constraints.
+			/// </summary>
+			VerifySequence = 1 << 0,
+
+			/// <summary>
+			///     Use GetMedianTimePast() instead of nTime for end point timestamp.
+			/// </summary>
+			MedianTimePast = 1 << 1
 		}
 
-		protected uint nVersion = 1;
+		//Since it is impossible to serialize a transaction with 0 input without problems during deserialization with wit activated, we fit a flag in the version to workaround it
+		protected const uint NoDummyInput = 1 << 27;
 
-		public uint Version
-		{
-			get
-			{
-				return nVersion;
-			}
-			set
-			{
-				nVersion = value;
-			}
-		}
-		protected TxInList vin;
-		protected TxOutList vout;
-		protected LockTime nLockTime;
+		public static uint CurrentVersion = 2;
+		public static uint MaxStandardTxSize = 100000;
+
+		internal static readonly int WitnessScaleFactor = 4;
+
+		private static readonly uint MaxBlockSize = 1000000;
+		private static readonly ulong MaxMoney = 21000000ul * Money.Coin;
+
+		private uint256[] _hashes;
+		private LockTime _nLockTime;
+		private uint _nVersion = 1;
+		private TxInList _vin;
+		private TxOutList _vout;
 
 
 		[Obsolete("You should better use Transaction.Create(Network network)")]
 		public Transaction()
 		{
-			vin = new TxInList(this);
-			vout = new TxOutList(this);
-		}
-
-		public static Transaction Create(Network network)
-		{
-			return network.Consensus.ConsensusFactory.CreateTransaction();
+			_vin = new TxInList(this);
+			_vout = new TxOutList(this);
 		}
 
 		[Obsolete("You should instantiate Transaction from ConsensusFactory.CreateTransaction")]
@@ -971,101 +963,101 @@ namespace BitcoinNet
 		public Transaction(byte[] bytes)
 			: this()
 		{
-			this.FromBytes(bytes);
+			FromBytes(bytes);
+		}
+
+		public bool RBF
+		{
+			get { return Inputs.Any(i => i.Sequence < 0xffffffff - 1); }
+		}
+
+		public uint Version
+		{
+			get => _nVersion;
+			set => _nVersion = value;
 		}
 
 		public Money TotalOut
 		{
-			get
-			{
-				return Outputs.Sum(v => v.Value);
-			}
+			get { return Outputs.Sum(v => v.Value); }
 		}
 
 		public LockTime LockTime
 		{
-			get
-			{
-				return nLockTime;
-			}
-			set
-			{
-				nLockTime = value;
-			}
+			get => _nLockTime;
+			set => _nLockTime = value;
 		}
 
-		public TxInList Inputs
-		{
-			get
-			{
-				return vin;
-			}
-		}
-		public TxOutList Outputs
-		{
-			get
-			{
-				return vout;
-			}
-		}
+		public TxInList Inputs => _vin;
 
-		//Since it is impossible to serialize a transaction with 0 input without problems during deserialization with wit activated, we fit a flag in the version to workaround it
-		protected const uint NoDummyInput = (1 << 27);
+		public TxOutList Outputs => _vout;
+
+		public bool IsCoinBase => Inputs.Count == 1 && Inputs[0].PrevOut.IsNull;
 
 		// IBitcoinSerializable Members
 
 		public virtual void ReadWrite(BitcoinStream stream)
 		{
-			if(!stream.Serializing)
+			if (!stream.Serializing)
 			{
-				stream.ReadWrite(ref nVersion);
+				stream.ReadWrite(ref _nVersion);
 				/* Try to read the vin. In case the dummy is there, this will be read as an empty vector. */
-				stream.ReadWrite<TxInList, TxIn>(ref vin);
+				stream.ReadWrite<TxInList, TxIn>(ref _vin);
 
 				/* We read a non-empty vin. Assume a normal vout follows. */
-				stream.ReadWrite<TxOutList, TxOut>(ref vout);
-				vout.Transaction = this;
+				stream.ReadWrite<TxOutList, TxOut>(ref _vout);
+				_vout.Transaction = this;
 			}
 			else
 			{
-				var version = nVersion;
+				var version = _nVersion;
 				stream.ReadWrite(ref version);
-				stream.ReadWrite<TxInList, TxIn>(ref vin);
-				vin.Transaction = this;
-				stream.ReadWrite<TxOutList, TxOut>(ref vout);
-				vout.Transaction = this;
+				stream.ReadWrite<TxInList, TxIn>(ref _vin);
+				_vin.Transaction = this;
+				stream.ReadWrite<TxOutList, TxOut>(ref _vout);
+				_vout.Transaction = this;
 			}
-			stream.ReadWriteStruct(ref nLockTime);
+
+			stream.ReadWriteStruct(ref _nLockTime);
+		}
+
+		public static Transaction Create(Network network)
+		{
+			return network.Consensus.ConsensusFactory.CreateTransaction();
 		}
 
 		public uint256 GetHash()
 		{
 			uint256 h = null;
-			var hashes = _Hashes;
+			var hashes = _hashes;
 			if (hashes != null)
 			{
 				h = hashes[0];
 			}
+
 			if (h != null)
+			{
 				return h;
+			}
 
 			using (var hs = CreateHashStream())
 			{
 				var stream = new BitcoinStream(hs, true)
 				{
 					TransactionOptions = TransactionOptions.None,
-					ConsensusFactory = GetConsensusFactory(),
+					ConsensusFactory = GetConsensusFactory()
 				};
 				stream.SerializationTypeScope(SerializationType.Hash);
-				this.ReadWrite(stream);
+				ReadWrite(stream);
 				h = hs.GetHash();
 			}
 
-			hashes = _Hashes;
+			hashes = _hashes;
 			if (hashes != null)
 			{
 				hashes[0] = h;
 			}
+
 			return h;
 		}
 
@@ -1086,41 +1078,54 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Precompute the transaction hash and witness hash so that later calls to GetHash() and GetWitHash() will returns the precomputed hash
+		///     Precompute the transaction hash and witness hash so that later calls to GetHash() and GetWitHash() will returns the
+		///     precomputed hash
 		/// </summary>
 		/// <param name="invalidateExisting">If true, the previous precomputed hash is thrown away, else it is reused</param>
-		/// <param name="lazily">If true, the hash will be calculated and cached at the first call to GetHash(), else it will be immediately</param>
+		/// <param name="lazily">
+		///     If true, the hash will be calculated and cached at the first call to GetHash(), else it will be
+		///     immediately
+		/// </param>
 		public void PrecomputeHash(bool invalidateExisting, bool lazily)
 		{
-			_Hashes = invalidateExisting ? new uint256[2] : _Hashes ?? new uint256[2];
-			if (!lazily && _Hashes[0] == null)
-				_Hashes[0] = GetHash();
-			if (!lazily && _Hashes[1] == null)
-				_Hashes[1] = GetWitHash();
+			_hashes = invalidateExisting ? new uint256[2] : _hashes ?? new uint256[2];
+			if (!lazily && _hashes[0] == null)
+			{
+				_hashes[0] = GetHash();
+			}
+
+			if (!lazily && _hashes[1] == null)
+			{
+				_hashes[1] = GetWitHash();
+			}
 		}
 
 		public Transaction Clone(bool cloneCache)
 		{
 			var clone = BitcoinSerializableExtensions.Clone(this);
 			if (cloneCache)
-				clone._Hashes = _Hashes.ToArray();
+			{
+				clone._hashes = _hashes.ToArray();
+			}
+
 			return clone;
 		}
-
-		uint256[] _Hashes = null;
 
 		public uint256 GetWitHash()
 		{
 			return GetHash();
 		}
+
 		public uint256 GetSignatureHash(ICoin coin, SigHash sigHash = SigHash.All)
 		{
 			return GetIndexedInput(coin).GetSignatureHash(coin, sigHash);
 		}
+
 		public TransactionSignature SignInput(ISecret secret, ICoin coin, SigHash sigHash = SigHash.All)
 		{
 			return SignInput(secret.PrivateKey, coin, sigHash);
 		}
+
 		public TransactionSignature SignInput(Key key, ICoin coin, SigHash sigHash = SigHash.All)
 		{
 			return GetIndexedInput(coin).Sign(key, coin, sigHash);
@@ -1128,19 +1133,9 @@ namespace BitcoinNet
 
 		private IndexedTxIn GetIndexedInput(ICoin coin)
 		{
-			return Inputs.FindIndexedInput(coin.Outpoint) ?? throw new ArgumentException("The coin is not being spent by this transaction", nameof(coin));
+			return Inputs.FindIndexedInput(coin.Outpoint) ??
+			       throw new ArgumentException("The coin is not being spent by this transaction", nameof(coin));
 		}
-
-		public bool IsCoinBase
-		{
-			get
-			{
-				return (Inputs.Count == 1 && Inputs[0].PrevOut.IsNull);
-			}
-		}
-
-		public static uint CURRENT_VERSION = 2;
-		public static uint MAX_STANDARD_TX_SIZE = 100000;
 
 		[Obsolete("Use Output.Add(Money money = null, IDestination destination = null) instead")]
 		public TxOut AddOutput(Money money, IDestination destination)
@@ -1163,20 +1158,20 @@ namespace BitcoinNet
 		[Obsolete("Use Output.Add(Money money = null, Script scriptPubKey = null) instead")]
 		public TxOut AddOutput(TxOut @out)
 		{
-			this.vout.Add(@out);
+			_vout.Add(@out);
 			return @out;
 		}
 
-		[Obsolete("Use Inputs.Add(OutPoint outpoint = null, Script scriptSig = null, Sequence? sequence = null) instead")]
+		[Obsolete(
+			"Use Inputs.Add(OutPoint outpoint = null, Script scriptSig = null, Sequence? sequence = null) instead")]
 		public TxIn AddInput(TxIn @in)
 		{
-			this.vin.Add(@in);
+			_vin.Add(@in);
 			return @in;
 		}
 
-		internal static readonly int WITNESS_SCALE_FACTOR = 4;
 		/// <summary>
-		/// Size of the transaction discounting the witness (Used for fee calculation)
+		///     Size of the transaction discounting the witness (Used for fee calculation)
 		/// </summary>
 		/// <returns>Transaction size</returns>
 		public int GetVirtualSize()
@@ -1187,8 +1182,8 @@ namespace BitcoinNet
 			// using only serialization with and without witness data. As witness_size
 			// is equal to total_size - stripped_size, this formula is identical to:
 			// weight = (stripped_size * 3) + total_size.
-			var weight = strippedSize * (WITNESS_SCALE_FACTOR - 1) + totalSize;
-			return (weight + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR;
+			var weight = strippedSize * (WitnessScaleFactor - 1) + totalSize;
+			return (weight + WitnessScaleFactor - 1) / WitnessScaleFactor;
 		}
 
 		[Obsolete("Use Inputs.Add(prevTx, int outIndex) instead")]
@@ -1199,7 +1194,7 @@ namespace BitcoinNet
 
 
 		/// <summary>
-		/// Sign a specific coin with the given secret
+		///     Sign a specific coin with the given secret
 		/// </summary>
 		/// <param name="secrets">Secrets</param>
 		/// <param name="coins">Coins to sign</param>
@@ -1209,82 +1204,82 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Sign a specific coin with the given secret
+		///     Sign a specific coin with the given secret
 		/// </summary>
 		/// <param name="keys">Private keys</param>
 		/// <param name="coins">Coins to sign</param>
 		public void Sign(Key[] keys, ICoin[] coins)
 		{
-			TransactionBuilder builder = this.GetConsensusFactory().CreateTransactionBuilder();
+			var builder = GetConsensusFactory().CreateTransactionBuilder();
 			builder.AddKeys(keys);
 			builder.AddCoins(coins);
 			builder.SignTransactionInPlace(this);
 		}
 
 		/// <summary>
-		/// Sign a specific coin with the given secret
+		///     Sign a specific coin with the given secret
 		/// </summary>
 		/// <param name="secret">Secret</param>
 		/// <param name="coins">Coins to sign</param>
 		public void Sign(ISecret secret, ICoin[] coins)
 		{
-			Sign(new[] { secret }, coins);
+			Sign(new[] {secret}, coins);
 		}
 
 		/// <summary>
-		/// Sign a specific coin with the given secret
+		///     Sign a specific coin with the given secret
 		/// </summary>
 		/// <param name="secrets">Secrets</param>
 		/// <param name="coins">Coins to sign</param>
 		public void Sign(ISecret[] secrets, ICoin coin)
 		{
-			Sign(secrets, new[] { coin });
+			Sign(secrets, new[] {coin});
 		}
 
 		/// <summary>
-		/// Sign a specific coin with the given secret
+		///     Sign a specific coin with the given secret
 		/// </summary>
 		/// <param name="secret">Secret</param>
 		/// <param name="coin">Coins to sign</param>
 		public void Sign(ISecret secret, ICoin coin)
 		{
-			Sign(new[] { secret }, new[] { coin });
+			Sign(new[] {secret}, new[] {coin});
 		}
 
 		/// <summary>
-		/// Sign a specific coin with the given secret
+		///     Sign a specific coin with the given secret
 		/// </summary>
 		/// <param name="key">Private key</param>
 		/// <param name="coins">Coins to sign</param>
 		public void Sign(Key key, ICoin[] coins)
 		{
-			Sign(new[] { key }, coins);
+			Sign(new[] {key}, coins);
 		}
 
 		/// <summary>
-		/// Sign a specific coin with the given secret
+		///     Sign a specific coin with the given secret
 		/// </summary>
 		/// <param name="key">Private key</param>
 		/// <param name="coin">Coin to sign</param>
 		public void Sign(Key key, ICoin coin)
 		{
-			Sign(new[] { key }, new[] { coin });
+			Sign(new[] {key}, new[] {coin});
 		}
 
 		/// <summary>
-		/// Sign a specific coin with the given secret
+		///     Sign a specific coin with the given secret
 		/// </summary>
 		/// <param name="keys">Private keys</param>
 		/// <param name="coin">Coin to sign</param>
 		public void Sign(Key[] keys, ICoin coin)
 		{
-			Sign(keys, new[] { coin });
+			Sign(keys, new[] {coin});
 		}
 
 		/// <summary>
-		/// Sign the transaction with a private key
-		/// <para>ScriptSigs should be filled with previous ScriptPubKeys</para>
-		/// <para>For more complex scenario, use TransactionBuilder</para>
+		///     Sign the transaction with a private key
+		///     <para>ScriptSigs should be filled with previous ScriptPubKeys</para>
+		///     <para>For more complex scenario, use TransactionBuilder</para>
 		/// </summary>
 		/// <param name="secret"></param>
 		[Obsolete("Use Sign(ISecret,ICoin[]) instead)")]
@@ -1294,33 +1289,37 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Sign the transaction with a private key
-		/// <para>ScriptSigs should be filled with either previous scriptPubKeys or redeem script (for P2SH)</para>
-		/// <para>For more complex scenario, use TransactionBuilder</para>
+		///     Sign the transaction with a private key
+		///     <para>ScriptSigs should be filled with either previous scriptPubKeys or redeem script (for P2SH)</para>
+		///     <para>For more complex scenario, use TransactionBuilder</para>
 		/// </summary>
 		/// <param name="secret"></param>
 		[Obsolete("Use Sign(Key,ICoin[]) instead)")]
 		public void Sign(Key key, bool assumeP2SH)
 		{
-			List<Coin> coins = new List<Coin>();
-			for (int i = 0; i < Inputs.Count; i++)
+			var coins = new List<Coin>();
+			for (var i = 0; i < Inputs.Count; i++)
 			{
 				var txin = Inputs[i];
 				if (Script.IsNullOrEmpty(txin.ScriptSig))
-					throw new InvalidOperationException("ScriptSigs should be filled with either previous scriptPubKeys or redeem script (for P2SH)");
+				{
+					throw new InvalidOperationException(
+						"ScriptSigs should be filled with either previous scriptPubKeys or redeem script (for P2SH)");
+				}
+
 				if (assumeP2SH)
 				{
 					var p2shSig = PayToScriptHashTemplate.Instance.ExtractScriptSigParameters(txin.ScriptSig);
 					if (p2shSig == null)
 					{
-						coins.Add(new ScriptCoin(txin.PrevOut, new TxOut()
+						coins.Add(new ScriptCoin(txin.PrevOut, new TxOut
 						{
-							ScriptPubKey = txin.ScriptSig.PaymentScript,
+							ScriptPubKey = txin.ScriptSig.PaymentScript
 						}, txin.ScriptSig));
 					}
 					else
 					{
-						coins.Add(new ScriptCoin(txin.PrevOut, new TxOut()
+						coins.Add(new ScriptCoin(txin.PrevOut, new TxOut
 						{
 							ScriptPubKey = p2shSig.RedeemScript.PaymentScript
 						}, p2shSig.RedeemScript));
@@ -1328,27 +1327,26 @@ namespace BitcoinNet
 				}
 				else
 				{
-					coins.Add(new Coin(txin.PrevOut, new TxOut()
+					coins.Add(new Coin(txin.PrevOut, new TxOut
 					{
 						ScriptPubKey = txin.ScriptSig
 					}));
 				}
-
 			}
+
 			Sign(key, coins.ToArray());
 		}
 
 		public TxPayload CreatePayload()
 		{
-			return new TxPayload(this.Clone());
+			return new TxPayload(Clone());
 		}
 
 		public static Transaction Parse(string hex, Network network)
 		{
 			var tx = network.Consensus.ConsensusFactory.CreateTransaction();
 			var data = Encoders.Hex.DecodeData(hex);
-			var stream = new BitcoinStream(data);
-			stream.ConsensusFactory = network.Consensus.ConsensusFactory;
+			var stream = new BitcoinStream(data) {ConsensusFactory = network.Consensus.ConsensusFactory};
 			tx.ReadWrite(stream);
 			return tx;
 		}
@@ -1359,29 +1357,36 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Calculate the fee of the transaction
+		///     Calculate the fee of the transaction
 		/// </summary>
 		/// <param name="spentCoins">Coins being spent</param>
 		/// <returns>Fee or null if some spent coins are missing or if spentCoins is null</returns>
 		public virtual Money GetFee(ICoin[] spentCoins)
 		{
 			if (IsCoinBase)
+			{
 				return Money.Zero;
+			}
+
 			spentCoins = spentCoins ?? new ICoin[0];
 
-			Money fees = -TotalOut;
-			foreach (var input in this.Inputs)
+			var fees = -TotalOut;
+			foreach (var input in Inputs)
 			{
 				var coin = spentCoins.FirstOrDefault(s => s.Outpoint == input.PrevOut);
 				if (coin == null)
+				{
 					return null;
+				}
+
 				fees += coin.TxOut.Value;
 			}
+
 			return fees;
 		}
 
 		/// <summary>
-		/// Calculate the fee rate of the transaction
+		///     Calculate the fee rate of the transaction
 		/// </summary>
 		/// <param name="spentCoins">Coins being spent</param>
 		/// <returns>Fee or null if some spent coins are missing or if spentCoins is null</returns>
@@ -1389,90 +1394,101 @@ namespace BitcoinNet
 		{
 			var fee = GetFee(spentCoins);
 			if (fee == null)
+			{
 				return null;
-			return new FeeRate(fee, this.GetVirtualSize());
+			}
+
+			return new FeeRate(fee, GetVirtualSize());
 		}
 
 		public bool IsFinal(ChainedBlock block)
 		{
 			if (block == null)
+			{
 				return IsFinal(Utils.UnixTimeToDateTime(0), 0);
+			}
+
 			if (block.Header == null)
+			{
 				throw new InvalidOperationException("ChainedBlock.Header must be available");
+			}
+
 			return IsFinal(block.Header.BlockTime, block.Height);
 		}
+
 		public bool IsFinal(DateTimeOffset blockTime, int blockHeight)
 		{
 			var nBlockTime = Utils.DateTimeToUnixTime(blockTime);
-			if (nLockTime == 0)
+			if (_nLockTime == 0)
+			{
 				return true;
-			if ((long)nLockTime < ((long)nLockTime < LockTime.LOCKTIME_THRESHOLD ? (long)blockHeight : nBlockTime))
+			}
+
+			if (_nLockTime < ((long) _nLockTime < LockTime.LockTimeThreshold ? (long) blockHeight : nBlockTime))
+			{
 				return true;
+			}
+
 			foreach (var txin in Inputs)
+			{
 				if (!txin.IsFinal)
+				{
 					return false;
+				}
+			}
+
 			return true;
-		}
-
-		[Flags]
-		public enum LockTimeFlags : int
-		{
-			None = 0,
-			/// <summary>
-			/// Interpret sequence numbers as relative lock-time constraints.
-			/// </summary>
-			VerifySequence = (1 << 0),
-
-			/// <summary>
-			///  Use GetMedianTimePast() instead of nTime for end point timestamp.
-			/// </summary>
-			MedianTimePast = (1 << 1),
 		}
 
 
 		/// <summary>
-		/// Calculates the block height and time which the transaction must be later than
-		/// in order to be considered final in the context of BIP 68.  It also removes
-		/// from the vector of input heights any entries which did not correspond to sequence
-		/// locked inputs as they do not affect the calculation.
-		/// </summary>		
+		///     Calculates the block height and time which the transaction must be later than
+		///     in order to be considered final in the context of BIP 68.  It also removes
+		///     from the vector of input heights any entries which did not correspond to sequence
+		///     locked inputs as they do not affect the calculation.
+		/// </summary>
 		/// <param name="prevHeights">Previous Height</param>
 		/// <param name="block">The block being evaluated</param>
 		/// <param name="flags">If VerifySequence is not set, returns always true SequenceLock</param>
 		/// <returns>Sequence lock of minimum SequenceLock to satisfy</returns>
-		public bool CheckSequenceLocks(int[] prevHeights, ChainedBlock block, LockTimeFlags flags = LockTimeFlags.VerifySequence)
+		public bool CheckSequenceLocks(int[] prevHeights, ChainedBlock block,
+			LockTimeFlags flags = LockTimeFlags.VerifySequence)
 		{
 			return CalculateSequenceLocks(prevHeights, block, flags).Evaluate(block);
 		}
 
 		/// <summary>
-		/// Calculates the block height and time which the transaction must be later than
-		/// in order to be considered final in the context of BIP 68.  It also removes
-		/// from the vector of input heights any entries which did not correspond to sequence
-		/// locked inputs as they do not affect the calculation.
-		/// </summary>		
+		///     Calculates the block height and time which the transaction must be later than
+		///     in order to be considered final in the context of BIP 68.  It also removes
+		///     from the vector of input heights any entries which did not correspond to sequence
+		///     locked inputs as they do not affect the calculation.
+		/// </summary>
 		/// <param name="prevHeights">Previous Height</param>
 		/// <param name="block">The block being evaluated</param>
 		/// <param name="flags">If VerifySequence is not set, returns always true SequenceLock</param>
 		/// <returns>Sequence lock of minimum SequenceLock to satisfy</returns>
-		public SequenceLock CalculateSequenceLocks(int[] prevHeights, ChainedBlock block, LockTimeFlags flags = LockTimeFlags.VerifySequence)
+		public SequenceLock CalculateSequenceLocks(int[] prevHeights, ChainedBlock block,
+			LockTimeFlags flags = LockTimeFlags.VerifySequence)
 		{
 			if (prevHeights.Length != Inputs.Count)
-				throw new ArgumentException("The number of element in prevHeights should be equal to the number of inputs", "prevHeights");
+			{
+				throw new ArgumentException(
+					"The number of element in prevHeights should be equal to the number of inputs", "prevHeights");
+			}
 
 			// Will be set to the equivalent height- and time-based nLockTime
 			// values that would be necessary to satisfy all relative lock-
 			// time constraints given our view of block chain history.
 			// The semantics of nLockTime are the last invalid height/time, so
 			// use -1 to have the effect of any height or time being valid.
-			int nMinHeight = -1;
+			var nMinHeight = -1;
 			long nMinTime = -1;
 
 			// tx.nVersion is signed integer so requires cast to unsigned otherwise
 			// we would be doing a signed comparison and half the range of nVersion
 			// wouldn't support BIP 68.
-			bool fEnforceBIP68 = Version >= 2
-							  && (flags & LockTimeFlags.VerifySequence) != 0;
+			var fEnforceBIP68 = Version >= 2
+			                    && (flags & LockTimeFlags.VerifySequence) != 0;
 
 			// Do not enforce sequence numbers as a relative lock time
 			// unless we have been instructed to
@@ -1483,7 +1499,7 @@ namespace BitcoinNet
 
 			for (var txinIndex = 0; txinIndex < Inputs.Count; txinIndex++)
 			{
-				TxIn txin = Inputs[txinIndex];
+				var txin = Inputs[txinIndex];
 
 				// Sequence numbers with the most significant bit set are not
 				// treated as relative lock-times, nor are they given any
@@ -1495,17 +1511,21 @@ namespace BitcoinNet
 					continue;
 				}
 
-				int nCoinHeight = prevHeights[txinIndex];
+				var nCoinHeight = prevHeights[txinIndex];
 
 				if ((txin.Sequence & Sequence.SEQUENCE_LOCKTIME_TYPE_FLAG) != 0)
 				{
-					long nCoinTime = (long)Utils.DateTimeToUnixTimeLong(block.GetAncestor(Math.Max(nCoinHeight - 1, 0)).GetMedianTimePast());
+					var nCoinTime =
+						(long) Utils.DateTimeToUnixTimeLong(block.GetAncestor(Math.Max(nCoinHeight - 1, 0))
+							.GetMedianTimePast());
 
 					// Time-based relative lock-times are measured from the
 					// smallest allowed timestamp of the block containing the
 					// txout being spent, which is the median time past of the
 					// block prior.
-					nMinTime = Math.Max(nMinTime, nCoinTime + (long)((txin.Sequence & Sequence.SEQUENCE_LOCKTIME_MASK) << Sequence.SEQUENCE_LOCKTIME_GRANULARITY) - 1);
+					nMinTime = Math.Max(nMinTime,
+						nCoinTime + ((txin.Sequence & Sequence.SEQUENCE_LOCKTIME_MASK) <<
+						             Sequence.SEQUENCE_LOCKTIME_GRANULARITY) - 1);
 				}
 				else
 				{
@@ -1513,7 +1533,8 @@ namespace BitcoinNet
 					// time of 0 has the semantics of "same block," so a lock-
 					// time of 1 should mean "next block," but nLockTime has
 					// the semantics of "last invalid block height."
-					nMinHeight = Math.Max(nMinHeight, nCoinHeight + (int)(txin.Sequence & Sequence.SEQUENCE_LOCKTIME_MASK) - 1);
+					nMinHeight = Math.Max(nMinHeight,
+						nCoinHeight + (int) (txin.Sequence & Sequence.SEQUENCE_LOCKTIME_MASK) - 1);
 				}
 			}
 
@@ -1527,55 +1548,69 @@ namespace BitcoinNet
 		}
 
 		/// <summary>
-		/// Create a transaction with the specified option only. (useful for stripping data from a transaction)
+		///     Create a transaction with the specified option only. (useful for stripping data from a transaction)
 		/// </summary>
 		/// <param name="options">Options to keep</param>
 		/// <returns>A new transaction with only the options wanted</returns>
 		public Transaction WithOptions(TransactionOptions options)
 		{
 			if (options == TransactionOptions.None)
+			{
 				return this;
+			}
+
 			var instance = GetConsensusFactory().CreateTransaction();
 			var ms = new MemoryStream();
-			var bms = new BitcoinStream(ms, true);
-			bms.TransactionOptions = options;
-			this.ReadWrite(bms);
+			var bms = new BitcoinStream(ms, true) {TransactionOptions = options};
+			ReadWrite(bms);
 			ms.Position = 0;
-			bms = new BitcoinStream(ms, false);
-			bms.TransactionOptions = options;
+			bms = new BitcoinStream(ms, false) {TransactionOptions = options};
 			instance.ReadWrite(bms);
 			return instance;
 		}
 
-		private static readonly uint MAX_BLOCK_SIZE = 1000000;
-		private static readonly ulong MAX_MONEY = 21000000ul * Money.COIN;
-
 		/// <summary>
-		/// Context free transaction check
+		///     Context free transaction check
 		/// </summary>
 		/// <returns>The error or success of the check</returns>
 		public TransactionCheckResult Check()
 		{
 			// Basic checks that don't depend on any context
 			if (Inputs.Count == 0)
+			{
 				return TransactionCheckResult.NoInput;
+			}
+
 			if (Outputs.Count == 0)
+			{
 				return TransactionCheckResult.NoOutput;
+			}
+
 			// Size limits
-			if (this.GetSerializedSize() > MAX_BLOCK_SIZE)
+			if (this.GetSerializedSize() > MaxBlockSize)
+			{
 				return TransactionCheckResult.TransactionTooLarge;
+			}
 
 			// Check for negative or overflow output values
 			long nValueOut = 0;
 			foreach (var txout in Outputs)
 			{
 				if (txout.Value < 0)
+				{
 					return TransactionCheckResult.NegativeOutput;
-				if (txout.Value > MAX_MONEY)
+				}
+
+				if (txout.Value > MaxMoney)
+				{
 					return TransactionCheckResult.OutputTooLarge;
+				}
+
 				nValueOut += txout.Value;
-				if (!((nValueOut >= 0 && nValueOut <= (long)MAX_MONEY)))
+				if (!(nValueOut >= 0 && nValueOut <= (long) MaxMoney))
+				{
 					return TransactionCheckResult.OutputTotalTooLarge;
+				}
 			}
 
 			// Check for duplicate inputs
@@ -1583,27 +1618,37 @@ namespace BitcoinNet
 			foreach (var txin in Inputs)
 			{
 				if (vInOutPoints.Contains(txin.PrevOut))
+				{
 					return TransactionCheckResult.DuplicateInputs;
+				}
+
 				vInOutPoints.Add(txin.PrevOut);
 			}
 
 			if (IsCoinBase)
 			{
 				if (Inputs[0].ScriptSig.Length < 2 || Inputs[0].ScriptSig.Length > 100)
+				{
 					return TransactionCheckResult.CoinbaseScriptTooLarge;
+				}
 			}
 			else
 			{
 				foreach (var txin in Inputs)
+				{
 					if (txin.PrevOut.IsNull)
+					{
 						return TransactionCheckResult.NullInputPrevOut;
+					}
+				}
 			}
 
 			return TransactionCheckResult.Success;
 		}
 
 
-		public virtual uint256 GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, Money amount, PrecomputedTransactionData precomputedTransactionData)
+		public virtual uint256 GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, Money amount,
+			PrecomputedTransactionData precomputedTransactionData)
 		{
 			if (nIn >= Inputs.Count)
 			{
@@ -1611,7 +1656,7 @@ namespace BitcoinNet
 				return uint256.One;
 			}
 
-			var hashType = nHashType & (SigHash)31;
+			var hashType = nHashType & (SigHash) 31;
 
 			// Check for invalid use of SIGHASH_SINGLE
 			if (hashType == SigHash.Single)
@@ -1623,7 +1668,7 @@ namespace BitcoinNet
 				}
 			}
 
-			var scriptCopy = new Script(scriptCode._Script);
+			var scriptCopy = new Script(scriptCode._script);
 			scriptCopy = scriptCopy.FindAndDelete(OpcodeType.OP_CODESEPARATOR);
 
 			var txCopy = GetConsensusFactory().CreateTransaction();
@@ -1633,6 +1678,7 @@ namespace BitcoinNet
 			{
 				txin.ScriptSig = new Script();
 			}
+
 			//Copy subscript into the txin script you are checking
 			txCopy.Inputs[nIn].ScriptSig = scriptCopy;
 
@@ -1643,7 +1689,9 @@ namespace BitcoinNet
 
 				//All other inputs aside from the current input in txCopy have their nSequence index set to zero
 				foreach (var input in txCopy.Inputs.Where((x, i) => i != nIn))
+				{
 					input.Sequence = 0;
+				}
 			}
 			else if (hashType == SigHash.Single)
 			{
@@ -1653,12 +1701,18 @@ namespace BitcoinNet
 				for (var i = 0; i < txCopy.Outputs.Count; i++)
 				{
 					if (i == nIn)
+					{
 						continue;
+					}
+
 					txCopy.Outputs[i] = txCopy.Outputs.CreateNewTxOut();
 				}
+
 				//All other txCopy inputs aside from the current input are set to have an nSequence index of zero.
 				foreach (var input in txCopy.Inputs.Where((x, i) => i != nIn))
+				{
 					input.Sequence = 0;
+				}
 			}
 
 
@@ -1676,18 +1730,18 @@ namespace BitcoinNet
 			//Serialize TxCopy, append 4 byte hashtypecode
 			var stream = CreateHashWriter();
 			txCopy.ReadWrite(stream);
-			stream.ReadWrite((uint)nHashType);
+			stream.ReadWrite((uint) nHashType);
 			return GetHash(stream);
 		}
 
 		public uint256 GetSignatureHash(Script scriptCode, int nIn, SigHash nHashType, Money amount = null)
 		{
-			return this.GetSignatureHash(scriptCode, nIn, nHashType, amount, null);
+			return GetSignatureHash(scriptCode, nIn, nHashType, amount, null);
 		}
 
 		private static uint256 GetHash(BitcoinStream stream)
 		{
-			var preimage = ((HashStreamBase)stream.Inner).GetHash();
+			var preimage = ((HashStreamBase) stream.Inner).GetHash();
 			stream.Inner.Dispose();
 			return preimage;
 		}
@@ -1695,11 +1749,12 @@ namespace BitcoinNet
 		internal virtual uint256 GetHashOutputs()
 		{
 			uint256 hashOutputs;
-			BitcoinStream ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
+			var ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
 			foreach (var txout in Outputs)
 			{
 				ss.ReadWrite(txout);
 			}
+
 			hashOutputs = GetHash(ss);
 			return hashOutputs;
 		}
@@ -1707,11 +1762,12 @@ namespace BitcoinNet
 		internal virtual uint256 GetHashSequence()
 		{
 			uint256 hashSequence;
-			BitcoinStream ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
+			var ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
 			foreach (var input in Inputs)
 			{
-				ss.ReadWrite((uint)input.Sequence);
+				ss.ReadWrite((uint) input.Sequence);
 			}
+
 			hashSequence = GetHash(ss);
 			return hashSequence;
 		}
@@ -1719,11 +1775,12 @@ namespace BitcoinNet
 		internal virtual uint256 GetHashPrevouts()
 		{
 			uint256 hashPrevouts;
-			BitcoinStream ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
+			var ss = CreateHashWriter(); //BitcoinStream ss = CreateHashWriter(HashVersion.Witness);
 			foreach (var input in Inputs)
 			{
 				ss.ReadWrite(input.PrevOut);
 			}
+
 			hashPrevouts = GetHash(ss);
 			return hashPrevouts;
 		}
@@ -1731,9 +1788,10 @@ namespace BitcoinNet
 		protected BitcoinStream CreateHashWriter()
 		{
 			var hs = CreateSignatureHashStream();
-			BitcoinStream stream = new BitcoinStream(hs, true);
-			stream.Type = SerializationType.Hash;
-			stream.TransactionOptions = TransactionOptions.None;
+			var stream = new BitcoinStream(hs, true)
+			{
+				Type = SerializationType.Hash, TransactionOptions = TransactionOptions.None
+			};
 			return stream;
 		}
 
@@ -1745,13 +1803,13 @@ namespace BitcoinNet
 		public Transaction Clone()
 		{
 			var instance = GetConsensusFactory().CreateTransaction();
-			instance.ReadWrite(new BitcoinStream(this.ToBytes()) { ConsensusFactory = GetConsensusFactory() });
+			instance.ReadWrite(new BitcoinStream(this.ToBytes()) {ConsensusFactory = GetConsensusFactory()});
 			return instance;
 		}
 
 		public void FromBytes(byte[] bytes)
 		{
-			this.ReadWrite(new BitcoinStream(bytes) { ConsensusFactory = GetConsensusFactory() });
+			ReadWrite(new BitcoinStream(bytes) {ConsensusFactory = GetConsensusFactory()});
 		}
 	}
 
@@ -1766,6 +1824,6 @@ namespace BitcoinNet
 		TransactionTooLarge,
 		DuplicateInputs,
 		NullInputPrevOut,
-		CoinbaseScriptTooLarge,
+		CoinbaseScriptTooLarge
 	}
 }

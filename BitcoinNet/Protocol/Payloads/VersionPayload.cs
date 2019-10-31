@@ -1,11 +1,7 @@
-﻿using BitcoinNet.DataEncoders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using System.Reflection;
+using BitcoinNet.DataEncoders;
 
 namespace BitcoinNet.Protocol
 {
@@ -13,195 +9,161 @@ namespace BitcoinNet.Protocol
 	public enum NodeServices : ulong
 	{
 		Nothing = 0,
-		/// <summary>
-		/// NODE_NETWORK means that the node is capable of serving the block chain. It is currently
-		/// set by all Bitcoin Core nodes, and is unset by SPV clients or other peers that just want
-		/// network services but don't provide them.
-		/// </summary>
-		Network = (1 << 0),
 
 		/// <summary>
-		///  NODE_GETUTXO means the node is capable of responding to the getutxo protocol request.
-		/// Bitcoin Core does not support this but a patch set called Bitcoin XT does.
-		/// See BIP 64 for details on how this is implemented.
+		///     NODE_NETWORK means that the node is capable of serving the block chain. It is currently
+		///     set by all Bitcoin Core nodes, and is unset by SPV clients or other peers that just want
+		///     network services but don't provide them.
 		/// </summary>
-		GetUTXO = (1 << 1),
+		Network = 1 << 0,
 
-		/// <summary> NODE_BLOOM means the node is capable and willing to handle bloom-filtered connections.
-		/// Bitcoin Core nodes used to support this by default, without advertising this bit,
-		/// but no longer do as of protocol version 70011 (= NO_BLOOM_VERSION)
+		/// <summary>
+		///     NODE_GETUTXO means the node is capable of responding to the getutxo protocol request.
+		///     Bitcoin Core does not support this but a patch set called Bitcoin XT does.
+		///     See BIP 64 for details on how this is implemented.
 		/// </summary>
-		NODE_BLOOM = (1 << 2),
+		GetUTXO = 1 << 1,
 
-		/// <summary> Indicates that a node can be asked for blocks and transactions including
-		/// witness data. 
-		/// </summary> 
-		NODE_WITNESS = (1 << 3),
+		/// <summary>
+		///     NODE_BLOOM means the node is capable and willing to handle bloom-filtered connections.
+		///     Bitcoin Core nodes used to support this by default, without advertising this bit,
+		///     but no longer do as of protocol version 70011 (= NO_BLOOM_VERSION)
+		/// </summary>
+		NODE_BLOOM = 1 << 2,
 
-		/// <summary> NODE_NETWORK_LIMITED means the same as NODE_NETWORK with the limitation of only
-		/// serving the last 288 (2 day) blocks
-		/// See BIP159 for details on how this is implemented.
-		/// </summary> 
-		NODE_NETWORK_LIMITED = (1 << 10)
+		/// <summary>
+		///     Indicates that a node can be asked for blocks and transactions including
+		///     witness data.
+		/// </summary>
+		NODE_WITNESS = 1 << 3,
+
+		/// <summary>
+		///     NODE_NETWORK_LIMITED means the same as NODE_NETWORK with the limitation of only
+		///     serving the last 288 (2 day) blocks
+		///     See BIP159 for details on how this is implemented.
+		/// </summary>
+		NODE_NETWORK_LIMITED = 1 << 10
 	}
+
 	[Payload("version")]
 	public class VersionPayload : Payload, IBitcoinSerializable
 	{
-		static string _NUserAgent;
-		public static string GetBitcoinNetUserAgent()
-		{
-			if(_NUserAgent == null)
-			{
-				var version = typeof(VersionPayload).GetTypeInfo().Assembly.GetName().Version;
-				_NUserAgent = "/BitcoinNet:" + version.Major + "." + version.MajorRevision + "." + version.Build + "/";
-			}
-			return _NUserAgent;
-		}
-		uint version;
+		private static string _nUserAgent;
+		private NetworkAddress _addrFrom = new NetworkAddress();
+		private NetworkAddress _addrRecv = new NetworkAddress();
+
+		private ulong _nonce;
+
+		private bool _relay;
+		private ulong _services;
+		private int _startHeight;
+
+		private long _timestamp;
+
+		private VarString _userAgent;
+		private uint _version;
 
 		public uint Version
 		{
-			get
-			{
-				return version;
-			}
-			set
-			{
-				version = value;
-			}
+			get => _version;
+			set => _version = value;
 		}
-		ulong services;
 
 		public NodeServices Services
 		{
-			get
-			{
-				return (NodeServices)services;
-			}
-			set
-			{
-				services = (ulong)value;
-			}
+			get => (NodeServices) _services;
+			set => _services = (ulong) value;
 		}
-
-		long timestamp;
 
 		public DateTimeOffset Timestamp
 		{
-			get
-			{
-				return Utils.UnixTimeToDateTime((uint)timestamp);
-			}
-			set
-			{
-				timestamp = Utils.DateTimeToUnixTime(value);
-			}
+			get => Utils.UnixTimeToDateTime((uint) _timestamp);
+			set => _timestamp = Utils.DateTimeToUnixTime(value);
 		}
 
-		NetworkAddress addr_recv = new NetworkAddress();
 		public IPEndPoint AddressReceiver
 		{
-			get
-			{
-				return addr_recv.Endpoint;
-			}
-			set
-			{
-				addr_recv.Endpoint = value;
-			}
-		}
-		NetworkAddress addr_from = new NetworkAddress();
-		public IPEndPoint AddressFrom
-		{
-			get
-			{
-				return addr_from.Endpoint;
-			}
-			set
-			{
-				addr_from.Endpoint = value;
-			}
+			get => _addrRecv.Endpoint;
+			set => _addrRecv.Endpoint = value;
 		}
 
-		ulong nonce;
+		public IPEndPoint AddressFrom
+		{
+			get => _addrFrom.Endpoint;
+			set => _addrFrom.Endpoint = value;
+		}
+
 		public ulong Nonce
 		{
-			get
-			{
-				return nonce;
-			}
-			set
-			{
-				nonce = value;
-			}
+			get => _nonce;
+			set => _nonce = value;
 		}
-		int start_height;
 
 		public int StartHeight
 		{
-			get
-			{
-				return start_height;
-			}
-			set
-			{
-				start_height = value;
-			}
+			get => _startHeight;
+			set => _startHeight = value;
 		}
 
-		bool relay;
 		public bool Relay
 		{
-			get
-			{
-				return relay;
-			}
-			set
-			{
-				relay = value;
-			}
+			get => _relay;
+			set => _relay = value;
 		}
 
-		VarString user_agent;
 		public string UserAgent
 		{
-			get
+			get => Encoders.ASCII.EncodeData(_userAgent.GetString());
+			set => _userAgent = new VarString(Encoders.ASCII.DecodeData(value));
+		}
+
+		public static string GetBitcoinNetUserAgent()
+		{
+			if (_nUserAgent == null)
 			{
-				return Encoders.ASCII.EncodeData(user_agent.GetString());
+				var version = typeof(VersionPayload).GetTypeInfo().Assembly.GetName().Version;
+				_nUserAgent = "/BitcoinNet:" + version.Major + "." + version.MajorRevision + "." + version.Build + "/";
 			}
-			set
-			{
-				user_agent = new VarString(Encoders.ASCII.DecodeData(value));
-			}
+
+			return _nUserAgent;
 		}
 
 		// IBitcoinSerializable Members
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			stream.ReadWrite(ref version);
-			using(stream.ProtocolVersionScope(version))
+			stream.ReadWrite(ref _version);
+			using (stream.ProtocolVersionScope(_version))
 			{
-				stream.ReadWrite(ref services);
-				stream.ReadWrite(ref timestamp);
-				using(stream.SerializationTypeScope(SerializationType.Hash)) //No time field in version message
+				stream.ReadWrite(ref _services);
+				stream.ReadWrite(ref _timestamp);
+				using (stream.SerializationTypeScope(SerializationType.Hash)) //No time field in version message
 				{
-					stream.ReadWrite(ref addr_recv);
+					stream.ReadWrite(ref _addrRecv);
 				}
-				if(version >= 106)
+
+				if (_version >= 106)
 				{
-					using(stream.SerializationTypeScope(SerializationType.Hash)) //No time field in version message
+					using (stream.SerializationTypeScope(SerializationType.Hash)) //No time field in version message
 					{
-						stream.ReadWrite(ref addr_from);
+						stream.ReadWrite(ref _addrFrom);
 					}
-					stream.ReadWrite(ref nonce);
-					stream.ReadWrite(ref user_agent);
-					if(!stream.ProtocolCapabilities.SupportUserAgent)
-						if(user_agent.Length != 0)
-							throw new FormatException("Should not find user agent for current version " + version);
-					stream.ReadWrite(ref start_height);
-					if(version >= 70001)
-						stream.ReadWrite(ref relay);
+
+					stream.ReadWrite(ref _nonce);
+					stream.ReadWrite(ref _userAgent);
+					if (!stream.ProtocolCapabilities.SupportUserAgent)
+					{
+						if (_userAgent.Length != 0)
+						{
+							throw new FormatException("Should not find user agent for current version " + _version);
+						}
+					}
+
+					stream.ReadWrite(ref _startHeight);
+					if (_version >= 70001)
+					{
+						stream.ReadWrite(ref _relay);
+					}
 				}
 			}
 		}

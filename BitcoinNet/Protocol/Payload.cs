@@ -1,38 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Protocol
+﻿namespace BitcoinNet.Protocol
 {
 	public class Payload : IBitcoinSerializable
 	{
-		public virtual string Command
-		{
-			get
-			{
-				return PayloadAttribute.GetCommandName(this.GetType());
-			}
-		}
+		public virtual string Command => PayloadAttribute.GetCommandName(GetType());
 
 		// IBitcoinSerializable Members
 
 		public void ReadWrite(BitcoinStream stream)
 		{
-			using(stream.SerializationTypeScope(SerializationType.Network))
+			using (stream.SerializationTypeScope(SerializationType.Network))
 			{
 				ReadWriteCore(stream);
 			}
 		}
+
 		public virtual void ReadWriteCore(BitcoinStream stream)
 		{
-
 		}
 
 		public override string ToString()
 		{
-			return this.GetType().Name;
+			return GetType().Name;
 		}
 	}
 }

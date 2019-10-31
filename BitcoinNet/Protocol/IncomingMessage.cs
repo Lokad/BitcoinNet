@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net.Sockets;
 
 namespace BitcoinNet.Protocol
 {
@@ -11,44 +6,31 @@ namespace BitcoinNet.Protocol
 	{
 		public IncomingMessage()
 		{
-
 		}
+
 		public IncomingMessage(Payload payload, Network network)
 		{
-			Message = new Message();
-			Message.Magic = network.Magic;
-			Message.Payload = payload;
+			Message = new Message {Magic = network.Magic, Payload = payload};
 		}
-		public Message Message
-		{
-			get;
-			set;
-		}
-		internal Socket Socket
-		{
-			get;
-			set;
-		}
-		public Node Node
-		{
-			get;
-			set;
-		}
-		public long Length
-		{
-			get;
-			set;
-		}
+
+		public Message Message { get; set; }
+
+		internal Socket Socket { get; set; }
+
+		public Node Node { get; set; }
+
+		public long Length { get; set; }
 
 		internal T AssertPayload<T>() where T : Payload
 		{
-			if(Message.Payload is T)
-				return (T)(Message.Payload);
-			else
+			if (Message.Payload is T)
 			{
-				var ex = new ProtocolException("Expected message " + typeof(T).Name + " but got " + Message.Payload.GetType().Name);
-				throw ex;
+				return (T) Message.Payload;
 			}
+
+			var ex = new ProtocolException("Expected message " + typeof(T).Name + " but got " +
+			                               Message.Payload.GetType().Name);
+			throw ex;
 		}
 	}
 }

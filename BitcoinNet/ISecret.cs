@@ -2,9 +2,6 @@
 {
 	public interface ISecret
 	{
-		Key PrivateKey
-		{
-			get;
-		}
+		Key PrivateKey { get; }
 	}
 }

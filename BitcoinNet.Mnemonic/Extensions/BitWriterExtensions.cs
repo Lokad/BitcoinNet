@@ -7,7 +7,7 @@ namespace BitcoinNet
 		public static int[] ToIntegers(this BitWriter writer)
 		{
 			var array = writer.ToBitArray();
-			return Wordlist.ToIntegers(array);
+			return WordList.ToIntegers(array);
 		}
 	}
 }

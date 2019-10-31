@@ -1,108 +1,71 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet.Policy
 {
 	public class TransactionPolicyError
 	{
-		public TransactionPolicyError()
-			: this(null as string)
-		{
+		private readonly string _message;
 
+		public TransactionPolicyError()
+			: this(null)
+		{
 		}
-		string _Message;
+
 		public TransactionPolicyError(string message)
 		{
-			_Message = message;
+			_message = message;
 		}
+
 		public override string ToString()
 		{
-			return _Message;
+			return _message;
 		}
 	}
 
 	public class TransactionSizePolicyError : TransactionPolicyError
 	{
 		public TransactionSizePolicyError(int actualSize, int maximumSize)
-			: base("Transaction's size is too high. Actual value is " + actualSize + ", but the maximum is " + maximumSize)
+			: base("Transaction's size is too high. Actual value is " + actualSize + ", but the maximum is " +
+			       maximumSize)
 		{
-			_ActualSize = actualSize;
-			_MaximumSize = maximumSize;
+			ActualSize = actualSize;
+			MaximumSize = maximumSize;
 		}
-		private readonly int _ActualSize;
-		public int ActualSize
-		{
-			get
-			{
-				return _ActualSize;
-			}
-		}
-		private readonly int _MaximumSize;
-		public int MaximumSize
-		{
-			get
-			{
-				return _MaximumSize;
-			}
-		}
+
+		public int ActualSize { get; }
+
+		public int MaximumSize { get; }
 	}
+
 	public class FeeTooHighPolicyError : TransactionPolicyError
 	{
 		public FeeTooHighPolicyError(Money fees, Money max)
 			: base("Fee too high, actual is " + fees.ToString() + ", policy maximum is " + max.ToString())
 		{
-			_ExpectedMaxFee = max;
-			_Fee = fees;
+			ExpectedMaxFee = max;
+			Fee = fees;
 		}
 
-		private readonly Money _Fee;
-		public Money Fee
-		{
-			get
-			{
-				return _Fee;
-			}
-		}
-		private readonly Money _ExpectedMaxFee;
-		public Money ExpectedMaxFee
-		{
-			get
-			{
-				return _ExpectedMaxFee;
-			}
-		}
+		public Money Fee { get; }
+
+		public Money ExpectedMaxFee { get; }
 	}
 
 	public class DustPolicyError : TransactionPolicyError
 	{
 		public DustPolicyError(Money value, Money dust)
-			: base("Dust output detected, output value is " + value.ToString() + ", policy minimum is " + dust.ToString())
+			: base("Dust output detected, output value is " + value.ToString() + ", policy minimum is " +
+			       dust.ToString())
 		{
-			_Value = value;
-			_DustThreshold = dust;
+			Value = value;
+			DustThreshold = dust;
 		}
 
-		private readonly Money _Value;
-		public Money Value
-		{
-			get
-			{
-				return _Value;
-			}
-		}
+		public Money Value { get; }
 
-		private readonly Money _DustThreshold;
-		public Money DustThreshold
-		{
-			get
-			{
-				return _DustThreshold;
-			}
-		}
+		public Money DustThreshold { get; }
 	}
 
 	public class FeeTooLowPolicyError : TransactionPolicyError
@@ -110,26 +73,13 @@ namespace BitcoinNet.Policy
 		public FeeTooLowPolicyError(Money fees, Money min)
 			: base("Fee too low, actual is " + fees.ToString() + ", policy minimum is " + min.ToString())
 		{
-			_ExpectedMinFee = min;
-			_Fee = fees;
+			ExpectedMinFee = min;
+			Fee = fees;
 		}
 
-		private readonly Money _Fee;
-		public Money Fee
-		{
-			get
-			{
-				return _Fee;
-			}
-		}
-		private readonly Money _ExpectedMinFee;
-		public Money ExpectedMinFee
-		{
-			get
-			{
-				return _ExpectedMinFee;
-			}
-		}
+		public Money Fee { get; }
+
+		public Money ExpectedMinFee { get; }
 	}
 
 	public class InputPolicyError : TransactionPolicyError
@@ -137,27 +87,13 @@ namespace BitcoinNet.Policy
 		public InputPolicyError(string message, IndexedTxIn txIn)
 			: base(message)
 		{
-			_OutPoint = txIn.PrevOut;
-			_InputIndex = txIn.Index;
+			OutPoint = txIn.PrevOut;
+			InputIndex = txIn.Index;
 		}
 
-		private readonly OutPoint _OutPoint;
-		public OutPoint OutPoint
-		{
-			get
-			{
-				return _OutPoint;
-			}
-		}
+		public OutPoint OutPoint { get; }
 
-		private readonly uint _InputIndex;
-		public uint InputIndex
-		{
-			get
-			{
-				return _InputIndex;
-			}
-		}
+		public uint InputIndex { get; }
 	}
 
 	public class DuplicateInputPolicyError : TransactionPolicyError
@@ -165,26 +101,13 @@ namespace BitcoinNet.Policy
 		public DuplicateInputPolicyError(IndexedTxIn[] duplicated)
 			: base("Duplicate input " + duplicated[0].PrevOut)
 		{
-			_OutPoint = duplicated[0].PrevOut;
-			_InputIndices = duplicated.Select(d => d.Index).ToArray();
+			OutPoint = duplicated[0].PrevOut;
+			InputIndices = duplicated.Select(d => d.Index).ToArray();
 		}
 
-		private readonly OutPoint _OutPoint;
-		public OutPoint OutPoint
-		{
-			get
-			{
-				return _OutPoint;
-			}
-		}
-		private readonly uint[] _InputIndices;
-		public uint[] InputIndices
-		{
-			get
-			{
-				return _InputIndices;
-			}
-		}
+		public OutPoint OutPoint { get; }
+
+		public uint[] InputIndices { get; }
 	}
 
 	public class OutputPolicyError : TransactionPolicyError
@@ -192,29 +115,25 @@ namespace BitcoinNet.Policy
 		public OutputPolicyError(string message, int outputIndex) :
 			base(message)
 		{
-			_OutputIndex = outputIndex;
+			OutputIndex = outputIndex;
 		}
-		private readonly int _OutputIndex;
-		public int OutputIndex
-		{
-			get
-			{
-				return _OutputIndex;
-			}
-		}
+
+		public int OutputIndex { get; }
 	}
+
 	public class CoinNotFoundPolicyError : InputPolicyError
 	{
-		IndexedTxIn _TxIn;
+		private readonly IndexedTxIn _txIn;
+
 		public CoinNotFoundPolicyError(IndexedTxIn txIn)
 			: base("No coin matching " + txIn.PrevOut + " was found", txIn)
 		{
-			_TxIn = txIn;
+			_txIn = txIn;
 		}
 
 		internal Exception AsException()
 		{
-			return new CoinNotFoundException(_TxIn);
+			return new CoinNotFoundException(_txIn);
 		}
 	}
 
@@ -223,44 +142,22 @@ namespace BitcoinNet.Policy
 		public ScriptPolicyError(IndexedTxIn input, ScriptError error, ScriptVerify scriptVerify, Script scriptPubKey)
 			: base("Script error on input " + input.Index + " (" + error + ")", input)
 		{
-			_ScriptError = error;
-			_ScriptVerify = scriptVerify;
-			_ScriptPubKey = scriptPubKey;
+			ScriptError = error;
+			ScriptVerify = scriptVerify;
+			ScriptPubKey = scriptPubKey;
 		}
 
+		public ScriptError ScriptError { get; }
 
-		private readonly ScriptError _ScriptError;
-		public ScriptError ScriptError
-		{
-			get
-			{
-				return _ScriptError;
-			}
-		}
+		public ScriptVerify ScriptVerify { get; }
 
-		private readonly ScriptVerify _ScriptVerify;
-		public ScriptVerify ScriptVerify
-		{
-			get
-			{
-				return _ScriptVerify;
-			}
-		}
-
-		private readonly Script _ScriptPubKey;
-		public Script ScriptPubKey
-		{
-			get
-			{
-				return _ScriptPubKey;
-			}
-
-		}
+		public Script ScriptPubKey { get; }
 	}
+
 	public interface ITransactionPolicy
 	{
 		/// <summary>
-		/// Check if the given transaction violate the policy
+		///     Check if the given transaction violate the policy
 		/// </summary>
 		/// <param name="transaction">The transaction</param>
 		/// <param name="spentCoins">The previous coins</param>

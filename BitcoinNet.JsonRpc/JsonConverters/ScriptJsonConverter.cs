@@ -1,9 +1,8 @@
-﻿using BitcoinNet;
-using BitcoinNet.DataEncoders;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Reflection;
+using BitcoinNet.DataEncoders;
 using BitcoinNet.Scripting;
+using Newtonsoft.Json;
 
 namespace BitcoinNet.JsonRpc.JsonConverters
 {
@@ -14,27 +13,36 @@ namespace BitcoinNet.JsonRpc.JsonConverters
 			return typeof(Script).GetTypeInfo().IsAssignableFrom(objectType.GetTypeInfo());
 		}
 
-		public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+		public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
+			JsonSerializer serializer)
 		{
-			if(reader.TokenType == JsonToken.Null)
+			if (reader.TokenType == JsonToken.Null)
+			{
 				return null;
+			}
+
 			try
 			{
-				if(objectType == typeof(Script))
-					return Script.FromBytesUnsafe(Encoders.Hex.DecodeData((string)reader.Value));
+				if (objectType == typeof(Script))
+				{
+					return Script.FromBytesUnsafe(Encoders.Hex.DecodeData((string) reader.Value));
+				}
 			}
-			catch(FormatException)
+			catch (FormatException)
 			{
 			}
+
 			throw new JsonObjectException("A script should be a byte string", reader);
 		}
 
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			if(value != null)
+			if (value != null)
 			{
-				if(value is Script)
-					writer.WriteValue(Encoders.Hex.EncodeData(((Script)value).ToBytes(false)));
+				if (value is Script)
+				{
+					writer.WriteValue(Encoders.Hex.EncodeData(((Script) value).ToBytes(false)));
+				}
 			}
 		}
 	}

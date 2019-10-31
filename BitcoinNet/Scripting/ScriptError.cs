@@ -54,6 +54,6 @@
 		WitnessUnexpected,
 		NullFail,
 		MinimalIf,
-		WitnessPubkeyType,
+		WitnessPubkeyType
 	}
 }

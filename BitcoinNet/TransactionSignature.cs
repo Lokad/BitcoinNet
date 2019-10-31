@@ -1,36 +1,79 @@
-﻿using BitcoinNet.Crypto;
+﻿using System;
+using BitcoinNet.BouncyCastle.Math;
+using BitcoinNet.Crypto;
 using BitcoinNet.DataEncoders;
-using System;
 using BitcoinNet.Scripting;
 
 namespace BitcoinNet
 {
 	public class TransactionSignature
 	{
-		static readonly TransactionSignature _Empty = new TransactionSignature(new ECDSASignature(BitcoinNet.BouncyCastle.Math.BigInteger.ValueOf(0), BitcoinNet.BouncyCastle.Math.BigInteger.ValueOf(0)), SigHash.All);
-		public static TransactionSignature Empty
+		private string _id;
+
+		public TransactionSignature(ECDSASignature signature, SigHash sigHash)
+		{
+			if (sigHash == SigHash.Undefined)
+			{
+				throw new ArgumentException("sigHash should not be Undefined");
+			}
+
+			SigHash = sigHash;
+			Signature = signature;
+		}
+
+		public TransactionSignature(ECDSASignature signature)
+			: this(signature, SigHash.All)
+		{
+		}
+
+		public TransactionSignature(byte[] sigSigHash)
+		{
+			Signature = ECDSASignature.FromDER(sigSigHash);
+			SigHash = (SigHash) sigSigHash[sigSigHash.Length - 1];
+		}
+
+		public TransactionSignature(byte[] sig, SigHash sigHash)
+		{
+			Signature = ECDSASignature.FromDER(sig);
+			SigHash = sigHash;
+		}
+
+		public static TransactionSignature Empty { get; } =
+			new TransactionSignature(new ECDSASignature(BigInteger.ValueOf(0), BigInteger.ValueOf(0)), SigHash.All);
+
+		public ECDSASignature Signature { get; }
+
+		public SigHash SigHash { get; }
+
+		private string Id
 		{
 			get
 			{
-				return _Empty;
+				if (_id == null)
+				{
+					_id = Encoders.Hex.EncodeData(ToBytes());
+				}
+
+				return _id;
 			}
 		}
 
+		public bool IsLowS => Signature.IsLowS;
+
 		/// <summary>
-		/// Check if valid transaction signature
+		///     Check if valid transaction signature
 		/// </summary>
 		/// <param name="sig">Signature in bytes</param>
 		/// <param name="scriptVerify">Verification rules</param>
 		/// <returns>True if valid</returns>
 		public static bool IsValid(byte[] sig, ScriptVerify scriptVerify = ScriptVerify.DerSig | ScriptVerify.StrictEnc)
 		{
-			ScriptError error;
-			return IsValid(sig, scriptVerify, out error);
+			return IsValid(sig, scriptVerify, out _);
 		}
 
 
 		/// <summary>
-		/// Check if valid transaction signature
+		///     Check if valid transaction signature
 		/// </summary>
 		/// <param name="sig">The signature</param>
 		/// <param name="scriptVerify">Verification rules</param>
@@ -38,117 +81,84 @@ namespace BitcoinNet
 		/// <returns>True if valid</returns>
 		public static bool IsValid(byte[] sig, ScriptVerify scriptVerify, out ScriptError error)
 		{
-			if(sig == null)
+			if (sig == null)
+			{
 				throw new ArgumentNullException(nameof(sig));
-			if(sig.Length == 0)
+			}
+
+			if (sig.Length == 0)
 			{
 				error = ScriptError.SigDer;
 				return false;
 			}
+
 			error = ScriptError.OK;
-			var ctx = new ScriptEvaluationContext()
+			var ctx = new ScriptEvaluationContext
 			{
 				ScriptVerify = scriptVerify
 			};
-			if(!ctx.CheckSignatureEncoding(sig))
+			if (!ctx.CheckSignatureEncoding(sig))
 			{
 				error = ctx.Error;
 				return false;
 			}
+
 			return true;
-		}
-		public TransactionSignature(ECDSASignature signature, SigHash sigHash)
-		{
-			if(sigHash == SigHash.Undefined)
-				throw new ArgumentException("sigHash should not be Undefined");
-			_SigHash = sigHash;
-			_Signature = signature;
-		}
-		public TransactionSignature(ECDSASignature signature)
-			: this(signature, SigHash.All)
-		{
-
-		}
-		public TransactionSignature(byte[] sigSigHash)
-		{
-			_Signature = ECDSASignature.FromDER(sigSigHash);
-			_SigHash = (SigHash)sigSigHash[sigSigHash.Length - 1];
-		}
-		public TransactionSignature(byte[] sig, SigHash sigHash)
-		{
-			_Signature = ECDSASignature.FromDER(sig);
-			_SigHash = sigHash;
-		}
-
-		private readonly ECDSASignature _Signature;
-		public ECDSASignature Signature
-		{
-			get
-			{
-				return _Signature;
-			}
-		}
-		private readonly SigHash _SigHash;
-		public SigHash SigHash
-		{
-			get
-			{
-				return _SigHash;
-			}
 		}
 
 		public byte[] ToBytes()
 		{
-			var sig = _Signature.ToDER();
+			var sig = Signature.ToDER();
 			var result = new byte[sig.Length + 1];
 			Array.Copy(sig, 0, result, 0, sig.Length);
-			result[result.Length - 1] = (byte)_SigHash;
+			result[result.Length - 1] = (byte) SigHash;
 			return result;
 		}
 
 		public static bool ValidLength(int length)
 		{
-			return (67 <= length && length <= 80) || length == 9; //9 = Empty signature
+			return 67 <= length && length <= 80 || length == 9; //9 = Empty signature
 		}
 
-		public bool Check(PubKey pubKey, Script scriptPubKey, IndexedTxIn txIn, ScriptVerify verify = ScriptVerify.Standard)
+		public bool Check(PubKey pubKey, Script scriptPubKey, IndexedTxIn txIn,
+			ScriptVerify verify = ScriptVerify.Standard)
 		{
 			return Check(pubKey, scriptPubKey, txIn.Transaction, txIn.Index, verify);
 		}
 
-		public bool Check(PubKey pubKey, Script scriptPubKey, Transaction tx, uint nIndex, ScriptVerify verify = ScriptVerify.Standard)
+		public bool Check(PubKey pubKey, Script scriptPubKey, Transaction tx, uint nIndex,
+			ScriptVerify verify = ScriptVerify.Standard)
 		{
-			return new ScriptEvaluationContext()
+			return new ScriptEvaluationContext
 			{
 				ScriptVerify = verify,
 				SigHash = SigHash
 			}.CheckSig(this, pubKey, scriptPubKey, tx, nIndex);
 		}
 
-		string _Id;
-		private string Id
-		{
-			get
-			{
-				if(_Id == null)
-					_Id = Encoders.Hex.EncodeData(ToBytes());
-				return _Id;
-			}
-		}
-
 		public override bool Equals(object obj)
 		{
-			TransactionSignature item = obj as TransactionSignature;
-			if(item == null)
+			var item = obj as TransactionSignature;
+			if (item == null)
+			{
 				return false;
+			}
+
 			return Id.Equals(item.Id);
 		}
+
 		public static bool operator ==(TransactionSignature a, TransactionSignature b)
 		{
-			if(System.Object.ReferenceEquals(a, b))
+			if (ReferenceEquals(a, b))
+			{
 				return true;
-			if(((object)a == null) || ((object)b == null))
+			}
+
+			if ((object) a == null || (object) b == null)
+			{
 				return false;
+			}
+
 			return a.Id == b.Id;
 		}
 
@@ -167,22 +177,17 @@ namespace BitcoinNet
 			return Encoders.Hex.EncodeData(ToBytes());
 		}
 
-		public bool IsLowS
-		{
-			get
-			{
-				return Signature.IsLowS;
-			}
-		}
-
 
 		/// <summary>
-		/// Enforce LowS on the signature
+		///     Enforce LowS on the signature
 		/// </summary>
 		public TransactionSignature MakeCanonical()
 		{
-			if(IsLowS)
+			if (IsLowS)
+			{
 				return this;
+			}
+
 			return new TransactionSignature(Signature.MakeCanonical(), SigHash);
 		}
 	}

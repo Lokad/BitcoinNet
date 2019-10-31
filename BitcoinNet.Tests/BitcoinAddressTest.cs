@@ -173,7 +173,7 @@ namespace BitcoinNet.Tests
 			var cashAddrHashBytes = GetHashBytes(cashAddrKey);
 			var cashAddrHashString = Encoders.Hex.EncodeData(cashAddrHashBytes);
 			Assert.Equal(vector.Hash, cashAddrHashString);
-			
+
 			// Try to recreate addresses with hashes
 			switch (address)
 			{

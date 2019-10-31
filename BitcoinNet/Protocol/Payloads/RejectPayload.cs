@@ -1,13 +1,7 @@
 ﻿using BitcoinNet.DataEncoders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BitcoinNet.Protocol
 {
-
 	public enum RejectCode : byte
 	{
 		MALFORMED = 0x01,
@@ -19,6 +13,7 @@ namespace BitcoinNet.Protocol
 		INSUFFICIENTFEE = 0x42,
 		CHECKPOINT = 0x43
 	}
+
 	public enum RejectCodeType
 	{
 		Common,
@@ -28,57 +23,57 @@ namespace BitcoinNet.Protocol
 	}
 
 	/// <summary>
-	/// A transaction or block are rejected being transmitted through tx or block messages
+	///     A transaction or block are rejected being transmitted through tx or block messages
 	/// </summary>
 	[Payload("reject")]
 	public class RejectPayload : Payload
 	{
-		VarString _Message = new VarString();
+		private byte _code;
+		private uint256 _hash;
+		private VarString _message = new VarString();
+		private VarString _reason = new VarString();
+
 		/// <summary>
-		/// "tx" or "block"
+		///     "tx" or "block"
 		/// </summary>
 		public string Message
 		{
-			get
-			{
-				return Encoders.ASCII.EncodeData(_Message.GetString(true));
-			}
-			set
-			{
-				_Message = new VarString(Encoders.ASCII.DecodeData(value));
-			}
+			get => Encoders.ASCII.EncodeData(_message.GetString(true));
+			set => _message = new VarString(Encoders.ASCII.DecodeData(value));
 		}
-		byte _Code;
+
 		public RejectCode Code
 		{
-			get
-			{
-				return (RejectCode)_Code;
-			}
-			set
-			{
-				_Code = (byte)value;
-			}
+			get => (RejectCode) _code;
+			set => _code = (byte) value;
 		}
 
 		public RejectCodeType CodeType
 		{
 			get
 			{
-				switch(Code)
+				switch (Code)
 				{
 					case RejectCode.MALFORMED:
 						return RejectCodeType.Common;
 					case RejectCode.OBSOLETE:
-						if(Message == "block")
+						if (Message == "block")
+						{
 							return RejectCodeType.Block;
+						}
 						else
+						{
 							return RejectCodeType.Version;
+						}
 					case RejectCode.DUPLICATE:
-						if(Message == "tx")
+						if (Message == "tx")
+						{
 							return RejectCodeType.Transaction;
+						}
 						else
+						{
 							return RejectCodeType.Version;
+						}
 					case RejectCode.NONSTANDARD:
 					case RejectCode.DUST:
 					case RejectCode.INSUFFICIENTFEE:
@@ -86,55 +81,47 @@ namespace BitcoinNet.Protocol
 					case RejectCode.CHECKPOINT:
 						return RejectCodeType.Block;
 					case RejectCode.INVALID:
-						if(Message == "tx")
+						if (Message == "tx")
+						{
 							return RejectCodeType.Transaction;
+						}
 						else
+						{
 							return RejectCodeType.Block;
+						}
 					default:
 						return RejectCodeType.Common;
 				}
 			}
 		}
 
-		VarString _Reason = new VarString();
 		/// <summary>
-		/// Details of the error
+		///     Details of the error
 		/// </summary>
 		public string Reason
 		{
-			get
-			{
-				return Encoders.ASCII.EncodeData(_Reason.GetString(true));
-			}
-			set
-			{
-				_Reason = new VarString(Encoders.ASCII.DecodeData(value));
-			}
+			get => Encoders.ASCII.EncodeData(_reason.GetString(true));
+			set => _reason = new VarString(Encoders.ASCII.DecodeData(value));
 		}
 
-		uint256 _Hash;
 		/// <summary>
-		/// The hash being rejected
+		///     The hash being rejected
 		/// </summary>
 		public uint256 Hash
 		{
-			get
-			{
-				return _Hash;
-			}
-			set
-			{
-				_Hash = value;
-			}
+			get => _hash;
+			set => _hash = value;
 		}
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			stream.ReadWrite(ref _Message);
-			stream.ReadWrite(ref _Code);
-			stream.ReadWrite(ref _Reason);
-			if(Message == "tx" || Message == "block")
-				stream.ReadWrite(ref _Hash);
+			stream.ReadWrite(ref _message);
+			stream.ReadWrite(ref _code);
+			stream.ReadWrite(ref _reason);
+			if (Message == "tx" || Message == "block")
+			{
+				stream.ReadWrite(ref _hash);
+			}
 		}
 	}
 }

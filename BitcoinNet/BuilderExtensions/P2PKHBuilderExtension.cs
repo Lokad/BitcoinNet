@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BitcoinNet.Scripting;
+﻿using BitcoinNet.Scripting;
 
 namespace BitcoinNet.BuilderExtensions
 {
@@ -34,13 +29,21 @@ namespace BitcoinNet.BuilderExtensions
 		{
 			var aSig = PayToPubkeyHashTemplate.Instance.ExtractScriptSigParameters(a);
 			var bSig = PayToPubkeyHashTemplate.Instance.ExtractScriptSigParameters(b);
-			if(aSig == null)
+			if (aSig == null)
+			{
 				return b;
-			if(bSig == null)
+			}
+
+			if (bSig == null)
+			{
 				return a;
-			var merged = new PayToPubkeyHashScriptSigParameters();
-			merged.PublicKey = aSig.PublicKey ?? bSig.PublicKey;
-			merged.TransactionSignature = aSig.TransactionSignature ?? bSig.TransactionSignature;
+			}
+
+			var merged = new PayToPubkeyHashScriptSigParameters
+			{
+				PublicKey = aSig.PublicKey ?? bSig.PublicKey,
+				TransactionSignature = aSig.TransactionSignature ?? bSig.TransactionSignature
+			};
 			return PayToPubkeyHashTemplate.Instance.GenerateScriptSig(merged);
 		}
 
@@ -60,8 +63,11 @@ namespace BitcoinNet.BuilderExtensions
 		{
 			var parameters = PayToPubkeyHashTemplate.Instance.ExtractScriptPubKeyParameters(scriptPubKey);
 			var key = keyRepo.FindKey(parameters.ScriptPubKey);
-			if(key == null)
+			if (key == null)
+			{
 				return null;
+			}
+
 			var sig = signer.Sign(key);
 			return PayToPubkeyHashTemplate.Instance.GenerateScriptSig(sig, key.PubKey);
 		}

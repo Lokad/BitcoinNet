@@ -1,9 +1,5 @@
-﻿using BitcoinNet.JsonRpc.JsonConverters;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
+using BitcoinNet.JsonRpc.JsonConverters;
 using BitcoinNet.Scripting;
 using Xunit;
 
@@ -11,13 +7,34 @@ namespace BitcoinNet.JsonRpc.Tests
 {
 	public class JsonConverterTests
 	{
+		private T CanSerializeInJsonCore<T>(T value)
+		{
+			var str = Serializer.ToString(value);
+			var obj2 = Serializer.ToObject<T>(str);
+			Assert.Equal(str, Serializer.ToString(obj2));
+			return obj2;
+		}
+
+		private class DummyClass
+		{
+			public BitcoinExtPubKey ExtPubKey { get; set; }
+		}
+
+		[Fact]
+		public void CanSerializeCustomClass()
+		{
+			var str = Serializer.ToString(new DummyClass {ExtPubKey = new ExtKey().Neuter().GetWif(Network.RegTest)},
+				Network.RegTest);
+			Assert.NotNull(Serializer.ToObject<DummyClass>(str, Network.RegTest));
+		}
+
 		[Fact]
 		[Trait("UnitTest", "UnitTest")]
 		public void CanSerializeInJson()
 		{
-			Key k = new Key();
+			var k = new Key();
 			CanSerializeInJsonCore(DateTimeOffset.UtcNow);
-			CanSerializeInJsonCore(new byte[] { 1, 2, 3 });
+			CanSerializeInJsonCore(new byte[] {1, 2, 3});
 			CanSerializeInJsonCore(k);
 			CanSerializeInJsonCore(Money.Coins(5.0m));
 			CanSerializeInJsonCore(k.PubKey.GetAddress(Network.Main));
@@ -38,27 +55,6 @@ namespace BitcoinNet.JsonRpc.Tests
 			//CanSerializeInJsonCore(new WitScript(new Script(Op.GetPushOp(sig.ToDER()), Op.GetPushOp(sig.ToDER()))));
 			CanSerializeInJsonCore(new LockTime(1));
 			CanSerializeInJsonCore(new LockTime(DateTime.UtcNow));
-		}
-
-		private T CanSerializeInJsonCore<T>(T value)
-		{
-			var str = Serializer.ToString(value);
-			var obj2 = Serializer.ToObject<T>(str);
-			Assert.Equal(str, Serializer.ToString(obj2));
-			return obj2;
-		}
-
-		private class DummyClass
-		{
-			public BitcoinExtPubKey ExtPubKey { get; set; }
-		}
-
-		[Fact]
-		public void CanSerializeCustomClass()
-		{
-			var str = Serializer.ToString(new DummyClass { ExtPubKey = new ExtKey().Neuter().GetWif(Network.RegTest) },
-				Network.RegTest);
-			Assert.NotNull(Serializer.ToObject<DummyClass>(str, Network.RegTest));
 		}
 	}
 }

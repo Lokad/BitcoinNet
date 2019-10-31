@@ -1,40 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BitcoinNet.Protocol
+﻿namespace BitcoinNet.Protocol
 {
 	[Payload("ping")]
 	public class PingPayload : Payload
 	{
+		private ulong _nonce;
 
 		public PingPayload()
 		{
-			_Nonce = RandomUtils.GetUInt64();
+			_nonce = RandomUtils.GetUInt64();
 		}
-		private ulong _Nonce;
+
 		public ulong Nonce
 		{
-			get
-			{
-				return _Nonce;
-			}
-			set
-			{
-				_Nonce = value;
-			}
+			get => _nonce;
+			set => _nonce = value;
 		}
 
 		public override void ReadWriteCore(BitcoinStream stream)
 		{
-			stream.ReadWrite(ref _Nonce);
+			stream.ReadWrite(ref _nonce);
 		}
 
 		public PongPayload CreatePong()
 		{
-			return new PongPayload()
+			return new PongPayload
 			{
 				Nonce = Nonce
 			};
